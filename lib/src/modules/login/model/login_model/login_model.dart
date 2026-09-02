@@ -5,12 +5,7 @@ part 'login_model.g.dart';
 
 @freezed
 abstract class LoginModel with _$LoginModel {
-  const factory LoginModel({
-    @Default(false) bool status,
-    @Default('') String message,
-    @Default('') String token,
-    UserData? data,
-  }) = _LoginModel;
+  const factory LoginModel({@Default(false) bool status, @Default('') String message, @Default('') String token, UserData? data}) = _LoginModel;
 
   factory LoginModel.fromJson(Map<String, dynamic> json) => _$LoginModelFromJson(json);
 }
@@ -32,30 +27,22 @@ abstract class UserData with _$UserData {
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
     @JsonKey(name: 'role_name') @Default('') String roleName,
     @Default({}) Map<String, PermissionNode> permissions,
-}) = _UserData;
+  }) = _UserData;
 
   factory UserData.fromJson(Map<String, dynamic> json) => _$UserDataFromJson(json);
 }
 
 @freezed
 abstract class PermissionNode with _$PermissionNode {
-  const factory PermissionNode({
-    @Default('') String name,
-    @Default('') String icon,
-    PermissionDetails? permissions,
-}) = _PermissionNode;
+  const factory PermissionNode({@Default('') String name, @Default('') String icon, PermissionDetails? permissions}) = _PermissionNode;
 
   factory PermissionNode.fromJson(Map<String, dynamic> json) => _$PermissionNodeFromJson(json);
 }
 
 @freezed
 abstract class PermissionDetails with _$PermissionDetails {
-  const factory PermissionDetails({
-    @Default(false) bool add,
-    @Default(false) bool edit,
-    @Default(false) bool delete,
-    @Default(false) bool view,
-}) = _PermissionDetails;
+  const factory PermissionDetails({@Default(false) bool add, @Default(false) bool edit, @Default(false) bool delete, @Default(false) bool view}) =
+      _PermissionDetails;
 
   factory PermissionDetails.fromJson(Map<String, dynamic> json) => _$PermissionDetailsFromJson(json);
 }
