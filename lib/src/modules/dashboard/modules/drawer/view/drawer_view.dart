@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-
 class DrawerView extends GetView<DashboardDrawerController> {
   const DrawerView({super.key});
 
@@ -45,24 +44,16 @@ class DrawerView extends GetView<DashboardDrawerController> {
 
   Widget _buildDrawerHeader(BuildContext context) {
     return UserAccountsDrawerHeader(
-      decoration: BoxDecoration(
-        color: Theme.of(context).primaryColorDark,
-      ),
-      accountName: Text(
-        AppStrings.appName,
-        style: context.headingTextStyle,
-      ),
+      decoration: BoxDecoration(color: Theme.of(context).primaryColorDark),
+      accountName: Text(AppStrings.appName, style: context.headingTextStyle),
       accountEmail: Text(
-        AppStrings.superAdminRole,
-        style: context.subTitleStyle,
+        "",
+        // AppStrings.superAdminRole,
+        // style: context.subTitleStyle,
       ),
       currentAccountPicture: CircleAvatar(
         backgroundColor: Colors.white,
-        child: Icon(
-          Icons.admin_panel_settings_rounded,
-          size: context.responsiveSize(40, 40),
-          color: Colors.blueGrey,
-        ),
+        child: Icon(Icons.admin_panel_settings_rounded, size: context.responsiveSize(40, 40), color: Colors.blueGrey),
       ),
     );
   }
@@ -71,20 +62,14 @@ class DrawerView extends GetView<DashboardDrawerController> {
     if (item.isExpansion && item.subItems != null) {
       return ExpansionTile(
         leading: _buildIcon(context, item),
-        title: Text(
-          item.title,
-          style: context.titleStyleRegular.copyWith(fontWeight: FontWeight.w600),
-        ),
+        title: Text(item.title, style: context.titleStyleRegular.copyWith(fontWeight: FontWeight.w600)),
         children: item.subItems!.map((subItem) => _buildSubMenuItem(context, subItem)).toList(),
       );
     }
 
     return ListTile(
       leading: _buildIcon(context, item),
-      title: Text(
-        item.title,
-        style: context.titleStyleRegular,
-      ),
+      title: Text(item.title, style: context.titleStyleRegular),
       onTap: () {
         Get.find<DashboardController>().changeActiveMenu(item.identifier);
         if (Scaffold.of(context).hasDrawer && Scaffold.of(context).isDrawerOpen) {
@@ -97,15 +82,9 @@ class DrawerView extends GetView<DashboardDrawerController> {
   /// Builds indented sub-items inside Master categories dynamically
   Widget _buildSubMenuItem(BuildContext context, DrawerMenuModel item) {
     return ListTile(
-      contentPadding: EdgeInsets.only(
-        left: context.responsiveWidth(56, 56),
-        right: context.responsiveWidth(16, 16),
-      ),
+      contentPadding: EdgeInsets.only(left: context.responsiveWidth(56, 56), right: context.responsiveWidth(16, 16)),
       leading: _buildIcon(context, item, size: context.responsiveSize(20, 20)),
-      title: Text(
-        item.title,
-        style: context.bodyTextStyle,
-      ),
+      title: Text(item.title, style: context.bodyTextStyle),
       onTap: () {
         Get.find<DashboardController>().changeActiveMenu(item.identifier);
         if (Scaffold.of(context).hasDrawer && Scaffold.of(context).isDrawerOpen) {
@@ -180,10 +159,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
   Widget _buildDrawerFooter(BuildContext context) {
     return Padding(
       padding: EdgeInsets.all(context.responsiveSize(16, 16)),
-      child: Text(
-        AppStrings.appVersion,
-        style: context.subTitleStyle.copyWith(fontSize: context.responsiveSize(12, 12)),
-      ),
+      child: Text(AppStrings.appVersion, style: context.subTitleStyle.copyWith(fontSize: context.responsiveSize(12, 12))),
     );
   }
 }
