@@ -23,7 +23,13 @@ abstract final class AppStrings {
   static const String requiredField = "Required";
   static const String loginDisclaimer = '''By logging in you agree to record your IP and location info for security reason.''';
 
-  ///Exception Messages
+  /// DRAWER (Newly Added)
+  static const String superAdminRole = "Super Admin Role";
+  static const String appVersion = "Version 1.0.0";
+  static const String failedToLoadIcon = "Failed to load icon image";
+  static const String drawerMenuIconLoadFailure = "Drawer Menu Icon Load Failure:";
+
+  /// Exception Messages
   static const String socketException = "SocketException: No internet connection";
   static const String exceptionCaught = "Exception caught while fetching data from API";
   static const String exceptionVerifyAuthCode = "Exception while verifying auth code:";

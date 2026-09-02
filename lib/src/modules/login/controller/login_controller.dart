@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:family_bazar_admin_panel/src/core/base_controller/base_controller.dart';
 import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/device/device_meta_service.dart';
@@ -76,6 +78,13 @@ class LoginController extends BaseController {
       if (isClosed) return;
       if (response.token.isNotEmpty) {
         await _storageService.setString('auth_token', response.token);
+
+        if(response.data != null) {
+          final userDataJson = jsonEncode(response.data!.toJson());
+          await _storageService.setString('user_data', userDataJson);
+        } else {
+          Sentry.captureMessage('Login succeeded but user data/permissions payload was null', level: SentryLevel.warning);
+        }
         DialogHelper.showSuccess(
           message: response.message.isNotEmpty ? response.message : 'Login Successful!',
           title: 'Welcome Back',
