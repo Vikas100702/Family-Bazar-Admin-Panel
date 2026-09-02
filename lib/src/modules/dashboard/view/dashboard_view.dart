@@ -19,11 +19,11 @@ class DashboardView extends GetView<DashboardController> {
           appBar: isDesktop
               ? null
               : AppBar(
-            title: const Text('FamilyBazar Admin', style: TextStyle(fontWeight: FontWeight.w600)),
-            elevation: 2,
-            backgroundColor: Theme.of(context).primaryColor,
-            foregroundColor: Colors.white,
-          ),
+                  title: const Text('FamilyBazar Admin', style: TextStyle(fontWeight: FontWeight.w600)),
+                  elevation: 2,
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                ),
 
           // Mobile Web: The drawer acts as a slide-out overlay
           drawer: isDesktop ? null : const DrawerView(),
@@ -35,7 +35,7 @@ class DashboardView extends GetView<DashboardController> {
                 // Desktop Web: The drawer is a permanent, fixed side-panel
                 if (isDesktop)
                   const SizedBox(
-                    width: 260, // Fixed enterprise standard sidebar width
+                    width: 360, // Fixed enterprise standard sidebar width
                     child: DrawerView(),
                   ),
 
@@ -65,13 +65,10 @@ class DashboardView extends GetView<DashboardController> {
     switch (menuKey.toLowerCase()) {
       case 'dashboard':
         return const Center(
-          child: Text(
-            'Dashboard Analytics Module Pending',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-          ),
+          child: Text('Dashboard Analytics Module Pending', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
         );
 
-    // Master Categories
+      // Master Categories
       case 'mastercategory':
         return const Center(child: Text('Master Category Module - Coming Soon'));
       case 'mastersubcategory':
@@ -79,7 +76,7 @@ class DashboardView extends GetView<DashboardController> {
       case 'masterbrandname':
         return const Center(child: Text('Master Brand Module - Coming Soon'));
 
-    // General Categories
+      // General Categories
       case 'product':
         return const Center(child: Text('Product Management Module - Coming Soon'));
       case 'order':
@@ -88,7 +85,7 @@ class DashboardView extends GetView<DashboardController> {
         return const Center(child: Text('Customer Management Module - Coming Soon'));
 
       default:
-      // Zero-Tolerance UI Crash: Fallback for unregistered modules
+        // Zero-Tolerance UI Crash: Fallback for unregistered modules
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
