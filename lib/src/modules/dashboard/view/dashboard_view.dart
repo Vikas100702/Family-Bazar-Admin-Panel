@@ -1,4 +1,6 @@
 import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_coontroller.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -77,6 +79,10 @@ class DashboardView extends GetView<DashboardController> {
         return const Center(child: Text('Master Brand Module - Coming Soon'));
 
       // General Categories
+      case 'firm setup': // Ensure this matches the exact key sent from your DrawerController
+        return const FirmView();
+      case 'pin code settings': // Ensure this matches the exact key sent from your DrawerController
+        return const PincodeSettingsView();
       case 'product':
         return const Center(child: Text('Product Management Module - Coming Soon'));
       case 'order':
