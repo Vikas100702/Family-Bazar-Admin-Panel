@@ -79,16 +79,14 @@ class LoginController extends BaseController {
       if (response.token.isNotEmpty) {
         await _storageService.setString('auth_token', response.token);
 
-        if(response.data != null) {
+        if (response.data != null) {
           final userDataJson = jsonEncode(response.data!.toJson());
           await _storageService.setString('user_data', userDataJson);
+          await _storageService.setString('username', response.data!.username);
         } else {
           Sentry.captureMessage('Login succeeded but user data/permissions payload was null', level: SentryLevel.warning);
         }
-        DialogHelper.showSuccess(
-          message: response.message.isNotEmpty ? response.message : 'Login Successful!',
-          title: 'Welcome Back',
-        );
+        DialogHelper.showSuccess(message: response.message.isNotEmpty ? response.message : 'Login Successful!', title: 'Welcome Back');
         Get.offAllNamed(AppRoutes.dashboard);
       } else {
         passwordController.clear(); // Clear password on failure
