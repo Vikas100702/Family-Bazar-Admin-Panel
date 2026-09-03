@@ -21,10 +21,7 @@ class ApiClient {
         baseUrl: ApiConstants.baseUrl,
         connectTimeout: AppConstants.apiTimeout,
         receiveTimeout: AppConstants.apiTimeout,
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Accept': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json', 'x-api-key': 'api@familybazar.com'},
       ),
     );
 
@@ -52,16 +49,12 @@ class ApiClient {
               Breadcrumb(
                 message: 'API Request: ${options.method} ${options.path}',
                 category: 'HTTP',
-                data: {
-                  'url': options.uri.toString(),
-                  'method': options.method,
-                },
+                data: {'url': options.uri.toString(), 'method': options.method},
               ),
             );
 
             // SECURITY LOCK: Only attach Bearer token if the request is going to our internal API host
-            final isInternalRequest = options.uri.toString().startsWith(ApiConstants.baseUrl) ||
-                options.path.startsWith('/');
+            final isInternalRequest = options.uri.toString().startsWith(ApiConstants.baseUrl) || options.path.startsWith('/');
 
             if (isInternalRequest && Get.isRegistered<StorageService>()) {
               final StorageService storage = Get.find<StorageService>();
@@ -72,10 +65,7 @@ class ApiClient {
               }
             }
           } catch (e, stackTrace) {
-            Sentry.captureException(
-              Exception('API Client Interceptor Auth Warning: $e'),
-              stackTrace: stackTrace,
-            );
+            Sentry.captureException(Exception('API Client Interceptor Auth Warning: $e'), stackTrace: stackTrace);
             debugPrint("--- [API CLIENT] Interceptor Auth Warning: $e ---");
           }
           return handler.next(options);
@@ -86,10 +76,7 @@ class ApiClient {
             stackTrace: e.stackTrace,
             withScope: (scope) {
               scope.setTag('api_endpoint', e.requestOptions.path);
-              scope.setContexts('API_Error_Details', {
-                'statusCode': e.response?.statusCode,
-                'message': e.message,
-              });
+              scope.setContexts('API_Error_Details', {'statusCode': e.response?.statusCode, 'message': e.message});
             },
           );
 
@@ -106,17 +93,11 @@ class ApiClient {
                 Get.offAllNamed('/auth'); // Adjust to your exact AppRoutes.auth string
 
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  DialogHelper.showError(
-                    title: 'Session Expired',
-                    message: 'Your session has expired. Please log in again to continue.',
-                  );
+                  DialogHelper.showError(title: 'Session Expired', message: 'Your session has expired. Please log in again to continue.');
                 });
               }
             } catch (clearError, stackTrace) {
-              Sentry.captureException(
-                Exception('Failed to clear session on 401: $clearError'),
-                stackTrace: stackTrace,
-              );
+              Sentry.captureException(Exception('Failed to clear session on 401: $clearError'), stackTrace: stackTrace);
             }
           }
           return handler.next(e);
@@ -126,14 +107,7 @@ class ApiClient {
 
     // Development Logging Interceptor
     _dio.interceptors.add(
-      LogInterceptor(
-        request: true,
-        requestHeader: true,
-        requestBody: true,
-        responseHeader: false,
-        responseBody: true,
-        error: true,
-      ),
+      LogInterceptor(request: true, requestHeader: true, requestBody: true, responseHeader: false, responseBody: true, error: true),
     );
   }
 
