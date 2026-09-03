@@ -4,4 +4,6 @@ abstract class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
   static const String dashboard = '/dashboard';
+  static const String firmSetup = '/firm-setup';
+  static const String pincodeSettings = '/pincode-settings';
 }
