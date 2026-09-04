@@ -4,6 +4,8 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/bind
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/binding/pincode_settings_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/binding/category_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/view/category_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/view/dashboard_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/login/binding/login_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/login/view/login_view.dart';
@@ -14,7 +16,7 @@ import 'package:get/get.dart';
 class AppPages {
   AppPages._();
 
-  static const String initial = AppRoutes.splash;
+  static const String initial = AppRoutes.category;
   static final List<GetPage> routes = [
     GetPage(
       name: AppRoutes.splash,
@@ -32,5 +34,6 @@ class AppPages {
       binding: PincodeSettingsBinding(),
       transition: Transition.noTransition,
     ),
+    GetPage(name: AppRoutes.category, page: () => const CategoryView(), binding: CategoryBinding(), transition: Transition.noTransition),
   ];
 }
