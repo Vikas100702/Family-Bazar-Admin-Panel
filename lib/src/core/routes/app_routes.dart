@@ -6,4 +6,5 @@ abstract class AppRoutes {
   static const String dashboard = '/dashboard';
   static const String firmSetup = '/firm-setup';
   static const String pincodeSettings = '/pincode-settings';
+  static const String category = '/category';
 }
