@@ -8,12 +8,15 @@ import 'package:get/get.dart';
 class PincodeSettingsBinding extends Bindings {
   @override
   void dependencies() {
+    if (!Get.isRegistered<FirmRepository>()) {
+      Get.lazyPut<FirmRepository>(() => FirmRepository(apiClient: Get.find<ApiClient>()));
+    }
     Get.lazyPut<PincodeSettingsRepository>(() => PincodeSettingsRepository(apiClient: Get.find<ApiClient>()));
     Get.lazyPut<PincodeSettingsController>(
       () => PincodeSettingsController(
         repository: Get.find<PincodeSettingsRepository>(),
-        storageService: Get.find<StorageService>(),
         firmRepository: Get.find<FirmRepository>(),
+        storageService: Get.find<StorageService>(),
       ),
     );
   }
