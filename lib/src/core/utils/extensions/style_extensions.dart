@@ -1,5 +1,5 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_widgets/layout/responsive_layout.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/layout/responsive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,8 +21,7 @@ extension UIContextExt on BuildContext {
   double responsiveWidth(double mobileWidth, double desktopWidth) => isMobile ? mobileWidth.w : desktopWidth;
   double responsiveHeight(double mobileHeight, double desktopHeight) => isMobile ? mobileHeight.h : desktopHeight;
 
-  BorderRadius responsiveRadius(double mobileRadius, double desktopRadius) =>
-      BorderRadius.circular(isMobile ? mobileRadius.r : desktopRadius);
+  BorderRadius responsiveRadius(double mobileRadius, double desktopRadius) => BorderRadius.circular(isMobile ? mobileRadius.r : desktopRadius);
 
   // --- Typography ---
   TextStyle get mainHeadingTextStyle => GoogleFonts.poppins(
@@ -82,9 +81,7 @@ extension IntExt on int {
   /// Converts large numbers to K or M formats (e.g., 1500 -> 1.5K)
   String formatAsK() {
     if (this >= 1000000) {
-      return this % 1000000 == 0
-          ? '${(this / 1000000).toStringAsFixed(0)}M'
-          : '${(this / 1000000).toStringAsFixed(2)}M';
+      return this % 1000000 == 0 ? '${(this / 1000000).toStringAsFixed(0)}M' : '${(this / 1000000).toStringAsFixed(2)}M';
     } else if (this >= 1000) {
       return this % 1000 == 0 ? '${(this / 1000).toStringAsFixed(0)}K' : '${(this / 1000).toStringAsFixed(2)}K';
     } else {
@@ -110,9 +107,7 @@ extension StringExtensions on String {
   /// Removes HTML elements safely for displaying raw text
   String removeHtmlTags() {
     if (trim().isEmpty) return "";
-    String formatted = replaceAll(RegExp(r'<br\s*/?>'), "\n")
-        .replaceAll(RegExp(r'</p>'), "\n")
-        .replaceAll(RegExp(r'</div>'), "\n");
+    String formatted = replaceAll(RegExp(r'<br\s*/?>'), "\n").replaceAll(RegExp(r'</p>'), "\n").replaceAll(RegExp(r'</div>'), "\n");
     formatted = formatted.replaceAll(RegExp(r'<[^>]*>'), "");
     formatted = formatted.replaceAll("&nbsp;", " ");
     return formatted.trim();
