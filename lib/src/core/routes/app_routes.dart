@@ -7,4 +7,6 @@ abstract class AppRoutes {
   static const String firmSetup = '/firm-setup';
   static const String pincodeSettings = '/pincode-settings';
   static const String category = '/category';
+  static const String subCategory = '/sub-category';
+  static const String item = '/item';
 }
