@@ -1,4 +1,4 @@
-import 'package:family_bazar_admin_panel/src/core/global_widgets/layout/responsive_layout.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/layout/responsive_layout.dart';
 import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services.dart';
@@ -8,10 +8,7 @@ import 'package:get/get.dart';
 class ComingSoonView extends StatelessWidget {
   final String title;
 
-  const ComingSoonView({
-    super.key,
-    this.title = 'Dashboard',
-  });
+  const ComingSoonView({super.key, this.title = 'Dashboard'});
 
   @override
   Widget build(BuildContext context) {
@@ -37,15 +34,8 @@ class _ComingSoonContent extends StatelessWidget {
           children: [
             Container(
               padding: EdgeInsets.all(context.responsiveSize(24, 16)),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.construction_rounded,
-                size: context.responsiveSize(64, 48),
-                color: Colors.orange.shade800,
-              ),
+              decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
+              child: Icon(Icons.construction_rounded, size: context.responsiveSize(64, 48), color: Colors.orange.shade800),
             ),
             SizedBox(height: context.responsiveHeight(24, 16)),
             Text(
@@ -69,13 +59,8 @@ class _ComingSoonContent extends StatelessWidget {
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Back to Login'),
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(
-                  horizontal: context.responsiveWidth(24, 16),
-                  vertical: context.responsiveHeight(16, 12),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: context.responsiveRadius(12, 8),
-                ),
+                padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(24, 16), vertical: context.responsiveHeight(16, 12)),
+                shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(12, 8)),
               ),
             ),
           ],
