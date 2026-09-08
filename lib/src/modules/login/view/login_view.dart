@@ -1,6 +1,6 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_assets.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
-import 'package:family_bazar_admin_panel/src/core/global_widgets/layout/responsive_layout.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/layout/responsive_layout.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/login/controller/login_controller.dart';
 import 'package:flutter/material.dart';
