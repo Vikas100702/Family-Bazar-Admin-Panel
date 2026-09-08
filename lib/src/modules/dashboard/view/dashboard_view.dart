@@ -1,6 +1,9 @@
 import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_coontroller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/view/category_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/view/item_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/view/sub_cat_view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -13,11 +16,9 @@ class DashboardView extends GetView<DashboardController> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Breakpoint for Desktop vs Mobile Web (Enterprise Standard: 800px)
         final isDesktop = constraints.maxWidth > 800;
 
         return Scaffold(
-          // Mobile Web: Requires an AppBar with a native hamburger menu to open the drawer
           appBar: isDesktop
               ? null
               : AppBar(
@@ -27,19 +28,13 @@ class DashboardView extends GetView<DashboardController> {
                   foregroundColor: Colors.white,
                 ),
 
-          // Mobile Web: The drawer acts as a slide-out overlay
           drawer: isDesktop ? null : const DrawerView(),
 
           body: SafeArea(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Desktop Web: The drawer is a permanent, fixed side-panel
-                if (isDesktop)
-                  const SizedBox(
-                    width: 360, // Fixed enterprise standard sidebar width
-                    child: DrawerView(),
-                  ),
+                if (isDesktop) const SizedBox(width: 360, child: DrawerView()),
 
                 // SPA Dynamic Content Area
                 Expanded(
@@ -62,8 +57,6 @@ class DashboardView extends GetView<DashboardController> {
 
   /// Resolves the currently selected menu key into its respective UI View.
   Widget _buildDynamicContent(String menuKey) {
-    // Defensive UI: Strict switch-case acting as a UI try-catch.
-    // Guarantees an unknown key never crashes the layout or causes a red screen of death.
     switch (menuKey.toLowerCase()) {
       case 'dashboard':
         return const Center(
@@ -71,27 +64,26 @@ class DashboardView extends GetView<DashboardController> {
         );
 
       // Master Categories
-      case 'mastercategory':
-        return const Center(child: Text('Master Category Module - Coming Soon'));
-      case 'mastersubcategory':
-        return const Center(child: Text('Master Sub-Category Module - Coming Soon'));
+      case 'productcategory':
+        return CategoryView();
+      case 'productitem':
+        return ItemsView();
+      case 'productsubcategory':
+        return SubCategoryView();
       case 'masterbrandname':
         return const Center(child: Text('Master Brand Module - Coming Soon'));
 
       // General Categories
       case 'firm setup': // Ensure this matches the exact key sent from your DrawerController
         return const FirmView();
-      case 'pin code settings': // Ensure this matches the exact key sent from your DrawerController
+      case 'pin code settings':
         return const PincodeSettingsView();
-      case 'product':
-        return const Center(child: Text('Product Management Module - Coming Soon'));
       case 'order':
         return const Center(child: Text('Order Management Module - Coming Soon'));
       case 'customer':
         return const Center(child: Text('Customer Management Module - Coming Soon'));
 
       default:
-        // Zero-Tolerance UI Crash: Fallback for unregistered modules
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
