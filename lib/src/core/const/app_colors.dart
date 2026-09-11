@@ -2,65 +2,63 @@ import 'package:flutter/material.dart';
 
 @immutable
 abstract final class AppColors {
-  const AppColors._(); // Private constructor to prevent instantiation
+  const AppColors._();
 
-  // ==========================================
-  // BRAND COLORS (Extracted strictly from Logo)
-  // ==========================================
+  /// 1. PRIMARY ACTIONS & IDENTITY (Priority 1: Core Action / Active Buttons)
+  /// Hue: Family Bazar Brand Red
+  static const Color primaryRed = Color(0xFFE51924); // Main brand red for key actions
+  static const Color primaryRedLight = Color(0xFFFF4D57); // Hover / Highlight state
+  static const Color primaryRedDark = Color(0xFFB30E17); // Pressed / Focused state
+  static const Color onPrimaryWhite = Color(0xFFFFFFFF); // High-contrast text/icon over red
 
-  /// Primary Brand Color: Vibrant Orange (From Cart & Pin)
-  /// Use for primary buttons, active icons, and major call-to-actions.
-  static const Color primaryBrandOrange = Color(0xFFFF6B00);
-  static const Color primaryOrangeLight = Color(0xFFFF8B33);
-  static const Color primaryOrangeDark  = Color(0xFFCC5600);
+  /// 2. STRUCTURAL CHROME (Priority 2: Sidebar, Top Bar, Elevated Containers)
+  /// Hue: Deep Navy Slate
+  static const Color secondarySlate = Color(0xFF0F172A); // Primary navigation/sidebar base
+  static const Color secondarySlateLight = Color(0xFF1E293B); // Elevated structural chrome
+  static const Color secondarySlateDark = Color(0xFF020617); // Deep contrast structural canvas
+  static const Color onSecondaryWhite = Color(0xFFFFFFFF); // High-contrast text/icon over slate
 
-  /// Secondary Brand Color: Deep Navy (From Cart Wheels & Structure)
-  /// Use for app bars, side navigation panels, or primary text elements.
-  static const Color secondaryBrandNavy = Color(0xFF0F172A);
-  static const Color secondaryNavyLight = Color(0xFF1E293B);
-  static const Color secondaryNavyDark  = Color(0xFF020617);
+  /// 3. ACCENTS & PROMOTIONAL CALLOUTS (Priority 3: Badges, Flags, Highlights)
+  /// Hue: Gold Amber & Azure Blue (Extracted from Logo Swoosh)
+  static const Color accentGoldAmber = Color(0xFFF59E0B); // Amber / Gold highlight badge
+  static const Color accentAzureBlue = Color(0xFF0284C7); // Azure / Blue secondary badge
 
-  /// Accent Color: Fresh Green (From Leaf Element)
-  /// Use for highlights, success indicators, or organic UI elements.
-  static const Color accentLeafGreen = Color(0xFF10B981);
+  /// 4. CANVAS & SURFACES (Spatial Hierarchy: Base Canvas vs Cards & Modals)
+  /// Hue: Cool Gray, White, Deep Slate
+  /// Light Mode Surfaces
+  static const Color canvasLightGray = Color(0xFFF8FAFC); // Main web background canvas
+  static const Color surfaceWhite = Color(0xFFFFFFFF); // Cards, modals, dialog surfaces
+  static const Color surfaceSubtleGray = Color(0xFFF1F5F9); // Nested tables, form fill backgrounds
 
-  // ==========================================
-  // BACKGROUNDS & SURFACES (Responsive Web Target)
-  // ==========================================
+  /// Dark Mode Surfaces
+  static const Color canvasDarkSlate = Color(0xFF0B0F19); // Dark web background canvas
+  static const Color surfaceElevatedSlate = Color(0xFF161B26); // Dark cards & modals
+  static const Color surfaceSubtleSlate = Color(0xFF1E2638); // Nested dark containers & rows
 
-  // LIGHT THEME
-  static const Color backgroundLight = Color(0xFFF8FAFC); // Soft cool-gray for main canvas
-  static const Color surfaceLight    = Color(0xFFFFFFFF); // Pure white for cards/dialogs
+  /// 5. CONTENT & TYPOGRAPHY (Visual Hierarchy: Readability & Contrast)
+  /// Hue: Slate Scale & Off-White
+  /// Light Mode Text
+  static const Color textPrimarySlate = Color(0xFF0F172A); // High emphasis: Titles, headers, critical KPIs
+  static const Color textSecondarySlate = Color(0xFF475569); // Medium emphasis: Body text, table rows, labels
+  static const Color textMutedSlate = Color(0xFF94A3B8); // Low emphasis: Placeholders, hints, disabled text
 
-  // DARK THEME
-  static const Color backgroundDark  = Color(0xFF0B1120); // Deepest navy for dark canvas
-  static const Color surfaceDark     = Color(0xFF151F32); // Elevated navy for dark cards
+  /// Dark Mode Text
+  static const Color textPrimaryWhite = Color(0xFFF8FAFC); // High emphasis: Crisp off-white titles
+  static const Color textSecondaryMuted = Color(0xFF94A3B8); // Medium emphasis: Subtitle slate
+  static const Color textMutedDark = Color(0xFF475569); // Low emphasis: Dimmed placeholders
 
-  // ==========================================
-  // SEMANTIC TYPOGRAPHY (Accessibility Focus)
-  // ==========================================
+  /// 6. BORDERS & SEPARATORS (Structural Priority: Focus vs Divider Lines)
+  /// Hue: Slate Gray
+  static const Color borderProminentSlate = Color(0xFFCBD5E1); // Active input outlines & card borders
+  static const Color borderSubtleSlate = Color(0xFFE2E8F0); // Data table rows & section dividers
 
-  // LIGHT THEME TEXT
-  static const Color textPrimaryLight   = Color(0xFF0F172A); // Almost black (High contrast)
-  static const Color textSecondaryLight = Color(0xFF475569); // Medium slate for subtitles
-  static const Color textHintLight      = Color(0xFF94A3B8); // Light slate for hints/disabled
+  static const Color borderProminentDark = Color(0xFF334155); // Dark input outlines & focused cards
+  static const Color borderSubtleDark = Color(0xFF1E293B); // Dark row lines & panel dividers
 
-  // DARK THEME TEXT
-  static const Color textPrimaryDark    = Color(0xFFF8FAFC); // Off-white (High contrast)
-  static const Color textSecondaryDark  = Color(0xFF94A3B8); // Medium slate for subtitles
-  static const Color textHintDark       = Color(0xFF475569); // Darker slate for hints/disabled
-
-  // ==========================================
-  // STATUS INDICATORS (Global Safety Nets)
-  // ==========================================
-  static const Color success = accentLeafGreen; // Reusing leaf green for brand consistency
-  static const Color error   = Color(0xFFEF4444); // Standard strict red
-  static const Color warning = Color(0xFFF59E0B); // Amber
-  static const Color info    = Color(0xFF3B82F6); // Standard blue
-
-  // ==========================================
-  // STRUCTURAL ELEMENTS (Borders & Dividers)
-  // ==========================================
-  static const Color borderLight = Color(0xFFE2E8F0);
-  static const Color borderDark  = Color(0xFF334155);
+  /// 7. SYSTEM STATUS (Global Safety & Data Table Indicators)
+  /// Hue: Emerald Green, Alert Red, Amber, Royal Blue
+  static const Color statusGreenSuccess = Color(0xFF10B981); // Emerald Green
+  static const Color statusAmberWarning = Color(0xFFF59E0B); // Amber
+  static const Color statusRedError = Color(0xFFDC2626); // Strict Alert Red
+  static const Color statusBlueInfo = Color(0xFF2563EB); // Informational Blue
 }
