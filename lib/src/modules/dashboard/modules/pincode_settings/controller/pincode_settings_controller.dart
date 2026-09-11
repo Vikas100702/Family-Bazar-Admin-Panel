@@ -41,7 +41,11 @@ class PincodeSettingsController extends BaseTableController<Datum> {
     fetchFirmsForDropdown();
   }
 
-  /// Fetches mapped pincodes and binds them to the BaseTableController
+  @override
+  String searchTokenBuilder(Datum item) {
+    return '${item.pPinCode} ${item.pFirmName} ${item.pFirmCode} ${item.userName}';
+  }
+
   Future<void> fetchPincodes() async {
     await runWithLoading(() async {
       try {
@@ -66,7 +70,6 @@ class PincodeSettingsController extends BaseTableController<Datum> {
     });
   }
 
-  /// Fetches firm list for mapping dropdown
   Future<void> fetchFirmsForDropdown() async {
     try {
       isLoadingFirms.value = true;
@@ -80,7 +83,7 @@ class PincodeSettingsController extends BaseTableController<Datum> {
       }
     } catch (e, stackTrace) {
       Sentry.captureException(e, stackTrace: stackTrace);
-      if (!isClosed) errorMessage(message: 'Error fetching firm list for dropdown.');
+      if (!isClosed) errorMessage(message: 'Error fetching pincode details.');
     } finally {
       if (!isClosed) isLoadingFirms.value = false;
     }
