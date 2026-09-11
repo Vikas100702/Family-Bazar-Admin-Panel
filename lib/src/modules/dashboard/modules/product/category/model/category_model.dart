@@ -78,20 +78,23 @@ class ViewCategoryDatum {
     required this.igRateDiffRateGreaterThanOrEqualTo,
     required this.igSyncDate,
     required this.igCmCode,
+    required this.catMImg,
+    required this.catWImg,
+    required this.status,
   });
 
   final String igCode;
   final String igName;
   final String igEucode;
-  final String igMucode;
+  final dynamic igMucode;
   final DateTime? igEdate;
-  final DateTime? igMdate;
-  final bool igLock;
+  final dynamic igMdate;
+  final dynamic igLock;
   final dynamic igOldCode;
-  final bool igNegativeStockBilling;
+  final dynamic igNegativeStockBilling;
   final dynamic igNewCode;
   final String igType;
-  final bool igOnPos;
+  final dynamic igOnPos;
   final dynamic igPosINdex;
   final dynamic igPosName;
   final dynamic igMrpRateSlabLessThanOrEqualTo;
@@ -112,7 +115,7 @@ class ViewCategoryDatum {
   final dynamic igExStateTaxSlab3;
   final dynamic igStateTaxSlabGreaterThanOrEqualTo;
   final dynamic igExStateTaxSlabGreaterThanOrEqualTo;
-  final bool igRateWiseTax;
+  final dynamic igRateWiseTax;
   final dynamic igRateWiseTaxRateType;
   final dynamic igPointValuePer;
   final dynamic igPrintSrNo;
@@ -130,21 +133,24 @@ class ViewCategoryDatum {
   final dynamic igRateDiffRateSlab3;
   final dynamic igRateDiffRateGreaterThanOrEqualTo;
   final dynamic igSyncDate;
-  final String igCmCode;
+  final dynamic igCmCode;
+  final String catMImg;
+  final String catWImg;
+  final int status;
 
   ViewCategoryDatum copyWith({
     String? igCode,
     String? igName,
     String? igEucode,
-    String? igMucode,
+    dynamic? igMucode,
     DateTime? igEdate,
-    DateTime? igMdate,
-    bool? igLock,
+    dynamic? igMdate,
+    dynamic? igLock,
     dynamic? igOldCode,
-    bool? igNegativeStockBilling,
+    dynamic? igNegativeStockBilling,
     dynamic? igNewCode,
     String? igType,
-    bool? igOnPos,
+    dynamic? igOnPos,
     dynamic? igPosINdex,
     dynamic? igPosName,
     dynamic? igMrpRateSlabLessThanOrEqualTo,
@@ -165,7 +171,7 @@ class ViewCategoryDatum {
     dynamic? igExStateTaxSlab3,
     dynamic? igStateTaxSlabGreaterThanOrEqualTo,
     dynamic? igExStateTaxSlabGreaterThanOrEqualTo,
-    bool? igRateWiseTax,
+    dynamic? igRateWiseTax,
     dynamic? igRateWiseTaxRateType,
     dynamic? igPointValuePer,
     dynamic? igPrintSrNo,
@@ -183,7 +189,10 @@ class ViewCategoryDatum {
     dynamic? igRateDiffRateSlab3,
     dynamic? igRateDiffRateGreaterThanOrEqualTo,
     dynamic? igSyncDate,
-    String? igCmCode,
+    dynamic? igCmCode,
+    String? catMImg,
+    String? catWImg,
+    int? status,
   }) {
     return ViewCategoryDatum(
       igCode: igCode ?? this.igCode,
@@ -237,6 +246,9 @@ class ViewCategoryDatum {
       igRateDiffRateGreaterThanOrEqualTo: igRateDiffRateGreaterThanOrEqualTo ?? this.igRateDiffRateGreaterThanOrEqualTo,
       igSyncDate: igSyncDate ?? this.igSyncDate,
       igCmCode: igCmCode ?? this.igCmCode,
+      catMImg: catMImg ?? this.catMImg,
+      catWImg: catWImg ?? this.catWImg,
+      status: status ?? this.status,
     );
   }
 
@@ -245,15 +257,15 @@ class ViewCategoryDatum {
       igCode: json["IG_CODE"] ?? "",
       igName: json["IG_NAME"] ?? "",
       igEucode: json["IG_EUCODE"] ?? "",
-      igMucode: json["IG_MUCODE"] ?? "",
+      igMucode: json["IG_MUCODE"],
       igEdate: DateTime.tryParse(json["IG_Edate"] ?? ""),
-      igMdate: DateTime.tryParse(json["IG_Mdate"] ?? ""),
-      igLock: json["IG_Lock"] ?? false,
+      igMdate: json["IG_Mdate"],
+      igLock: json["IG_Lock"],
       igOldCode: json["IG_OLD_Code"],
-      igNegativeStockBilling: json["IG_Negative_Stock_Billing"] ?? false,
+      igNegativeStockBilling: json["IG_Negative_Stock_Billing"],
       igNewCode: json["IG_New_Code"],
       igType: json["IG_Type"] ?? "",
-      igOnPos: json["IG_On_POS"] ?? false,
+      igOnPos: json["IG_On_POS"],
       igPosINdex: json["IG_Pos_INdex"],
       igPosName: json["IG_Pos_Name"],
       igMrpRateSlabLessThanOrEqualTo: json["IG_MrpRateSlabLessThanOrEqualTo"],
@@ -274,7 +286,7 @@ class ViewCategoryDatum {
       igExStateTaxSlab3: json["IG_ExStateTaxSlab3"],
       igStateTaxSlabGreaterThanOrEqualTo: json["IG_StateTaxSlabGreaterThanOrEqualTo"],
       igExStateTaxSlabGreaterThanOrEqualTo: json["IG_ExStateTaxSlabGreaterThanOrEqualTo"],
-      igRateWiseTax: json["IG_RateWiseTax"] ?? false,
+      igRateWiseTax: json["IG_RateWiseTax"],
       igRateWiseTaxRateType: json["IG_RateWiseTaxRateType"],
       igPointValuePer: json["IG_Point_Value_Per"],
       igPrintSrNo: json["IG_Print_SrNo"],
@@ -292,7 +304,10 @@ class ViewCategoryDatum {
       igRateDiffRateSlab3: json["IG_RateDiffRateSlab3"],
       igRateDiffRateGreaterThanOrEqualTo: json["IG_RateDiffRateGreaterThanOrEqualTo"],
       igSyncDate: json["IG_Sync_Date"],
-      igCmCode: json["IG_CM_CODE"] ?? "",
+      igCmCode: json["IG_CM_CODE"],
+      catMImg: json["cat_m_img"] ?? "",
+      catWImg: json["cat_w_img"] ?? "",
+      status: json["status"] ?? 0,
     );
   }
 
@@ -302,7 +317,7 @@ class ViewCategoryDatum {
     "IG_EUCODE": igEucode,
     "IG_MUCODE": igMucode,
     "IG_Edate": igEdate?.toIso8601String(),
-    "IG_Mdate": igMdate?.toIso8601String(),
+    "IG_Mdate": igMdate,
     "IG_Lock": igLock,
     "IG_OLD_Code": igOldCode,
     "IG_Negative_Stock_Billing": igNegativeStockBilling,
@@ -348,10 +363,13 @@ class ViewCategoryDatum {
     "IG_RateDiffRateGreaterThanOrEqualTo": igRateDiffRateGreaterThanOrEqualTo,
     "IG_Sync_Date": igSyncDate,
     "IG_CM_CODE": igCmCode,
+    "cat_m_img": catMImg,
+    "cat_w_img": catWImg,
+    "status": status,
   };
 
   @override
   String toString() {
-    return "$igCode, $igName, $igEucode, $igMucode, $igEdate, $igMdate, $igLock, $igOldCode, $igNegativeStockBilling, $igNewCode, $igType, $igOnPos, $igPosINdex, $igPosName, $igMrpRateSlabLessThanOrEqualTo, $igMrpRateSlabF1, $igMrpRateSlabU1, $igMrpRateSlabF2, $igMrpRateSlabU2, $igMrpRateSlabF3, $igMrpRateSlabU3, $igMrpRateSlabGreaterThanOrEqualTo, $igStateTaxSlabLessThanOrEqualTo, $igExStateTaxSlabLessThanOrEqualTo, $igStateTaxSlab1, $igExStateTaxSlab1, $igStateTaxSlab2, $igExStateTaxSlab2, $igStateTaxSlab3, $igExStateTaxSlab3, $igStateTaxSlabGreaterThanOrEqualTo, $igExStateTaxSlabGreaterThanOrEqualTo, $igRateWiseTax, $igRateWiseTaxRateType, $igPointValuePer, $igPrintSrNo, $igRateDiffDaysLessThanOrEqualTo, $igRateDiffDaysSlabF1, $igRateDiffDaysSlabU1, $igRateDiffDaysSlabF2, $igRateDiffDaysSlabU2, $igRateDiffDaysSlabF3, $igRateDiffDaysSlabU3, $igRateDiffDaysGreaterThanOrEqualTo, $igRateDiffRateLessThanOrEqualTo, $igRateDiffRateSlab1, $igRateDiffRateSlab2, $igRateDiffRateSlab3, $igRateDiffRateGreaterThanOrEqualTo, $igSyncDate, $igCmCode, ";
+    return "$igCode, $igName, $igEucode, $igMucode, $igEdate, $igMdate, $igLock, $igOldCode, $igNegativeStockBilling, $igNewCode, $igType, $igOnPos, $igPosINdex, $igPosName, $igMrpRateSlabLessThanOrEqualTo, $igMrpRateSlabF1, $igMrpRateSlabU1, $igMrpRateSlabF2, $igMrpRateSlabU2, $igMrpRateSlabF3, $igMrpRateSlabU3, $igMrpRateSlabGreaterThanOrEqualTo, $igStateTaxSlabLessThanOrEqualTo, $igExStateTaxSlabLessThanOrEqualTo, $igStateTaxSlab1, $igExStateTaxSlab1, $igStateTaxSlab2, $igExStateTaxSlab2, $igStateTaxSlab3, $igExStateTaxSlab3, $igStateTaxSlabGreaterThanOrEqualTo, $igExStateTaxSlabGreaterThanOrEqualTo, $igRateWiseTax, $igRateWiseTaxRateType, $igPointValuePer, $igPrintSrNo, $igRateDiffDaysLessThanOrEqualTo, $igRateDiffDaysSlabF1, $igRateDiffDaysSlabU1, $igRateDiffDaysSlabF2, $igRateDiffDaysSlabU2, $igRateDiffDaysSlabF3, $igRateDiffDaysSlabU3, $igRateDiffDaysGreaterThanOrEqualTo, $igRateDiffRateLessThanOrEqualTo, $igRateDiffRateSlab1, $igRateDiffRateSlab2, $igRateDiffRateSlab3, $igRateDiffRateGreaterThanOrEqualTo, $igSyncDate, $igCmCode, $catMImg, $catWImg, $status, ";
   }
 }
