@@ -1,6 +1,8 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_search_field.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/model/firm_setup_model.dart' as firm_model;
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/controller/pincode_settings_controller.dart';
@@ -13,108 +15,148 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Header
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            context.responsiveSize(16, 24),
-            context.responsiveSize(16, 24),
-            context.responsiveSize(16, 24),
-            context.responsiveSize(12, 16),
-          ),
-          child: _buildHeader(context),
-        ),
-
-        // Generic Responsive Data Table
+        _buildHeader(context),
+        SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: context.responsiveSize(16, 24)),
-            child: Obx(
-              () => DataTableWidget<Datum>(
-                items: controller.pagedList.toList(),
-                horizontalScrollController: controller.horizontalScrollController,
-                verticalScrollController: controller.verticalScrollController,
-                emptyTitle: 'No Pincode Configurations Available',
-                emptyIcon: Icons.location_off_outlined,
-                columns: const [
-                  DataColumn(label: Text('ID')),
-                  DataColumn(label: Text('FIRM CODE')),
-                  DataColumn(label: Text('FIRM NAME')),
-                  DataColumn(label: Text('PINCODE')),
-                  DataColumn(label: Text('CREATED BY')),
-                  DataColumn(label: Text('STATUS')),
-                  DataColumn(label: Text('ACTIONS')),
-                ],
-                rowBuilder: (context, pincode) => _buildDataRow(context, pincode),
-              ),
-            ),
-          ),
-        ),
+          child: Obx(() {
+            if (controller.isLoading.value && controller.pagedList.isEmpty) {
+              return Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: context.defaultDecoration,
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+                      SizedBox(height: 16),
+                      Text('Loading Pincode Configurations...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              );
+            }
 
-        // Pagination
-        Padding(
-          padding: EdgeInsets.all(context.responsiveSize(16, 24)),
-          child: Obx(
-            () => CustomPaginationWidget(
-              currentPage: controller.currentPage.value,
-              totalPages: controller.totalPages.value,
-              totalRecords: controller.totalRecords.value,
-              itemsPerPage: controller.itemsPerPage.value,
-              pageSizeOptions: controller.pageSizeOptions,
-              onPageChanged: controller.changePage,
-              onPageSizeChanged: controller.changePageSize,
-            ),
-          ),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: DataTableWidget<Datum>(
+                    items: controller.pagedList.toList(),
+                    horizontalScrollController: controller.horizontalScrollController,
+                    verticalScrollController: controller.verticalScrollController,
+                    emptyTitle: 'No Pincode Configurations Available',
+                    emptySubtitle: 'Map a new delivery pincode or refresh from server.',
+                    emptyIcon: Icons.location_off_outlined,
+                    columns: const [
+                      DataColumn(label: Text('ID')),
+                      DataColumn(label: Text('FIRM CODE')),
+                      DataColumn(label: Text('FIRM NAME')),
+                      DataColumn(label: Text('PINCODE')),
+                      DataColumn(label: Text('CREATED BY')),
+                      DataColumn(label: Text('STATUS')),
+                      DataColumn(label: Text('ACTIONS')),
+                    ],
+                    rowBuilder: (context, pincode) => _buildDataRow(context, pincode),
+                  ),
+                ),
+                SizedBox(height: context.responsiveHeight(12, 16)),
+                CustomPaginationWidget(
+                  currentPage: controller.currentPage.value,
+                  totalItems: controller.totalRecords.value,
+                  itemsPerPage: controller.itemsPerPage.value,
+                  itemsPerPageOptions: controller.pageSizeOptions,
+                  isLoading: controller.isLoading.value,
+                  onPageChanged: controller.changePage,
+                  onItemsPerPageChanged: controller.changePageSize,
+                ),
+              ],
+            );
+          }),
         ),
       ],
     );
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Pincode Management',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: context.responsiveSize(20, 24)),
+    final isDark = context.isDark;
+    final isMobile = context.isMobile;
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Pincode Management', style: context.headingTextStyle.copyWith(fontSize: 18)),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, size: 20),
+                color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                tooltip: 'Refresh',
+                onPressed: controller.refreshPincodes,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () {
+              controller.clearForm();
+              _showPincodeDialog(context, isEdit: false);
+            },
+            icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+            label: const Text('Map New Pincode'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryRed,
+              foregroundColor: AppColors.onPrimaryWhite,
+              padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-          ],
-        ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBrandOrange,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              icon: const Icon(Icons.refresh_rounded, size: 20),
-              label: const Text('Refresh', style: TextStyle(fontWeight: FontWeight.w600)),
-              onPressed: () => controller.refreshPincodes(),
-            ),
+            AppSearchField(hintText: 'Search', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
+            const SizedBox(width: 12),
+            Obx(() {
+              final bool isRefreshing = controller.isLoading.value;
+              return OutlinedButton.icon(
+                onPressed: controller.refreshPincodes,
+                icon: isRefreshing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+                      )
+                    : const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+              );
+            }),
             const SizedBox(width: 12),
             ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBrandOrange,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              icon: const Icon(Icons.add_location_alt_rounded, size: 20),
-              label: const Text('Map Pincode', style: TextStyle(fontWeight: FontWeight.w600)),
               onPressed: () {
                 controller.clearForm();
                 _showPincodeDialog(context, isEdit: false);
               },
+              icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+              label: const Text('Map New Pincode'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryRed,
+                foregroundColor: AppColors.onPrimaryWhite,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              ),
             ),
           ],
         ),
@@ -123,32 +165,57 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
   }
 
   DataRow _buildDataRow(BuildContext context, Datum pincode) {
+    final isDark = context.isDark;
+    final bool isActive = pincode.status == 1;
+
     return DataRow(
       cells: [
-        DataCell(Text(pincode.id.toString(), style: const TextStyle(fontWeight: FontWeight.w600))),
-        DataCell(Text(_formatText(pincode.pFirmCode))),
+        DataCell(SelectableText(pincode.id.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+        DataCell(SelectableText(_formatText(pincode.pFirmCode), style: const TextStyle(fontWeight: FontWeight.w500))),
         DataCell(
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 240),
+            constraints: const BoxConstraints(maxWidth: 220),
             child: Tooltip(
               message: _formatText(pincode.pFirmName),
-              child: Text(_formatText(pincode.pFirmName), maxLines: 1, overflow: TextOverflow.ellipsis),
+              child: Text(
+                _formatText(pincode.pFirmName),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
             ),
           ),
         ),
-        DataCell(Text(_formatText(pincode.pPinCode), style: const TextStyle(fontWeight: FontWeight.bold))),
-        DataCell(Text(_formatText(pincode.userName))),
-        DataCell(_buildStatusBadge(pincode.status == 1)),
         DataCell(
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent, size: 20),
-            tooltip: 'Edit Pincode Mapping',
-            splashRadius: 24,
-            mouseCursor: SystemMouseCursors.click,
-            onPressed: () {
-              controller.preFillForm(pincode);
-              _showPincodeDialog(context, isEdit: true, id: pincode.id);
-            },
+          SelectableText(
+            _formatText(pincode.pPinCode),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
+          ),
+        ),
+        DataCell(Text(_formatText(pincode.userName))),
+        DataCell(_buildStatusBadge(isActive)),
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.visibility_outlined, size: 18),
+                color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                tooltip: 'View Mapping Details',
+                splashRadius: 18,
+                onPressed: () => _showPincodeDetails(context, pincode),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                color: AppColors.statusBlueInfo,
+                tooltip: 'Edit Pincode Mapping',
+                splashRadius: 18,
+                onPressed: () {
+                  controller.preFillForm(pincode);
+                  _showPincodeDialog(context, isEdit: true, id: pincode.id);
+                },
+              ),
+            ],
           ),
         ),
       ],
@@ -156,39 +223,67 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
   }
 
   Widget _buildStatusBadge(bool isActive) {
-    final Color color = isActive ? Colors.green.shade700 : Colors.red.shade700;
+    final color = isActive ? AppColors.statusGreenSuccess : AppColors.statusRedError;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(isActive ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 14, color: color),
+          Icon(isActive ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 12, color: color),
           const SizedBox(width: 4),
           Text(
             isActive ? 'Active' : 'Inactive',
-            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
           ),
         ],
       ),
     );
   }
 
+  void _showPincodeDetails(BuildContext context, Datum pincode) {
+    EntityDetailsDialogHelper.show(
+      context: context,
+      title: 'Pincode Mapping Details',
+      subtitle: 'Pincode: ${pincode.pPinCode}',
+      headerIcon: Icons.pin_drop_rounded,
+      sections: [
+        DetailSection(
+          title: '',
+          items: [
+            DetailItem(label: 'Pincode', value: pincode.pPinCode),
+            DetailItem(label: 'Firm Code', value: pincode.pFirmCode),
+            DetailItem(label: 'Firm Name', value: pincode.pFirmName.isNotEmpty ? pincode.pFirmName : ''),
+          ],
+        ),
+        DetailSection(
+          title: '',
+          flags: [DetailFlag(label: 'Pincode Status', value: pincode.status == 1)],
+          items: [DetailItem(label: 'Assigned By', value: pincode.userName)],
+        ),
+      ],
+    );
+  }
+
   void _showPincodeDialog(BuildContext context, {required bool isEdit, int? id}) {
+    final isDark = context.isDark;
     final mediaQuery = MediaQuery.sizeOf(context);
 
     Get.dialog(
       barrierDismissible: false,
       Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+        ),
+        backgroundColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
         child: Container(
-          width: context.isDesktop ? 460 : mediaQuery.width * 0.92,
+          width: context.isDesktop ? 480 : mediaQuery.width * 0.92,
           padding: EdgeInsets.all(context.responsiveSize(20, 24)),
           child: SingleChildScrollView(
             child: Obx(
@@ -196,67 +291,80 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                 key: controller.pincodeFormKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      isEdit ? 'Edit Pincode Mapping' : 'Add New Pincode Mapping',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: context.responsiveSize(16, 18)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(isEdit ? 'Edit Pincode Mapping' : 'Map New Pincode', style: context.titleStyleActive.copyWith(fontSize: 17)),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20),
+                          splashRadius: 18,
+                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
+                          onPressed: () {
+                            controller.clearForm();
+                            Get.back();
+                          },
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-
-                    // Firm Name Selection Dropdown
+                    const SizedBox(height: 18),
+                    Text('Firm Assignment', style: context.titleStyleRegular.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
                     if (controller.isLoadingFirms.value)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 12.0),
-                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+                        ),
                       )
                     else
                       DropdownButtonFormField<firm_model.Datum>(
                         value: controller.selectedFirm.value,
                         isExpanded: true,
+                        dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
                         decoration: const InputDecoration(
-                          labelText: 'Firm Name',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          hintText: 'Select Firm to assign',
+                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                         ),
-                        hint: const Text('Select Firm'),
                         items: controller.firmDropdownList.map((firm_model.Datum firm) {
                           return DropdownMenuItem<firm_model.Datum>(
                             value: firm,
-                            child: Text(firm.fFirmName, overflow: TextOverflow.ellipsis),
+                            child: Text(firm.fFirmName, overflow: TextOverflow.ellipsis, style: context.bodyTextStyle.copyWith(fontSize: 13)),
                           );
                         }).toList(),
                         onChanged: (firm_model.Datum? newValue) => controller.onFirmSelected(newValue),
                         validator: (value) {
                           if (value == null && controller.firmNameController.text.trim().isEmpty) {
-                            return 'Please select a Firm';
+                            return 'Please select an enterprise firm';
                           }
                           return null;
                         },
                       ),
                     const SizedBox(height: 16),
-
-                    // Read-only Firm Code
+                    Text('Firm Code', style: context.titleStyleRegular.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
                     TextFormField(
                       controller: controller.firmCodeController,
                       readOnly: true,
+                      style: context.bodyTextStyle.copyWith(fontSize: 13),
                       decoration: InputDecoration(
-                        labelText: 'Firm Code',
-                        border: const OutlineInputBorder(),
+                        hintText: 'Auto-populated firm code',
                         filled: true,
-                        fillColor: Theme.of(context).disabledColor.withValues(alpha: 0.08),
+                        fillColor: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
                         suffixIcon: const Icon(Icons.lock_outline_rounded, size: 18),
                       ),
                       validator: (value) => value == null || value.trim().isEmpty ? 'Firm Code is required' : null,
                     ),
                     const SizedBox(height: 16),
-
-                    // Pincode Input
+                    Text('Delivery Pincode', style: context.titleStyleRegular.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
                     TextFormField(
                       controller: controller.pinCodeController,
-                      decoration: const InputDecoration(labelText: 'Pincode', border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
                       maxLength: 6,
+                      style: context.bodyTextStyle.copyWith(fontSize: 13),
+                      decoration: const InputDecoration(hintText: 'Enter 6-digit postal zip code', counterText: ''),
                       onChanged: controller.onPincodeChanged,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -271,12 +379,54 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 24),
-
-                    // Action Controls
+                    const SizedBox(height: 20),
                     if (controller.isSubmitting.value)
-                      const Center(child: CircularProgressIndicator())
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+                        ),
+                      )
                     else if (controller.addPincodeStatus.value == -1) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.statusAmberWarning.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.statusAmberWarning.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, color: AppColors.statusAmberWarning, size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    controller.addPincodeErrorMessage.value,
+                                    style: const TextStyle(color: AppColors.statusAmberWarning, fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primaryRed,
+                                  foregroundColor: AppColors.onPrimaryWhite,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                onPressed: () => _showUnmapConfirmationDialog(context),
+                                child: const Text('Unmap & Re-assign Pincode'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -285,13 +435,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                               controller.clearForm();
                               Get.back();
                             },
-                            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBrandOrange, foregroundColor: Colors.white),
-                            onPressed: () => _showUnmapConfirmationDialog(context),
-                            child: const Text('Unmap & Reassign'),
+                            child: Text('Cancel', style: TextStyle(color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate)),
                           ),
                         ],
                       ),
@@ -304,13 +448,17 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                               controller.clearForm();
                               Get.back();
                             },
-                            child: const Text('Cancel'),
+                            child: Text('Cancel', style: TextStyle(color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate)),
                           ),
                           const SizedBox(width: 12),
                           ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBrandOrange, foregroundColor: Colors.white),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryRed,
+                              foregroundColor: AppColors.onPrimaryWhite,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            ),
                             onPressed: () => controller.submitPincode(isEdit: isEdit, id: id),
-                            child: const Text('Check & Save'),
+                            child: Text(isEdit ? 'Update Mapping' : 'Check & Save'),
                           ),
                         ],
                       ),
@@ -326,27 +474,34 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
   }
 
   void _showUnmapConfirmationDialog(BuildContext context) {
+    final isDark = context.isDark;
+
     Get.dialog(
       barrierDismissible: false,
       AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Confirm Unmap & Reassign'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+        ),
+        backgroundColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+        title: Text('Confirm Unmap & Reassign', style: context.titleStyleActive.copyWith(fontSize: 16)),
         content: Text(
           'Are you sure you want to unmap Pincode ${controller.pinCodeController.text.trim()} and assign it to ${controller.firmNameController.text.trim()}?',
+          style: context.bodyTextStyle.copyWith(fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('No', style: TextStyle(color: Colors.grey)),
+            child: Text('No', style: TextStyle(color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBrandOrange, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryRed, foregroundColor: AppColors.onPrimaryWhite),
             onPressed: () {
               Get.back();
               Get.back();
               controller.confirmAndUnmapPincode();
             },
-            child: const Text('Yes'),
+            child: const Text('Yes, Re-assign'),
           ),
         ],
       ),
