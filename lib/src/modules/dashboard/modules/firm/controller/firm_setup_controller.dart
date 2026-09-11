@@ -14,6 +14,11 @@ class FirmController extends BaseTableController<Datum> {
     fetchFirms();
   }
 
+  @override
+  String searchTokenBuilder(Datum item) {
+    return '${item.fFirmCode} ${item.fFirmName} ${item.fGstNumber} ${item.fLocationCode} ${item.fPinCode}';
+  }
+
   Future<void> fetchFirms() async {
     await runWithLoading(() async {
       try {
