@@ -42,6 +42,9 @@ class ViewSubCategoryDatum {
     required this.ogPosName,
     required this.ogPrintSrNo,
     required this.ogScCode,
+    required this.subCatMImg,
+    required this.subCatWImg,
+    required this.status,
   });
 
   final String ogCode;
@@ -59,6 +62,9 @@ class ViewSubCategoryDatum {
   final dynamic ogPosName;
   final dynamic ogPrintSrNo;
   final dynamic ogScCode;
+  final String subCatMImg;
+  final String subCatWImg;
+  final int status;
 
   ViewSubCategoryDatum copyWith({
     String? ogCode,
@@ -76,6 +82,9 @@ class ViewSubCategoryDatum {
     dynamic? ogPosName,
     dynamic? ogPrintSrNo,
     dynamic? ogScCode,
+    String? subCatMImg,
+    String? subCatWImg,
+    int? status,
   }) {
     return ViewSubCategoryDatum(
       ogCode: ogCode ?? this.ogCode,
@@ -93,6 +102,9 @@ class ViewSubCategoryDatum {
       ogPosName: ogPosName ?? this.ogPosName,
       ogPrintSrNo: ogPrintSrNo ?? this.ogPrintSrNo,
       ogScCode: ogScCode ?? this.ogScCode,
+      subCatMImg: subCatMImg ?? this.subCatMImg,
+      subCatWImg: subCatWImg ?? this.subCatWImg,
+      status: status ?? this.status,
     );
   }
 
@@ -113,6 +125,9 @@ class ViewSubCategoryDatum {
       ogPosName: json["OG_POS_Name"],
       ogPrintSrNo: json["OG_Print_SrNo"],
       ogScCode: json["OG_SC_CODE"],
+      subCatMImg: json["subcat_m_img"] ?? "",
+      subCatWImg: json["subcat_w_img"] ?? "",
+      status: json["status"] ?? 0,
     );
   }
 
@@ -132,10 +147,13 @@ class ViewSubCategoryDatum {
     "OG_POS_Name": ogPosName,
     "OG_Print_SrNo": ogPrintSrNo,
     "OG_SC_CODE": ogScCode,
+    "subcat_m_img": subCatMImg,
+    "subcat_w_img": subCatWImg,
+    "status": status,
   };
 
   @override
   String toString() {
-    return "$ogCode, $ogName, $ogEucode, $ogMucode, $ogEdate, $ogMdate, $ogLock, $ogOldCode, $ogNegativeStockBilling, $ogNewCode, $ogOnPos, $ogPosIndex, $ogPosName, $ogPrintSrNo, $ogScCode, ";
+    return "$ogCode, $ogName, $ogEucode, $ogMucode, $ogEdate, $ogMdate, $ogLock, $ogOldCode, $ogNegativeStockBilling, $ogNewCode, $ogOnPos, $ogPosIndex, $ogPosName, $ogPrintSrNo, $ogScCode, $subCatMImg, $subCatWImg, $status";
   }
 }

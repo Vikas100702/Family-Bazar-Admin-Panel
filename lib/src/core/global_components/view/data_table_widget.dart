@@ -9,8 +9,10 @@ class DataTableWidget<T> extends StatelessWidget {
   final ScrollController horizontalScrollController;
   final ScrollController verticalScrollController;
   final String emptyTitle;
+  final String? emptySubtitle;
   final IconData emptyIcon;
   final double dataRowMaxHeight;
+  final double dataRowMinHeight;
   final double? columnSpacing;
   final double horizontalMargin;
   final double dividerThickness;
@@ -23,73 +25,127 @@ class DataTableWidget<T> extends StatelessWidget {
     required this.horizontalScrollController,
     required this.verticalScrollController,
     this.emptyTitle = 'No Records Available',
+    this.emptySubtitle,
     this.emptyIcon = Icons.inbox_outlined,
-    this.dataRowMaxHeight = 64.0,
+    this.dataRowMaxHeight = 56.0,
+    this.dataRowMinHeight = 48.0,
     this.columnSpacing,
-    this.horizontalMargin = 24.0,
-    this.dividerThickness = 0.5,
+    this.horizontalMargin = 20.0,
+    this.dividerThickness = 1.0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.15)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+        color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: items.isEmpty ? _buildEmptyState(context) : _buildTable(context),
+      child: items.isEmpty ? _buildEmptyState(context) : _buildTableCanvas(context),
     );
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final isDark = context.isDark;
+
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(emptyIcon, size: 48, color: AppColors.textHintLight.withValues(alpha: 0.5)),
-          const SizedBox(height: 16),
-          Text(emptyTitle, style: context.titleStyleActive.copyWith(fontSize: 16, color: AppColors.textSecondaryLight)),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.06), shape: BoxShape.circle),
+              child: Icon(emptyIcon, size: 40, color: AppColors.primaryRed.withValues(alpha: 0.7)),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              emptyTitle,
+              style: context.titleStyleRegular.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
+            if (emptySubtitle != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                emptySubtitle!,
+                style: context.captionStyle.copyWith(color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTable(BuildContext context) {
+  // BI-DIRECTIONAL SCROLLABLE TABLE CANVAS
+
+  Widget _buildTableCanvas(BuildContext context) {
+    final isDark = context.isDark;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return Scrollbar(
           controller: horizontalScrollController,
           thumbVisibility: true,
+          trackVisibility: false,
           child: SingleChildScrollView(
             controller: horizontalScrollController,
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
+              // Forces the table to expand across the full desktop card canvas
+              // while preserving horizontal scroll capability on mobile screens
               constraints: BoxConstraints(minWidth: constraints.maxWidth),
               child: Scrollbar(
                 controller: verticalScrollController,
                 thumbVisibility: true,
+                trackVisibility: false,
                 child: SingleChildScrollView(
                   controller: verticalScrollController,
                   scrollDirection: Axis.vertical,
                   child: DataTable(
-                    headingRowColor: WidgetStateProperty.resolveWith(
-                      (states) => Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    headingRowHeight: 46.0,
+                    headingRowColor: WidgetStateProperty.all(isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray),
+                    headingTextStyle: context.titleStyleActive.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                    ),
+                    dataRowMinHeight: dataRowMinHeight,
+                    dataRowMaxHeight: dataRowMaxHeight,
+                    dataTextStyle: context.bodyTextStyle.copyWith(
+                      fontSize: 13,
+                      color: isDark ? AppColors.textPrimaryWhite : AppColors.textSecondarySlate,
                     ),
                     dataRowColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.hovered)) {
-                        return AppColors.primaryBrandOrange.withValues(alpha: 0.04);
+                        return AppColors.primaryRed.withValues(alpha: 0.04);
                       }
-                      return null;
+                      if (states.contains(WidgetState.selected)) {
+                        return AppColors.primaryRed.withValues(alpha: 0.08);
+                      }
+                      return Colors.transparent;
                     }),
-                    headingTextStyle: context.titleStyleActive.copyWith(fontWeight: FontWeight.bold, fontSize: 13),
                     columnSpacing: columnSpacing ?? context.responsiveSize(16, 24),
                     horizontalMargin: horizontalMargin,
-                    dataRowMaxHeight: dataRowMaxHeight,
                     dividerThickness: dividerThickness,
+                    border: TableBorder(
+                      horizontalInside: BorderSide(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: dividerThickness),
+                    ),
                     columns: columns,
                     rows: items.map((item) => rowBuilder(context, item)).toList(),
                   ),
