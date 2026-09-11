@@ -41,6 +41,8 @@ class ViewItemDatum {
     required this.insertedOn,
     required this.createdAt,
     required this.updatedAt,
+    required this.itemGroup,
+    required this.otherGroup,
   });
 
   final int id;
@@ -49,14 +51,16 @@ class ViewItemDatum {
   final String iCode;
   final String iEuCode;
   final String iFirmCode;
-  final dynamic eanCode;
+  final String eanCode;
   final String iName;
-  final dynamic iImgM;
-  final dynamic iImgW;
+  final String iImgM;
+  final String iImgW;
   final int status;
   final DateTime? insertedOn;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String itemGroup;
+  final String otherGroup;
 
   ViewItemDatum copyWith({
     int? id,
@@ -65,14 +69,16 @@ class ViewItemDatum {
     String? iCode,
     String? iEuCode,
     String? iFirmCode,
-    dynamic? eanCode,
+    String? eanCode,
     String? iName,
-    dynamic? iImgM,
-    dynamic? iImgW,
+    String? iImgM,
+    String? iImgW,
     int? status,
     DateTime? insertedOn,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? itemGroup,
+    String? otherGroup,
   }) {
     return ViewItemDatum(
       id: id ?? this.id,
@@ -89,6 +95,8 @@ class ViewItemDatum {
       insertedOn: insertedOn ?? this.insertedOn,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      itemGroup: itemGroup ?? this.itemGroup,
+      otherGroup: otherGroup ?? this.otherGroup,
     );
   }
 
@@ -100,14 +108,16 @@ class ViewItemDatum {
       iCode: json["I_Code"] ?? "",
       iEuCode: json["I_EUCode"] ?? "",
       iFirmCode: json["I_FirmCode"] ?? "",
-      eanCode: json["EANCode"],
+      eanCode: json["EANCode"] ?? "",
       iName: json["I_Name"] ?? "",
-      iImgM: json["I_img_m"],
-      iImgW: json["I_img_w"],
+      iImgM: json["I_img_m"] ?? "",
+      iImgW: json["I_img_w"] ?? "",
       status: json["status"] ?? 0,
       insertedOn: DateTime.tryParse(json["inserted_on"] ?? ""),
       createdAt: DateTime.tryParse(json["created_at"] ?? ""),
       updatedAt: DateTime.tryParse(json["updated_at"] ?? ""),
+      itemGroup: json["ItemGroup"] ?? "",
+      otherGroup: json["OtherGroup"] ?? "",
     );
   }
 
@@ -126,10 +136,12 @@ class ViewItemDatum {
     "inserted_on": insertedOn?.toIso8601String(),
     "created_at": createdAt?.toIso8601String(),
     "updated_at": updatedAt?.toIso8601String(),
+    "ItemGroup": itemGroup,
+    "OtherGroup": otherGroup,
   };
 
   @override
   String toString() {
-    return "$id, $iItemGroup, $iOtherGroup, $iCode, $iEuCode, $iFirmCode, $eanCode, $iName, $iImgM, $iImgW, $status, $insertedOn, $createdAt, $updatedAt, ";
+    return "$id, $iItemGroup, $iOtherGroup, $iCode, $iEuCode, $iFirmCode, $eanCode, $iName, $iImgM, $iImgW, $status, $insertedOn, $createdAt, $updatedAt, $itemGroup, $otherGroup, ";
   }
 }
