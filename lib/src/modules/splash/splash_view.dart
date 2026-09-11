@@ -1,4 +1,5 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_assets.dart';
+import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/layout/responsive_layout.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/splash/controller/splash_controller.dart';
@@ -10,36 +11,44 @@ class SplashView extends GetView<SplashController> {
 
   @override
   Widget build(BuildContext context) {
-    return const ResponsiveLayout(
-      desktop: _SplashContent(logoSize: 300.0),
-      tablet: _SplashContent(logoSize: 220.0),
-      mobile: _SplashContent(logoSize: 180.0),
+    return ResponsiveLayout(
+      mobile: const _SplashContent(logoSize: 150.0),
+      tablet: const _SplashContent(logoSize: 180.0),
+      desktop: const _SplashContent(logoSize: 220.0),
     );
   }
 }
 
 class _SplashContent extends StatelessWidget {
   final double logoSize;
+
   const _SplashContent({required this.logoSize});
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: RepaintBoundary(
-        child: Column(
-          mainAxisAlignment: .center,
-          children: [
-            Image.asset(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          RepaintBoundary(
+            child: Image.asset(
               AppAssets.appLogo,
-              width: context.responsiveWidth(logoSize, logoSize),
-              height: context.responsiveHeight(logoSize, logoSize),
+              width: logoSize,
+              height: logoSize,
               fit: BoxFit.contain,
-              semanticLabel: 'Family Bazar Admin Logo',
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (context, error, stackTrace) => Icon(Icons.storefront_rounded, size: logoSize * 0.5, color: AppColors.primaryRed),
             ),
-            const SizedBox(height: 32.0),
-            const CircularProgressIndicator(strokeWidth: 3.0),
-          ],
-        ),
+          ),
+          SizedBox(height: context.responsiveHeight(24, 32)),
+          const RepaintBoundary(
+            child: SizedBox(
+              width: 26,
+              height: 26,
+              child: CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+            ),
+          ),
+        ],
       ),
     );
   }
