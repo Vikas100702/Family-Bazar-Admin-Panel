@@ -1,106 +1,139 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
-import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart'; // Added for context extensions
+import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class DialogHelper {
-  // Private constructor to prevent instantiation of this utility class
-  DialogHelper._();
+abstract final class DialogHelper {
+  const DialogHelper._();
 
-  // State lock to prevent OOM through dialog stacking
   static bool _isDialogActive = false;
   static bool _isOfflineDialogActive = false;
 
-  /// Displays an error dialog safely, preventing stacking
+  // PUBLIC DIALOG TRIGGERS
+  /// Displays an error dialog safely with defensive stacking locks
   static void showError({String? title, required String message, VoidCallback? onPressed}) {
     if (Get.overlayContext == null) return;
     _showGlobalDialog(
-      // Ensure AppStrings is imported in your actual file
-      title: title ?? "Alert", // Fallback if AppStrings is not available
+      title: title ?? 'Alert',
       message: message,
-      titleColor: AppColors.error,
-      icon: Icons.error_outline,
+      accentColor: AppColors.statusRedError,
+      icon: Icons.error_outline_rounded,
       onPressed: onPressed,
     );
   }
 
-  /// Displays a success dialog safely, preventing stacking
-  static void showSuccess({required String title, required String message, VoidCallback? onPressed}) {
+  /// Displays a success dialog safely
+  static void showSuccess({String? title, required String message, VoidCallback? onPressed}) {
+    if (Get.overlayContext == null) return;
     _showGlobalDialog(
-      title: title,
+      title: title ?? 'Success',
       message: message,
-      titleColor: AppColors.success,
-      icon: Icons.check_circle_outline,
+      accentColor: AppColors.statusGreenSuccess,
+      icon: Icons.check_circle_outline_rounded,
       onPressed: onPressed,
     );
   }
 
-  /// Core dialog generation logic with concurrency lock
+  /// Displays a warning dialog safely
+  static void showWarning({String? title, required String message, VoidCallback? onPressed}) {
+    if (Get.overlayContext == null) return;
+    _showGlobalDialog(
+      title: title ?? 'Warning',
+      message: message,
+      accentColor: AppColors.statusAmberWarning,
+      icon: Icons.warning_amber_rounded,
+      onPressed: onPressed,
+    );
+  }
+
+  /// Displays an informational notice dialog safely
+  static void showInfo({String? title, required String message, VoidCallback? onPressed}) {
+    if (Get.overlayContext == null) return;
+    _showGlobalDialog(
+      title: title ?? 'Information',
+      message: message,
+      accentColor: AppColors.statusBlueInfo,
+      icon: Icons.info_outline_rounded,
+      onPressed: onPressed,
+    );
+  }
+
+  // CORE DIALOG GENERATOR WITH CONCURRENCY LOCK
   static void _showGlobalDialog({
     required String title,
     required String message,
-    required Color titleColor,
+    required Color accentColor,
     required IconData icon,
     VoidCallback? onPressed,
   }) {
-    // Prevent multiple dialogs from stacking and causing an OOM or UI freeze
     if (_isDialogActive || _isOfflineDialogActive) {
-      if (Get.isDialogOpen == true) Get.back(); // Dismiss the existing dialog before showing the new one
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
     }
-
     _isDialogActive = true;
-
-    Get.dialog(
+    Get.dialog<void>(
       PopScope(
-        canPop: false, // Strict block preventing back-button bypass
+        canPop: false,
         child: Builder(
           builder: (context) {
-            final double dialogWidth = context.responsiveWidth(context.screenWidth * 0.85, 400);
+            final isDark = context.isDark;
+            final double dialogWidth = context.responsiveWidth(context.screenWidth * 0.88, 420);
             return Dialog(
-              backgroundColor: context.isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-              shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(16, 20)),
+              backgroundColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
+              ),
               child: Container(
                 width: dialogWidth,
-                padding: EdgeInsets.symmetric(
-                  vertical: context.responsiveHeight(24, 30),
-                  horizontal: context.responsiveWidth(20, 24),
-                ),
+                padding: EdgeInsets.symmetric(vertical: context.responsiveHeight(24, 28), horizontal: context.responsiveWidth(20, 24)),
                 child: Column(
-                  mainAxisSize: .min,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(icon, color: titleColor, size: context.responsiveSize(45, 55)),
-                    SizedBox(height: context.responsiveHeight(16, 20)),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      child: Icon(icon, color: accentColor, size: context.responsiveSize(36, 44)),
+                    ),
+                    SizedBox(height: context.responsiveHeight(14, 18)),
                     Text(
                       title,
-                      style: context.titleStyleActive.copyWith(color: titleColor),
-                      textAlign: .center,
+                      style: context.titleStyleActive.copyWith(fontSize: context.responsiveSize(16, 18)),
+                      textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: context.responsiveHeight(12, 16)),
+                    SizedBox(height: context.responsiveHeight(8, 12)),
                     Text(
                       message,
-                      textAlign: .center,
-                      style: context.bodyTextStyle.copyWith(color: titleColor),
+                      textAlign: TextAlign.center,
+                      style: context.bodyTextStyle.copyWith(
+                        fontSize: context.responsiveSize(13, 14),
+                        color: isDark ? AppColors.textSecondaryMuted : AppColors.textSecondarySlate,
+                        height: 1.45,
+                      ),
                     ),
-                    SizedBox(height: context.responsiveHeight(24, 30)),
+                    SizedBox(height: context.responsiveHeight(20, 26)),
                     SizedBox(
-                      width: .infinity,
+                      width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
                           _isDialogActive = false;
                           if (Get.isDialogOpen == true) {
                             Get.back();
                           }
-                          if (onPressed != null) onPressed();
+                          if (onPressed != null) {
+                            onPressed();
+                          }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: titleColor,
+                          backgroundColor: accentColor,
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          padding: EdgeInsets.symmetric(vertical: context.responsiveHeight(14, 16)),
-                          shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(8, 12)),
+                          padding: EdgeInsets.symmetric(vertical: context.responsiveHeight(12, 14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        child: const Text(AppStrings.close),
+                        child: const Text(AppStrings.close, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ],
@@ -112,50 +145,60 @@ class DialogHelper {
       ),
       barrierDismissible: false,
     ).then((_) {
-      _isDialogActive = false; // Ensure the lock is released if the dialog is dismissed by any systemic means
+      _isDialogActive = false;
     });
   }
 
+  // OFFLINE CONNECTION RESILIENCE DIALOG
   static void showOfflineDialog() {
-    if (_isOfflineDialogActive) return;
+    if (Get.overlayContext == null || _isOfflineDialogActive) return;
+
     if (_isDialogActive && Get.isDialogOpen == true) {
       Get.back();
       _isDialogActive = false;
     }
 
     _isOfflineDialogActive = true;
-    Get.dialog(
+
+    Get.dialog<void>(
       PopScope(
-        canPop: false, // Strict block preventing back-button bypass
+        canPop: false,
         child: Builder(
           builder: (context) {
-            final double dialogWidth = context.responsiveWidth(context.screenWidth * 0.85, 450);
+            final isDark = context.isDark;
+            final double dialogWidth = context.responsiveWidth(context.screenWidth * 0.88, 440);
+
             return Dialog(
-              backgroundColor: context.isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+              backgroundColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
               shape: RoundedRectangleBorder(
-                borderRadius: context.responsiveRadius(16, 20),
-                side: BorderSide(
-                  color: context.isDark ? AppColors.error.withValues(alpha: 0.5) : AppColors.error,
-                  width: 1.5,
-                ),
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: AppColors.statusRedError.withValues(alpha: isDark ? 0.5 : 0.8), width: 1.5),
               ),
               child: Container(
                 width: dialogWidth,
-                padding: EdgeInsets.all(context.responsiveSize(24, 30)),
+                padding: EdgeInsets.all(context.responsiveSize(22, 28)),
                 child: Column(
-                  mainAxisSize: .min,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.wifi_off, color: AppColors.error, size: context.responsiveSize(50, 60)),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(color: AppColors.statusRedError.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      child: Icon(Icons.wifi_off_rounded, color: AppColors.statusRedError, size: context.responsiveSize(40, 48)),
+                    ),
                     SizedBox(height: context.responsiveHeight(16, 20)),
                     Text(
                       'Connection Lost',
-                      style: context.mainHeadingTextStyle.copyWith(color: AppColors.error),
+                      style: context.mainHeadingTextStyle.copyWith(fontSize: context.responsiveSize(18, 20), color: AppColors.statusRedError),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: context.responsiveHeight(12, 16)),
+                    SizedBox(height: context.responsiveHeight(10, 14)),
                     Text(
-                      'This application requires an active internet connection to process utility modules. Please restore your connection to continue.',
-                      style: context.bodyTextStyle,
+                      'This application requires an active internet connection to synchronize enterprise data. Please check your network to resume.',
+                      style: context.bodyTextStyle.copyWith(
+                        fontSize: context.responsiveSize(13, 14),
+                        color: isDark ? AppColors.textSecondaryMuted : AppColors.textSecondarySlate,
+                        height: 1.45,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -171,9 +214,9 @@ class DialogHelper {
     });
   }
 
-  /// Utility to safely dismiss the offline dialog once connection restores
+  /// Utility to safely dismiss the offline dialog once connectivity restores
   static void dismissOfflineDialog() {
-    if(_isOfflineDialogActive && Get.isDialogOpen == true) {
+    if (_isOfflineDialogActive && Get.isDialogOpen == true) {
       Get.back();
       _isOfflineDialogActive = false;
     }
