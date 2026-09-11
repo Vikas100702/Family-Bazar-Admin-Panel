@@ -14,6 +14,11 @@ class SubCategoryController extends BaseTableController<ViewSubCategoryDatum> {
     fetchSubCategories();
   }
 
+  @override
+  String searchTokenBuilder(ViewSubCategoryDatum item) {
+    return '${item.ogCode} ${item.ogName} ${item.ogScCode} ${item.ogEucode}';
+  }
+
   Future<void> fetchSubCategories() async {
     await runWithLoading(() async {
       try {
