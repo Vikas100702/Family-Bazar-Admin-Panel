@@ -14,6 +14,11 @@ class CategoryController extends BaseTableController<ViewCategoryDatum> {
     fetchCategories();
   }
 
+  @override
+  String searchTokenBuilder(ViewCategoryDatum item) {
+    return '${item.igCode} ${item.igName} ${item.igCmCode} ${item.igType} ${item.igEucode}';
+  }
+
   Future<void> fetchCategories() async {
     await runWithLoading(() async {
       try {
