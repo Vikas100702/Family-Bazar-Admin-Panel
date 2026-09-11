@@ -1,15 +1,17 @@
+import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/component/image_upload/binding/image_upload_binding.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/component/image_upload/widget/image_upload_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_search_field.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/controller/items_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/model/item_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 class ItemsView extends GetView<ItemController> {
   const ItemsView({super.key});
@@ -19,121 +21,307 @@ class ItemsView extends GetView<ItemController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Header
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            context.responsiveSize(16, 24),
-            context.responsiveSize(16, 24),
-            context.responsiveSize(16, 24),
-            context.responsiveSize(12, 16),
-          ),
-          child: _buildHeader(context),
-        ),
-
-        // Generic Responsive Data Table
+        _buildHeader(context),
+        SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: context.responsiveSize(16, 24)),
-            child: Obx(
-              () => DataTableWidget<ViewItemDatum>(
-                items: controller.pagedList.toList(),
-                horizontalScrollController: controller.horizontalScrollController,
-                verticalScrollController: controller.verticalScrollController,
-                emptyTitle: 'No Items Available',
-                emptyIcon: Icons.category_outlined,
-                columns: const [
-                  DataColumn(label: Text('ITEM CODE')),
-                  DataColumn(label: Text('FIRM CODE')),
-                  DataColumn(label: Text('CATEGORY CODE')),
-                  DataColumn(label: Text('SUB CATEGORY CODE')),
-                  DataColumn(label: Text('IMAGES')),
-                  DataColumn(label: Text('ITEM NAME')),
-                  DataColumn(label: Text('EU CODE')),
-                  DataColumn(label: Text('EAN CODE')),
-                ],
-                rowBuilder: (context, category) => _buildDataRow(context, category),
-              ),
-            ),
-          ),
-        ),
+          child: Obx(() {
+            if (controller.isLoading.value && controller.pagedList.isEmpty) {
+              return Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: context.defaultDecoration,
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+                      SizedBox(height: 16),
+                      Text('Loading Product Items...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              );
+            }
 
-        // Pagination
-        Padding(
-          padding: EdgeInsets.all(context.responsiveSize(16, 24)),
-          child: Obx(
-            () => CustomPaginationWidget(
-              currentPage: controller.currentPage.value,
-              totalPages: controller.totalPages.value,
-              totalRecords: controller.totalRecords.value,
-              itemsPerPage: controller.itemsPerPage.value,
-              pageSizeOptions: controller.pageSizeOptions,
-              onPageChanged: controller.changePage,
-              onPageSizeChanged: controller.changePageSize,
-            ),
-          ),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: DataTableWidget<ViewItemDatum>(
+                    items: controller.pagedList.toList(),
+                    horizontalScrollController: controller.horizontalScrollController,
+                    verticalScrollController: controller.verticalScrollController,
+                    emptyTitle: 'No Product Items Available',
+                    emptySubtitle: 'Sync with server or configure inventory catalog.',
+                    emptyIcon: Icons.inventory_2_outlined,
+                    columns: const [
+                      DataColumn(label: Text('ITEM CODE')),
+                      DataColumn(label: Text('FIRM CODE')),
+                      DataColumn(label: Text('IMAGES')),
+                      DataColumn(label: Text('ITEM NAME')),
+                      DataColumn(label: Text('CATEGORY')),
+                      DataColumn(label: Text('SUB-CATEGORY')),
+                      DataColumn(label: Text('EU CODE')),
+                      DataColumn(label: Text('EAN / BARCODE')),
+                      DataColumn(label: Text('ACTIONS')),
+                    ],
+                    rowBuilder: (context, item) => _buildDataRow(context, item),
+                  ),
+                ),
+                SizedBox(height: context.responsiveHeight(12, 16)),
+                CustomPaginationWidget(
+                  currentPage: controller.currentPage.value,
+                  totalItems: controller.totalRecords.value,
+                  itemsPerPage: controller.itemsPerPage.value,
+                  itemsPerPageOptions: controller.pageSizeOptions,
+                  isLoading: controller.isLoading.value,
+                  onPageChanged: controller.changePage,
+                  onItemsPerPageChanged: controller.changePageSize,
+                ),
+              ],
+            );
+          }),
         ),
       ],
     );
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Category Management',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: context.responsiveSize(20, 24)),
-            ),
-          ],
-        ),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBrandOrange,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    final isDark = context.isDark;
+    final isMobile = context.isMobile;
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Item Catalog', style: context.headingTextStyle.copyWith(fontSize: 18)),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, size: 20),
+                color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                tooltip: 'Refresh Items',
+                onPressed: controller.refreshCategories,
+              ),
+            ],
           ),
-          icon: const Icon(Icons.refresh_rounded, size: 20),
-          label: const Text('Refresh', style: TextStyle(fontWeight: FontWeight.w600)),
-          onPressed: () => controller.refreshCategories(),
+          /* const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () {
+              // Action reserved for item creation dialog
+            },
+            icon: const Icon(Icons.add_box_outlined, size: 18),
+            label: const Text('Add Product Item'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryRed,
+              foregroundColor: AppColors.onPrimaryWhite,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),*/
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppSearchField(hintText: 'Search', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
+            const SizedBox(width: 12),
+            Obx(() {
+              final bool isRefreshing = controller.isLoading.value;
+              return OutlinedButton.icon(
+                onPressed: controller.refreshCategories,
+                icon: isRefreshing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+                      )
+                    : const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+              );
+            }),
+            /*const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Action reserved for item creation dialog
+              },
+              icon: const Icon(Icons.add_box_outlined, size: 18),
+              label: const Text('Add Product Item'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryRed,
+                foregroundColor: AppColors.onPrimaryWhite,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              ),
+            ),*/
+          ],
         ),
       ],
     );
   }
 
   DataRow _buildDataRow(BuildContext context, ViewItemDatum item) {
+    final isDark = context.isDark;
+
     return DataRow(
       cells: [
-        DataCell(Text(_formatText(item.iCode), style: const TextStyle(fontWeight: FontWeight.w600))),
+        DataCell(SelectableText(_formatText(item.iCode), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
         DataCell(Text(_formatText(item.iFirmCode))),
-        DataCell(Text(_formatText(item.iItemGroup))),
-        DataCell(Text(_formatText(item.iOtherGroup))),
-        DataCell(
-          IconButton(
-            icon: const Icon(Icons.add_photo_alternate_outlined, color: Colors.blueAccent, size: 22),
-            tooltip: 'Upload Item Images',
-            splashRadius: 24,
-            mouseCursor: SystemMouseCursors.click,
-            onPressed: () => _openImageUploadModal(context, item),
-          ),
-        ),
+        DataCell(_buildImagesCell(context, item)),
         DataCell(
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 240),
             child: Tooltip(
               message: _formatText(item.iName),
-              child: Text(_formatText(item.iName), maxLines: 1, overflow: TextOverflow.ellipsis),
+              child: Text(
+                _formatText(item.iName),
+                style: const TextStyle(fontWeight: FontWeight.w500),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ),
-        DataCell(Text(_formatDate(item.iEuCode))),
-        DataCell(Text(_formatDate(item.eanCode))),
+        DataCell(
+          SelectableText(
+            _formatText(item.itemGroup),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
+          ),
+        ),
+        DataCell(
+          SelectableText(
+            _formatText(item.otherGroup),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentGoldAmber : AppColors.statusAmberWarning),
+          ),
+        ),
+        DataCell(Text(_formatText(item.iEuCode))),
+        DataCell(SelectableText(_formatText(item.eanCode), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
+        DataCell(
+          IconButton(
+            icon: const Icon(Icons.visibility_outlined, size: 18),
+            color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+            tooltip: 'View Item Details',
+            splashRadius: 18,
+            onPressed: () => _showItemDetails(context, item),
+          ),
+        ),
       ],
     );
+  }
+
+  Widget _buildImagesCell(BuildContext context, ViewItemDatum item) {
+    final bool hasWebImg = item.iImgW.trim().isNotEmpty;
+    final bool hasMobileImg = item.iImgM.trim().isNotEmpty;
+    final isDark = context.isDark;
+
+    if (!hasWebImg && !hasMobileImg) {
+      return InkWell(
+        onTap: () => _openImageUploadModal(context, item),
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.primaryRed.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.25)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add_photo_alternate_outlined, size: 15, color: AppColors.primaryRed),
+              SizedBox(width: 4),
+              Text(
+                'Upload',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primaryRed),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return InkWell(
+      onTap: () => _openImageUploadModal(context, item),
+      borderRadius: BorderRadius.circular(6),
+      child: Tooltip(
+        message: 'Click to view / update category images',
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildMiniThumbnail(
+                imageUrl: item.iImgW,
+                width: 40,
+                height: 24,
+                placeholderIcon: Icons.desktop_mac_rounded,
+                tooltipLabel: 'Web Banner',
+              ),
+              const SizedBox(width: 6),
+              _buildMiniThumbnail(
+                imageUrl: item.iImgM,
+                width: 24,
+                height: 24,
+                placeholderIcon: Icons.phone_android_rounded,
+                tooltipLabel: 'Mobile Icon',
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.edit_outlined, size: 13, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniThumbnail({
+    required String imageUrl,
+    required double width,
+    required double height,
+    required IconData placeholderIcon,
+    required String tooltipLabel,
+  }) {
+    final bool hasImage = imageUrl.trim().isNotEmpty;
+    final String resolvedUrl = _resolveImageUrl(imageUrl);
+
+    return Tooltip(
+      message: tooltipLabel,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: hasImage
+            ? Image.network(
+                resolvedUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(placeholderIcon, size: 12, color: Colors.grey),
+                loadingBuilder: (_, child, progress) => progress == null
+                    ? child
+                    : const Center(child: SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5))),
+              )
+            : Icon(placeholderIcon, size: 12, color: Colors.grey.shade400),
+      ),
+    );
+  }
+
+  static String _resolveImageUrl(String path) {
+    if (path.isEmpty) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    const String baseDomain = ApiConstants.baseUrl;
+    return '$baseDomain${path.startsWith('/') ? '' : '/'}$path';
   }
 
   void _openImageUploadModal(BuildContext context, ViewItemDatum item) {
@@ -143,15 +331,16 @@ class ItemsView extends GetView<ItemController> {
       Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        insetPadding: EdgeInsets.symmetric(horizontal: context.responsiveSize(16, 24), vertical: context.responsiveSize(16, 24)),
+        insetPadding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(16, 24), vertical: context.responsiveHeight(16, 24)),
         child: ImageUploadView(
           uploadType: 'item',
-          entityCode: item.iName,
+          entityCode: item.iCode,
           entityTitle: item.iName,
+          initialWebImageUrl: item.iImgW,
+          initialMobileImageUrl: item.iImgM,
           onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
             final repo = Get.find<ItemRepository>();
             final res = await repo.addItemDetails(itemCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
-            debugPrint('🔗 [ITEM LINK API RESPONSE]: success=${res.success}, message=${res.message}');
             return res.success;
           },
           onSuccess: () {
@@ -166,147 +355,40 @@ class ItemsView extends GetView<ItemController> {
     );
   }
 
-  /*void _showCategoryDetails(BuildContext context, ViewItemDatum category) {
+  void _showItemDetails(BuildContext context, ViewItemDatum item) {
     EntityDetailsDialogHelper.show(
       context: context,
-      title: '${category.igName.isNotEmpty ? category.igName.trim() : "Category"} Details',
-      subtitle: 'Configuration overview for code: ${category.igCode.isNotEmpty ? category.igCode : "N/A"}',
-      headerIcon: Icons.category_rounded,
+      title: item.iName.isNotEmpty ? item.iName.trim() : "Item",
+      headerIcon: Icons.inventory_2_rounded,
       sections: [
         DetailSection(
-          title: '1. Basic & Identification Information',
+          title: '',
           items: [
-            DetailItem(label: 'Category Code', value: category.igCode, isCopyable: true),
-            DetailItem(label: 'Category Name', value: category.igName),
-            DetailItem(label: 'CM Code', value: category.igCmCode, isCopyable: true),
-            DetailItem(label: 'Type', value: category.igType),
-            DetailItem(label: 'Old Code', value: category.igOldCode),
-            DetailItem(label: 'New Code', value: category.igNewCode),
+            DetailItem(label: 'Item Code', value: item.iCode, isCopyable: true),
+            DetailItem(label: 'Item Name', value: item.iName),
+            DetailItem(label: 'EAN / Barcode', value: item.eanCode, isCopyable: true),
+            DetailItem(label: 'Firm Code', value: item.iFirmCode, isCopyable: true),
           ],
         ),
         DetailSection(
-          title: '2. Operational Flags & POS Settings',
-          flags: [
-            DetailFlag(label: 'On POS', value: category.igOnPos),
-            DetailFlag(label: 'Negative Stock Billing', value: category.igNegativeStockBilling),
-            DetailFlag(label: 'Locked', value: category.igLock),
-            DetailFlag(label: 'Rate Wise Tax', value: category.igRateWiseTax),
-          ],
+          title: '',
           items: [
-            DetailItem(label: 'POS Index', value: category.igPosINdex),
-            DetailItem(label: 'POS Name', value: category.igPosName),
-            DetailItem(label: 'Point Value Per', value: category.igPointValuePer),
-            DetailItem(label: 'Print SrNo', value: category.igPrintSrNo),
-            DetailItem(label: 'Rate Wise Tax Rate Type', value: category.igRateWiseTaxRateType),
+            DetailItem(label: 'Category Code', value: item.iItemGroup, isCopyable: true),
+            DetailItem(label: 'Sub-Category Code', value: item.iOtherGroup, isCopyable: true),
           ],
         ),
         DetailSection(
-          title: '3. Measurement & Timestamps',
-          items: [
-            DetailItem(label: 'EU Code', value: category.igEucode),
-            DetailItem(label: 'MU Code', value: category.igMucode),
-            DetailItem(label: 'Entry Date', value: EntityDetailsDialogHelper.formatDate(category.igEdate)),
-            DetailItem(label: 'Modified Date', value: EntityDetailsDialogHelper.formatDate(category.igMdate)),
-            DetailItem(label: 'Sync Date', value: category.igSyncDate),
-          ],
-        ),
-        DetailSection(
-          title: '4. MRP Rate Slabs Configuration',
-          items: [
-            DetailItem(label: 'Less Than Or Equal To', value: category.igMrpRateSlabLessThanOrEqualTo),
-            DetailItem(label: 'Slab F1', value: category.igMrpRateSlabF1),
-            DetailItem(label: 'Slab U1', value: category.igMrpRateSlabU1),
-            DetailItem(label: 'Slab F2', value: category.igMrpRateSlabF2),
-            DetailItem(label: 'Slab U2', value: category.igMrpRateSlabU2),
-            DetailItem(label: 'Slab F3', value: category.igMrpRateSlabF3),
-            DetailItem(label: 'Slab U3', value: category.igMrpRateSlabU3),
-            DetailItem(label: 'Greater Than Or Equal To', value: category.igMrpRateSlabGreaterThanOrEqualTo),
-          ],
-        ),
-        DetailSection(
-          title: '5. State Tax Slabs',
-          items: [
-            DetailItem(label: 'Less Than Or Equal To', value: category.igStateTaxSlabLessThanOrEqualTo),
-            DetailItem(label: 'Tax Slab 1', value: category.igStateTaxSlab1),
-            DetailItem(label: 'Tax Slab 2', value: category.igStateTaxSlab2),
-            DetailItem(label: 'Tax Slab 3', value: category.igStateTaxSlab3),
-            DetailItem(label: 'Greater Than Or Equal To', value: category.igStateTaxSlabGreaterThanOrEqualTo),
-          ],
-        ),
-        DetailSection(
-          title: '6. Ex-State Tax Slabs',
-          items: [
-            DetailItem(label: 'Less Than Or Equal To', value: category.igExStateTaxSlabLessThanOrEqualTo),
-            DetailItem(label: 'Ex-Tax Slab 1', value: category.igExStateTaxSlab1),
-            DetailItem(label: 'Ex-Tax Slab 2', value: category.igExStateTaxSlab2),
-            DetailItem(label: 'Ex-Tax Slab 3', value: category.igExStateTaxSlab3),
-            DetailItem(label: 'Greater Than Or Equal To', value: category.igExStateTaxSlabGreaterThanOrEqualTo),
-          ],
-        ),
-        DetailSection(
-          title: '7. Rate Diff Days Slabs',
-          items: [
-            DetailItem(label: 'Less Than Or Equal To', value: category.igRateDiffDaysLessThanOrEqualTo),
-            DetailItem(label: 'Days Slab F1', value: category.igRateDiffDaysSlabF1),
-            DetailItem(label: 'Days Slab U1', value: category.igRateDiffDaysSlabU1),
-            DetailItem(label: 'Days Slab F2', value: category.igRateDiffDaysSlabF2),
-            DetailItem(label: 'Days Slab U2', value: category.igRateDiffDaysSlabU2),
-            DetailItem(label: 'Days Slab F3', value: category.igRateDiffDaysSlabF3),
-            DetailItem(label: 'Days Slab U3', value: category.igRateDiffDaysSlabU3),
-            DetailItem(label: 'Greater Than Or Equal To', value: category.igRateDiffDaysGreaterThanOrEqualTo),
-          ],
-        ),
-        DetailSection(
-          title: '8. Rate Difference Rate Slabs',
-          items: [
-            DetailItem(label: 'Less Than Or Equal To', value: category.igRateDiffRateLessThanOrEqualTo),
-            DetailItem(label: 'Rate Slab 1', value: category.igRateDiffRateSlab1),
-            DetailItem(label: 'Rate Slab 2', value: category.igRateDiffRateSlab2),
-            DetailItem(label: 'Rate Slab 3', value: category.igRateDiffRateSlab3),
-            DetailItem(label: 'Greater Than Or Equal To', value: category.igRateDiffRateGreaterThanOrEqualTo),
-          ],
+          title: '',
+          items: [DetailItem(label: 'EU Code', value: item.iEuCode)],
         ),
       ],
     );
   }
 
-  Widget _buildStatusBadge(String value) {
-    final bool isTrue = value.toLowerCase() == 'true' || value == '1';
-    final Color color = isTrue ? Colors.green.shade700 : Colors.red.shade700;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(isTrue ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            isTrue ? 'Enabled' : 'Disabled',
-            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-*/
   String _formatText(String? value) {
     if (value == null || value.trim().isEmpty) return '—';
     return value.trim();
   }
-
-  String _formatDate(dynamic date) {
-    if (date == null || date.toString().isEmpty) return '—';
-    try {
-      final DateTime parsed = date is DateTime ? date : DateTime.parse(date.toString());
-      return DateFormat('MMM dd, yyyy').format(parsed);
-    } catch (_) {
-      return date.toString().split(' ').first;
-    }
-  }
 }
+
+typedef ItemView = ItemsView;
