@@ -62,11 +62,25 @@ class ImageUploadController extends BaseController {
   EntityLinkCallback? _onLinkEntity;
   VoidCallback? _onSuccess;
 
-  void configureEntity({required String entityCode, required String type, EntityLinkCallback? onLinkEntity, VoidCallback? onSuccess}) {
+  void configureEntity({
+    required String entityCode,
+    required String type,
+    EntityLinkCallback? onLinkEntity,
+    VoidCallback? onSuccess,
+    String? initialWebImageUrl,
+    String? initialMobileImageUrl,
+  }) {
     targetEntityCode.value = entityCode.trim();
     uploadType.value = type.trim().isEmpty ? 'category' : type.trim();
     _onLinkEntity = onLinkEntity;
     _onSuccess = onSuccess;
+
+    if (webImageBytes.value == null) {
+      uploadedWebImageUrl.value = initialWebImageUrl?.trim() ?? '';
+    }
+    if (mobileImageBytes.value == null) {
+      uploadedMobileImageUrl.value = initialMobileImageUrl?.trim() ?? '';
+    }
   }
 
   // IMAGE BUFFERS & STATES
