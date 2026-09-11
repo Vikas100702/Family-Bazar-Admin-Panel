@@ -1,4 +1,5 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_search_field.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
@@ -13,327 +14,306 @@ class FirmView extends GetView<FirmController> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Header
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            context.responsiveSize(16, 24),
-            context.responsiveSize(16, 24),
-            context.responsiveSize(16, 24),
-            context.responsiveSize(12, 16),
-          ),
-          child: _buildHeader(context),
-        ),
-
-        // Generic Responsive Data Table
+        _buildHeader(context),
+        SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: context.responsiveSize(16, 24)),
-            child: Obx(
-              () => DataTableWidget<Datum>(
-                items: controller.pagedList.toList(),
-                horizontalScrollController: controller.horizontalScrollController,
-                verticalScrollController: controller.verticalScrollController,
-                emptyTitle: 'No Firms Available',
-                emptyIcon: Icons.business_outlined,
-                columns: const [
-                  DataColumn(label: Text('FIRM CODE')),
-                  DataColumn(label: Text('FIRM NAME')),
-                  DataColumn(label: Text('LOCATION CODE')),
-                  DataColumn(label: Text('CE REG NO')),
-                  DataColumn(label: Text('GST NUMBER')),
-                  DataColumn(label: Text('UNIT ACC CODE')),
-                  DataColumn(label: Text('PINCODE')),
-                  DataColumn(label: Text('SALE ALLOW')),
-                  DataColumn(label: Text('ACTIONS')),
-                ],
-                rowBuilder: (context, firm) => _buildDataRow(context, firm),
-              ),
-            ),
-          ),
-        ),
+          child: Obx(() {
+            if (controller.isLoading.value && controller.pagedList.isEmpty) {
+              return Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: context.defaultDecoration,
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+                      SizedBox(height: 16),
+                      Text('Loading Registered Firms...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              );
+            }
 
-        // Pagination
-        Padding(
-          padding: EdgeInsets.all(context.responsiveSize(16, 24)),
-          child: Obx(
-            () => CustomPaginationWidget(
-              currentPage: controller.currentPage.value,
-              totalPages: controller.totalPages.value,
-              totalRecords: controller.totalRecords.value,
-              itemsPerPage: controller.itemsPerPage.value,
-              pageSizeOptions: controller.pageSizeOptions,
-              onPageChanged: controller.changePage,
-              onPageSizeChanged: controller.changePageSize,
-            ),
-          ),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: DataTableWidget<Datum>(
+                    items: controller.pagedList.toList(),
+                    horizontalScrollController: controller.horizontalScrollController,
+                    verticalScrollController: controller.verticalScrollController,
+                    emptyTitle: 'No Registered Firms Found',
+                    emptySubtitle: 'Add a new firm or refresh to sync with server.',
+                    emptyIcon: Icons.domain_disabled_rounded,
+                    columns: const [
+                      DataColumn(label: Text('FIRM CODE')),
+                      DataColumn(label: Text('FIRM NAME')),
+                      DataColumn(label: Text('GSTIN / UIN')),
+                      DataColumn(label: Text('LOCATION')),
+                      DataColumn(label: Text('UNIT ACC')),
+                      DataColumn(label: Text('STATUS')),
+                      DataColumn(label: Text('FULL ADDRESS')),
+                      DataColumn(label: Text('ACTIONS')),
+                    ],
+                    rowBuilder: (context, firm) => _buildDataRow(context, firm),
+                  ),
+                ),
+                SizedBox(height: context.responsiveHeight(12, 16)),
+                CustomPaginationWidget(
+                  currentPage: controller.currentPage.value,
+                  totalItems: controller.totalRecords.value,
+                  itemsPerPage: controller.itemsPerPage.value,
+                  itemsPerPageOptions: controller.pageSizeOptions,
+                  isLoading: controller.isLoading.value,
+                  onPageChanged: controller.changePage,
+                  onItemsPerPageChanged: controller.changePageSize,
+                ),
+              ],
+            );
+          }),
         ),
       ],
     );
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Firm Management',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: context.responsiveSize(20, 24)),
-            ),
-          ],
-        ),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBrandOrange,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    final isDark = context.isDark;
+    final isMobile = context.isMobile;
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, size: 20),
+                color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                tooltip: 'Refresh Data',
+                onPressed: controller.fetchFirms,
+              ),
+            ],
           ),
-          icon: const Icon(Icons.refresh_rounded, size: 20),
-          label: const Text('Refresh', style: TextStyle(fontWeight: FontWeight.w600)),
-          onPressed: () => controller.refreshFirms(),
+          const SizedBox(height: 12),
+          AppSearchField(hintText: 'Search firm name, code, GST...', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
+          /* const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () {
+              // Action reserved for Firm creation dialog
+            },
+            icon: const Icon(Icons.add_business_rounded, size: 18),
+            label: const Text('Add New Firm'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryRed,
+              foregroundColor: AppColors.onPrimaryWhite,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),*/
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppSearchField(
+              width: 260,
+              hintText: 'Search firm code, GSTIN, name...',
+              onChanged: controller.onSearchChanged,
+              onClear: controller.clearSearch,
+            ),
+            const SizedBox(width: 12),
+            Obx(() {
+              final bool isRefreshing = controller.isLoading.value;
+
+              return OutlinedButton.icon(
+                onPressed: controller.fetchFirms,
+                icon: isRefreshing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+                      )
+                    : const Icon(Icons.refresh_rounded, size: 18),
+                label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+              );
+            }),
+            const SizedBox(width: 12),
+            /* ElevatedButton.icon(
+              onPressed: () {
+                // Action reserved for Firm creation dialog
+              },
+              icon: const Icon(Icons.add_business_rounded, size: 18),
+              label: const Text('Add New Firm'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryRed,
+                foregroundColor: AppColors.onPrimaryWhite,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              ),
+            ),*/
+          ],
         ),
       ],
     );
   }
 
   DataRow _buildDataRow(BuildContext context, Datum firm) {
+    final isDark = context.isDark;
+
+    final address = [firm.fFirmAdd1, firm.fFirmAdd2, firm.fFirmAdd3].where((part) => part.trim().isNotEmpty).join(', ');
+
     return DataRow(
       cells: [
-        DataCell(Text(_formatText(firm.fFirmCode), style: const TextStyle(fontWeight: FontWeight.w600))),
+        DataCell(SelectableText(firm.fFirmCode.isEmpty ? 'N/A' : firm.fFirmCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
         DataCell(
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 240),
-            child: Tooltip(
-              message: _formatText(firm.fFirmName),
-              child: Text(_formatText(firm.fFirmName), maxLines: 1, overflow: TextOverflow.ellipsis),
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Text(
+              firm.fFirmName.isEmpty ? 'N/A' : firm.fFirmName,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
-        DataCell(Text(_formatText(firm.fLocationCode))),
-        DataCell(Text(_formatText(firm.fCeRegNo))),
-        DataCell(Text(_formatText(firm.fGstNumber))),
-        DataCell(Text(_formatText(firm.fUnitAccCode))),
-        DataCell(Text(_formatText(firm.fPinCode))),
-        DataCell(_buildStatusBadge(firm.fSaleAllow.toString())),
         DataCell(
-          IconButton(
-            icon: const Icon(Icons.visibility_outlined, color: AppColors.primaryBrandOrange, size: 22),
-            tooltip: 'View Configurations',
-            splashRadius: 24,
-            mouseCursor: SystemMouseCursors.click,
-            onPressed: () => _showFirmDetails(context, firm),
+          SelectableText(
+            firm.fGstNumber.isEmpty ? 'N/A' : firm.fGstNumber,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
+          ),
+        ),
+        DataCell(Text(firm.fLocationCode.isEmpty ? 'N/A' : firm.fLocationCode)),
+        DataCell(Text(firm.fUnitAccCode.isEmpty ? 'N/A' : firm.fUnitAccCode)),
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: (firm.fSaleAllow ? AppColors.statusGreenSuccess : AppColors.statusRedError).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: (firm.fSaleAllow ? AppColors.statusGreenSuccess : AppColors.statusRedError).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  firm.fSaleAllow ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                  size: 12,
+                  color: firm.fSaleAllow ? AppColors.statusGreenSuccess : AppColors.statusRedError,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  firm.fSaleAllow ? 'Active' : 'Inactive',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: firm.fSaleAllow ? AppColors.statusGreenSuccess : AppColors.statusRedError,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        DataCell(
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 240),
+            child: Text(address.isEmpty ? 'N/A' : address, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.captionStyle),
+          ),
+        ),
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.visibility_outlined, size: 18),
+                color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                tooltip: 'View Full Firm Details',
+                splashRadius: 18,
+                onPressed: () => _inspectFirmDetails(context, firm),
+              ),
+              /* IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                color: AppColors.statusBlueInfo,
+                tooltip: 'Edit Firm Configuration',
+                splashRadius: 18,
+                onPressed: () {
+                  // Action reserved for Edit Firm dialog
+                },
+              ),*/
+            ],
           ),
         ),
       ],
     );
   }
 
-  void _showFirmDetails(BuildContext context, Datum firm) {
+  void _inspectFirmDetails(BuildContext context, Datum firm) {
     EntityDetailsDialogHelper.show(
       context: context,
-      title: '${firm.fFirmName.isNotEmpty ? firm.fFirmName.trim() : "Firm"} Details',
-      subtitle: 'Configuration overview for code: ${firm.fFirmCode.isNotEmpty ? firm.fFirmCode : "N/A"}',
-      headerIcon: Icons.business_rounded,
+      title: firm.fFirmName.isNotEmpty ? firm.fFirmName.trim() : 'Firm Details',
+      subtitle: 'Entity Profile for Code: ${firm.fFirmCode}',
+      headerIcon: Icons.domain_rounded,
       sections: [
         DetailSection(
-          title: '1. Basic & Identification Information',
+          title: '1. Legal & Identity Information',
           items: [
             DetailItem(label: 'Firm Code', value: firm.fFirmCode, isCopyable: true),
             DetailItem(label: 'Firm Name', value: firm.fFirmName),
-            DetailItem(label: 'Short Name', value: firm.fShortName),
-            DetailItem(label: 'Parent Firm', value: firm.fParentFirm),
-            DetailItem(label: 'Base Firm Code', value: firm.fBaseFirmCode),
-            DetailItem(label: 'Primary Firm Code (P)', value: firm.fPFirmCode),
-            DetailItem(label: 'Billing Firm Code (B)', value: firm.fBFirmCode),
-            DetailItem(label: 'Other Firm Code (O)', value: firm.fOFirmCode),
-            DetailItem(label: 'Business Type', value: firm.fBussinessType),
+            DetailItem(label: 'GSTIN / UIN', value: firm.fGstNumber, isCopyable: true),
+            DetailItem(label: 'CE Reg No', value: firm.fCeRegNo, isCopyable: true),
+            DetailItem(label: 'Unit Acc Code', value: firm.fUnitAccCode, isCopyable: true),
             DetailItem(label: 'Location Code', value: firm.fLocationCode),
-            DetailItem(label: 'Station Code', value: firm.fStationCode),
-            DetailItem(label: 'Order Firm', value: firm.fOrderFirm),
-            DetailItem(label: 'Rate Type', value: firm.fRateType),
-            DetailItem(label: 'Godown', value: firm.fGodown),
-            DetailItem(label: 'Is ShowRoom', value: firm.fIsShowRoom),
+            DetailItem(label: 'Jurisdiction City', value: firm.fFirmJurisdictionCity),
           ],
         ),
         DetailSection(
-          title: '2. Address & Location Details',
+          title: '2. Operational & Regulatory Flags',
+          flags: [
+            DetailFlag(label: 'Sale Allowed', value: firm.fSaleAllow),
+            DetailFlag(label: 'Show Stock', value: firm.fShowStock),
+            DetailFlag(label: 'Is Head Office', value: firm.fIsHo),
+            DetailFlag(label: 'TCS Applicable', value: firm.fTcsApplicable),
+            DetailFlag(label: 'No Invoice Print', value: firm.fNotInvoicePrint),
+          ],
+          items: [
+            DetailItem(label: 'Business Type', value: firm.fBussinessType),
+            DetailItem(label: 'SW License No', value: firm.fSwLicenseNo),
+            DetailItem(label: 'Pin Code', value: firm.fPinCode),
+            DetailItem(label: 'EU Code', value: firm.fEuCode),
+            DetailItem(label: 'MU Code', value: firm.fMuCode),
+          ],
+        ),
+        DetailSection(
+          title: '3. Registered Physical Address',
           items: [
             DetailItem(label: 'Address Line 1', value: firm.fFirmAdd1),
             DetailItem(label: 'Address Line 2', value: firm.fFirmAdd2),
             DetailItem(label: 'Address Line 3', value: firm.fFirmAdd3),
-            DetailItem(label: 'Pin Code', value: firm.fPinCode),
-            DetailItem(label: 'City', value: firm.fCity),
-            DetailItem(label: 'Jurisdiction City', value: firm.fFirmJurisdictionCity),
-            DetailItem(label: 'Range Address', value: firm.fRangeAddress),
-            DetailItem(label: 'Division Address', value: firm.fDivisionAddress),
           ],
         ),
         DetailSection(
-          title: '3. Contact & Communication',
-          items: [
-            DetailItem(label: 'Phone', value: firm.fFirmPhone),
-            DetailItem(label: 'Phone 1', value: firm.fFirmPhone1),
-            DetailItem(label: 'Mobile', value: firm.fFirmMobile),
-            DetailItem(label: 'Email', value: firm.fFirmEmail),
-            DetailItem(label: 'Web', value: firm.fFirmWeb),
-            DetailItem(label: 'Fax', value: firm.fFirmFax),
-          ],
-        ),
-        DetailSection(
-          title: '4. Tax, Statutory & Registration Details',
-          items: [
-            DetailItem(label: 'GST Number', value: firm.fGstNumber, isCopyable: true),
-            DetailItem(label: 'PAN Number', value: firm.fPanNo, isCopyable: true),
-            DetailItem(label: 'TIN Number', value: firm.fTinNo),
-            DetailItem(label: 'CST Number', value: firm.fCstNumber),
-            DetailItem(label: 'UPTT Number', value: firm.fUpttNumber),
-            DetailItem(label: 'CE Reg No', value: firm.fCeRegNo),
-            DetailItem(label: 'Software License No', value: firm.fSwLicenseNo),
-            DetailItem(label: 'Drug Lic No 1', value: firm.fDrugLicNo1),
-            DetailItem(label: 'Drug Lic No 2', value: firm.fDrugLicNo2),
-            DetailItem(label: 'ECC Number', value: firm.fEccNumber),
-            DetailItem(label: 'Range', value: firm.fRange),
-            DetailItem(label: 'Division', value: firm.fDivision),
-            DetailItem(label: 'Commissionerate', value: firm.fCommissionerate),
-            DetailItem(label: 'Assessing Authority Designation', value: firm.fDesignationOfAssessingAuthority),
-            DetailItem(label: 'Circle Name', value: firm.fCircleName),
-            DetailItem(label: 'TIN Head', value: firm.fTinHead),
-            DetailItem(label: 'CST Head', value: firm.fCstHead),
-            DetailItem(label: 'TIN Date', value: firm.fTinDate),
-            DetailItem(label: 'CST Date', value: firm.fCstDate),
-          ],
-        ),
-        DetailSection(
-          title: '5. Operational Flags & Billing Limits',
-          flags: [
-            DetailFlag(label: 'Sale Allow', value: firm.fSaleAllow),
-            DetailFlag(label: 'Not Invoice Print', value: firm.fNotInvoicePrint),
-            DetailFlag(label: 'Not Transaction Req', value: firm.fNotTransactionReq),
-            DetailFlag(label: 'TCS Applicable', value: firm.fTcsApplicable),
-            DetailFlag(label: 'Show Stock', value: firm.fShowStock),
-            DetailFlag(label: 'Is Head Office (HO)', value: firm.fIsHo),
-          ],
-          items: [
-            DetailItem(label: 'Account No', value: firm.fAccNo),
-            DetailItem(label: 'Unit Acc Code', value: firm.fUnitAccCode),
-            DetailItem(label: 'Min Cash Sale Amt in Bill', value: firm.fMinimumCashSaleAmtInBill),
-            DetailItem(label: 'Max Cash Sale Amt in Bill', value: firm.fMaximumCashSaleAmtInBill),
-            DetailItem(label: 'Min Credit Sale Amt in Bill', value: firm.fMinimumCreditSaleAmtInBill),
-            DetailItem(label: 'Max Credit Sale Amt in Bill', value: firm.fMaximumCreditSaleAmtInBill),
-            DetailItem(label: 'Export Detail', value: firm.fExportDetail),
-          ],
-        ),
-        DetailSection(
-          title: '6. API, E-Way & Token Integrations',
+          title: '4. E-Way Bill & Compliance Settings',
           items: [
             DetailItem(label: 'Eway API User', value: firm.fEwayApiUser),
-            DetailItem(label: 'Eway API Password', value: firm.fEwayApiPasswd),
-            DetailItem(label: 'Eway Token', value: firm.fEwayToken, isCopyable: true),
-            DetailItem(label: 'GST User ID', value: firm.fGstUserId),
-            DetailItem(label: 'GST Token', value: firm.fGstToken, isCopyable: true),
-            DetailItem(label: 'E-Invoice', value: firm.fEInvoice),
-            DetailItem(label: 'E-Invoice Token', value: firm.fEInvoiceToken, isCopyable: true),
-          ],
-        ),
-        DetailSection(
-          title: '7. UPI & Banking Configuration',
-          items: [
-            DetailItem(label: 'Bank Code', value: firm.fBankCode),
-            DetailItem(label: 'UPI Merchant Name', value: firm.fUpiMerchantName),
-            DetailItem(label: 'UPI MID', value: firm.fUpiMid, isCopyable: true),
-            DetailItem(label: 'UPI Key', value: firm.fUpiKey, isCopyable: true),
-            DetailItem(label: 'UPI VPA', value: firm.fUpiVpa),
-            DetailItem(label: 'UPI Merchant Code', value: firm.fUpiMerchantCode),
-            DetailItem(label: 'UPI Merchant String', value: firm.fUpiMerchantString, isCopyable: true),
-          ],
-        ),
-        DetailSection(
-          title: '8. Third-Party & Distributor Integrations',
-          items: [
-            DetailItem(label: 'Retailio Dist Code', value: firm.fRetailioDistCode),
-            DetailItem(label: 'Pharmarack Dist Code', value: firm.fPharmarackDistCode),
-            DetailItem(label: 'AIOCD Code', value: firm.fAiocdCode),
-            DetailItem(label: 'AIOCD Data Type', value: firm.fAiocdDataType),
-            DetailItem(label: 'AIOCD Upload Frequency', value: firm.fAiocdDataUploadFrequency),
-            DetailItem(label: 'AIOCD Company List', value: firm.fAiocdCompanyList),
-            DetailItem(label: 'AIOCD Impl. Date', value: firm.fAiocdImplementationDate),
-            DetailItem(label: 'AIOCD Password', value: firm.fAiocdPasswd),
-            DetailItem(label: 'AIOCD Sale Company List', value: firm.fAiocdSaleCompanyList),
-            DetailItem(label: 'IMS Code', value: firm.fImsCode),
-            DetailItem(label: 'IMS User Code', value: firm.fImsUserCode),
-            DetailItem(label: 'IMS Password', value: firm.fImsPasswd),
-            DetailItem(label: 'IMS Upload Frequency', value: firm.fImsDataUploadFrequency),
-            DetailItem(label: 'IMS Company List', value: firm.fImsCompanyList),
-            DetailItem(label: 'IMS Impl. Date', value: firm.fImsImplementationDate),
-            DetailItem(label: 'IMS Sale Company List', value: firm.fImsSaleCompanyList),
-            DetailItem(label: 'IMS Sale File', value: firm.fImsSaleFile),
-            DetailItem(label: 'IMS Price File', value: firm.fImsPriceFile),
-            DetailItem(label: 'IMS Stock File', value: firm.fImsStockFile),
-            DetailItem(label: 'R-IMS Code', value: firm.fRImsCode),
-            DetailItem(label: 'R-IMS User Code', value: firm.fRImsUserCode),
-            DetailItem(label: 'R-IMS Password', value: firm.fRImsPasswd),
-            DetailItem(label: 'R-IMS Upload Frequency', value: firm.fRImsDataUploadFrequency),
-            DetailItem(label: 'R-IMS Impl. Date', value: firm.fRImsImplementationDate),
-            DetailItem(label: 'R-IMS Sale File', value: firm.fRImsSaleFile),
-            DetailItem(label: 'R-IMS Purchase File', value: firm.fRImsPurchaseFile),
-            DetailItem(label: 'R-IMS Stock File', value: firm.fRImsStockFile),
-          ],
-        ),
-        DetailSection(
-          title: '9. Security, Certificates & Metadata',
-          items: [
-            DetailItem(label: 'EU Code', value: firm.fEuCode),
-            DetailItem(label: 'MU Code', value: firm.fMuCode),
-            DetailItem(label: 'Auth Sig Name', value: firm.fAuthSigName),
-            DetailItem(label: 'Auth Sig Father Name', value: firm.fAuthSigFatherName),
-            DetailItem(label: 'Auth Sig Status', value: firm.fAuthSigStatus),
-            DetailItem(label: 'Certificate Name', value: firm.fCertificateName),
-            DetailItem(label: 'Certificate Pin', value: firm.fCertificatePin),
-            DetailItem(label: 'App Lock', value: firm.fAppLock),
-            DetailItem(label: 'R1 Lock Date', value: firm.fR1LockDate),
-            DetailItem(label: 'R3B Lock Date', value: firm.fR3BLockDate),
-            DetailItem(label: 'Sync Date', value: firm.fSyncDate),
-            DetailItem(label: 'Priority', value: firm.fPriority),
+            DetailItem(label: 'Parent Firm Code', value: firm.fPFirmCode),
+            DetailItem(label: 'Base Firm Code', value: firm.fBFirmCode),
+            DetailItem(label: 'Order Firm Code', value: firm.fOFirmCode),
           ],
         ),
       ],
     );
   }
-
-  Widget _buildStatusBadge(String value) {
-    final bool isTrue = value.toLowerCase() == 'true' || value == '1';
-    final Color color = isTrue ? Colors.green.shade700 : Colors.red.shade700;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(isTrue ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            isTrue ? 'Enabled' : 'Disabled',
-            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatText(dynamic value) {
-    if (value == null || value.toString().trim().isEmpty) return '—';
-    return value.toString().trim();
-  }
 }
+
+typedef FirmSetupView = FirmView;
