@@ -1,4 +1,5 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_assets.dart';
+import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/layout/responsive_layout.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -12,95 +13,242 @@ class LoginView extends GetView<LoginController> {
   @override
   Widget build(BuildContext context) {
     return ResponsiveLayout(
-      desktop: _LoginContent(controller: controller),
-      mobile: _LoginContent(controller: controller),
+      useSafeArea: true,
+      backgroundColor: context.isDark ? AppColors.canvasDarkSlate : AppColors.canvasLightGray,
+      desktop: _buildDesktopLayout(context),
+      tablet: _buildMobileLayout(context),
+      mobile: _buildMobileLayout(context),
     );
   }
-}
 
-class _LoginContent extends StatelessWidget {
-  final LoginController controller;
-
-  const _LoginContent({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildDesktopLayout(BuildContext context) {
     return Center(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(50, 0), vertical: context.responsiveHeight(24, 24)),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: context.responsiveWidth(context.screenWidth * 2.5, 450)),
-          child: Container(
-            decoration: context.defaultDecoration,
-            padding: .symmetric(horizontal: context.responsiveWidth(50, 40), vertical: context.responsiveHeight(24, 24)),
-            child: AutofillGroup(
-              child: Form(
-                key: controller.loginFormKey,
-                child: Column(
-                  mainAxisSize: .min,
-                  crossAxisAlignment: .stretch,
-                  children: [
-                    RepaintBoundary(
-                      child: Image.asset(
-                        AppAssets.appLogo,
-                        height: context.responsiveHeight(160, 280),
-                        width: context.responsiveWidth(160, 280),
-                        fit: BoxFit.contain,
-                        semanticLabel: 'Family Bazar Admin Logo',
-                      ),
-                    ),
-                    // SizedBox(height: context.responsiveHeight(16, 12)),
-                    Text(AppStrings.adminLogin, style: context.titleStyleActive, textAlign: TextAlign.center),
-                    SizedBox(height: context.responsiveHeight(8, 6)),
-
-                    // USERNAME FIELD
-                    TextFormField(
-                      controller: controller.usernameController,
-                      autofillHints: const [AutofillHints.username],
-                      decoration: InputDecoration(labelText: AppStrings.username, prefixIcon: const Icon(Icons.person_outline)),
-                      validator: (value) => (value == null || value.trim().isEmpty) ? AppStrings.requiredField : null,
-                    ),
-                    SizedBox(height: context.responsiveHeight(16, 12)),
-
-                    // PASSWORD FIELD
-                    Obx(
-                      () => TextFormField(
-                        controller: controller.passwordController,
-                        obscureText: !controller.isPasswordVisible.value,
-                        autofillHints: const [AutofillHints.password],
-                        decoration: InputDecoration(
-                          labelText: AppStrings.password,
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            icon: Icon(controller.isPasswordVisible.value ? Icons.visibility : Icons.visibility_off),
-                            onPressed: controller.togglePasswordVisibility,
-                          ),
-                        ),
-                        validator: (value) => (value == null || value.trim().isEmpty) ? AppStrings.requiredField : null,
-                      ),
-                    ),
-                    SizedBox(height: context.responsiveHeight(16, 20)),
-
-                    // SECURITY DISCLAIMER
-                    Text(AppStrings.loginDisclaimer, style: context.subTitleStyle, textAlign: TextAlign.center),
-                    SizedBox(height: context.responsiveHeight(32, 40)),
-
-                    // SUBMIT BUTTON
-                    ElevatedButton(
-                      onPressed: controller.login,
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: context.responsiveHeight(16, 20)),
-                        shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(12, 8)),
-                      ),
-                      child: Text(AppStrings.login, style: context.titleStyleActive.copyWith(color: Colors.white)),
-                    ),
-                  ],
-                ),
+      child: Container(
+        width: context.screenWidth * 0.85,
+        height: context.screenHeight * 0.85,
+        constraints: const BoxConstraints(maxWidth: 1120, maxHeight: 740, minHeight: 580),
+        decoration: context.defaultDecoration.copyWith(borderRadius: BorderRadius.circular(16)),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(flex: 5, child: _buildBrandHeroSection(context)),
+            VerticalDivider(width: 1, thickness: 1, color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+            Expanded(
+              flex: 5,
+              child: Center(
+                child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 36), child: _buildLoginForm(context)),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(16, 24), vertical: context.responsiveHeight(20, 32)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Container(
+            padding: EdgeInsets.all(context.responsiveSize(20, 32)),
+            decoration: context.defaultDecoration,
+            child: _buildLoginForm(context),
           ),
         ),
       ),
     );
   }
+
+  Widget _buildBrandHeroSection(BuildContext context) {
+    final isDark = context.isDark;
+
+    return Container(
+      color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
+      child: Column(
+        children: [
+          ClipPath(
+            clipper: RedHeaderClipper(),
+            child: Container(
+              width: double.infinity,
+              color: AppColors.primaryRed,
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 60),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 90,
+                    height: 90,
+                    padding: const EdgeInsets.all(1),
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: Center(
+                      child: Image.asset(
+                        AppAssets.appLogo,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.storefront_rounded, size: 40, color: AppColors.primaryRed),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'GROCERIES FROM THE BEST BRANDS',
+                    style: context.titleStyleActive.copyWith(color: Colors.white, fontSize: 15, letterSpacing: 0.8, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Delivered to your doorstep',
+                    style: context.subTitleStyle.copyWith(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.w400),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Image.asset(
+                  AppAssets.signInBanner,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Icon(Icons.shopping_bag_rounded, size: 96, color: AppColors.primaryRed.withValues(alpha: 0.5)),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            child: Text(
+              'Enterprise Admin Portal for Unified Operations & Inventory Control',
+              style: context.subTitleStyle.copyWith(fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginForm(BuildContext context) {
+    final isDark = context.isDark;
+
+    return AutofillGroup(
+      child: Form(
+        key: controller.loginFormKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Sign In to Family Bazar',
+              style: context.mainHeadingTextStyle.copyWith(fontSize: context.responsiveSize(20, 24)),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text('Enter your credentials to access the panel', style: context.subTitleStyle, textAlign: TextAlign.center),
+            SizedBox(height: context.responsiveHeight(24, 32)),
+            Text('Username', style: context.titleStyleRegular.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: controller.usernameController,
+              autofillHints: const [AutofillHints.username, AutofillHints.telephoneNumber],
+              textInputAction: TextInputAction.next,
+              keyboardType: TextInputType.text,
+              style: context.bodyTextStyle,
+              decoration: const InputDecoration(hintText: 'Enter username', prefixIcon: Icon(Icons.person_outline_rounded, size: 20)),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your username';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: context.responsiveHeight(16, 20)),
+            Text('Password', style: context.titleStyleRegular.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Obx(
+              () => TextFormField(
+                controller: controller.passwordController,
+                obscureText: !controller.isPasswordVisible.value,
+                autofillHints: const [AutofillHints.password],
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => controller.login(),
+                style: context.bodyTextStyle,
+                decoration: InputDecoration(
+                  hintText: 'Enter your password',
+                  prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      controller.isPasswordVisible.value ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      size: 20,
+                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
+                    ),
+                    onPressed: controller.togglePasswordVisibility,
+                    splashRadius: 18,
+                    tooltip: controller.isPasswordVisible.value ? 'Hide password' : 'Show password',
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter your password';
+                  }
+                  if (value.length < 4) {
+                    return 'Password must be at least 4 characters';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            SizedBox(height: context.responsiveHeight(24, 32)),
+            Obx(
+              () => ElevatedButton(
+                onPressed: controller.isLoading.value ? null : controller.login,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryRed,
+                  foregroundColor: AppColors.onPrimaryWhite,
+                  disabledBackgroundColor: AppColors.primaryRed.withValues(alpha: 0.6),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: controller.isLoading.value
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                      )
+                    : const Text('Sign In', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+              ),
+            ),
+            SizedBox(height: context.responsiveHeight(18, 22)),
+            Text('${AppStrings.appName} • ${AppStrings.appVersion}', style: context.captionStyle, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RedHeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 40);
+
+    // Left to Right smooth bottom curve
+    final controlPoint = Offset(size.width / 2, size.height + 25);
+    final endPoint = Offset(size.width, size.height - 40);
+
+    path.quadraticBezierTo(controlPoint.dx, controlPoint.dy, endPoint.dx, endPoint.dy);
+
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
