@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui';
-
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/initial_bindings/initial_bindings.dart';
 import 'package:family_bazar_admin_panel/src/core/routes/app_pages.dart';
