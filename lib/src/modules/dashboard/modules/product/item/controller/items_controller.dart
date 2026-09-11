@@ -13,6 +13,11 @@ class ItemController extends BaseTableController<ViewItemDatum> {
     fetchItems();
   }
 
+  @override
+  String searchTokenBuilder(ViewItemDatum item) {
+    return '${item.iCode} ${item.iName} ${item.eanCode ?? ''} ${item.iFirmCode} ${item.iItemGroup} ${item.itemGroup} ${item.otherGroup}';
+  }
+
   Future<void> fetchItems() async {
     await runWithLoading(() async {
       try {
