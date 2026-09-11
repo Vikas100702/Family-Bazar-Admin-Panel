@@ -11,6 +11,7 @@ class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
 
+  final StorageService _storageService = StorageService();
   late final Dio _dio;
   late final Dio _externalDio;
 
@@ -21,7 +22,7 @@ class ApiClient {
         baseUrl: ApiConstants.baseUrl,
         connectTimeout: AppConstants.apiTimeout,
         receiveTimeout: AppConstants.apiTimeout,
-        headers: {'Content-Type': 'application/json', 'x-api-key': 'api@familybazar.com'},
+        headers: {'Content-Type': 'application/json', 'x-api-key': 'api@familybazar.com', 'Authorization': _storageService.getString("auth_token")},
       ),
     );
 
