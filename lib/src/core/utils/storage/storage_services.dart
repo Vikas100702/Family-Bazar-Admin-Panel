@@ -1,27 +1,26 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class StorageService extends GetxService {
-  late GetStorage _box;
-  StorageService() {
-    _box = GetStorage();
-  }
+  late final GetStorage _box;
+  final bool _isInitialized = false;
 
   Future<StorageService> init() async {
     try {
       await GetStorage.init();
       _box = GetStorage();
-      Sentry.addBreadcrumb(
-        Breadcrumb(message: 'Local Storage Initialized Successfully', category: 'storage', level: SentryLevel.info),
-      );
+      Sentry.addBreadcrumb(Breadcrumb(message: 'Local Storage Initialized Successfully', category: 'storage.init', level: SentryLevel.info));
       return this;
     } catch (e, stackTrace) {
       Sentry.captureException(
-        Exception('CRITICAL FATAL: GetStorage Init Failed (Browser Blocked?) - $e'),
+        Exception('[CRITICAL]: GetStorage Init Failed (Storage Blocked/Restricted) - $e'),
         stackTrace: stackTrace,
-        withScope: (scope) => scope.setTag('layer', 'storage_service'),
+        withScope: (scope) {
+          scope.setTag('layer', 'storage_service');
+          scope.setTag('platform', kIsWeb ? 'web' : 'native');
+        },
       );
       debugPrint('--- [CRITICAL] GetStorage Init Failed ---');
       debugPrint(e.toString());
@@ -33,11 +32,12 @@ class StorageService extends GetxService {
   /// Global Storage Error Logger
   void _logStorageError(String operation, String key, Object error, StackTrace stackTrace) {
     Sentry.captureException(
-      Exception('Storage $operation Failed on key: $key - $error'),
+      Exception('Storage operation $operation Failed on key: $key - $error'),
       stackTrace: stackTrace,
       withScope: (scope) {
+        scope.setTag('layer', 'storage_service');
         scope.setTag('storage_operation', operation);
-        scope.setContexts('Storage Keys', {'key': key});
+        scope.setContexts('storage_meta', {'key': key});
       },
     );
     debugPrint('--- [STORAGE EXCEPTION] Operation: $operation | Key: $key ---');
@@ -47,6 +47,10 @@ class StorageService extends GetxService {
 
   /// Centralized read logic
   T? _readData<T>(String key) {
+    if (!_isInitialized) {
+      debugPrint('--- [STORAGE WARNING] Read attempted before initialization on key: $key ---');
+      return null;
+    }
     try {
       return _box.read<T>(key);
     } catch (e, stackTrace) {
@@ -55,15 +59,13 @@ class StorageService extends GetxService {
     }
   }
 
-  /// GETTERS
-  String? getString(String key) => _readData<String>(key);
-  bool? getBool(String key) => _readData<bool>(key);
-  int? getInt(String key) => _readData<int>(key);
-  double? getDouble(String key) => _readData<double>(key);
-
   /// Centralized write logic
   Future<bool> _writeData(String key, dynamic value) async {
-    if(value == null) {
+    if (!_isInitialized) {
+      debugPrint('--- [STORAGE WARNING] Write attempted before initialization on key: $key ---');
+      return false;
+    }
+    if (value == null) {
       await _box.remove(key);
       return true;
     }
@@ -76,27 +78,52 @@ class StorageService extends GetxService {
     }
   }
 
-  /// SETTERS (Asynchronous)
+  /// SETTERS
   Future<bool> setString(String key, String value) async => _writeData(key, value);
   Future<bool> setBool(String key, bool value) async => _writeData(key, value);
   Future<bool> setInt(String key, int value) async => _writeData(key, value);
   Future<bool> setDouble(String key, double value) async => _writeData(key, value);
+  Future<bool> setDynamic(String key, dynamic value) async => _writeData(key, value);
+
+  /// GETTERS
+  String? getString(String key) => _readData<String>(key);
+  bool? getBool(String key) => _readData<bool>(key);
+  int? getInt(String key) => _readData<int>(key);
+  double? getDouble(String key) => _readData<double>(key);
+  dynamic getDynamic(String key) => _readData<dynamic>(key);
+
+  /// CHECK IF KEY EXISTS IN STORAGE
+  bool hasData(String key) {
+    if (!_isInitialized) return false;
+    try {
+      return _box.hasData(key);
+    } catch (e, stackTrace) {
+      _logStorageError('hasData', key, e, stackTrace);
+      return false;
+    }
+  }
+
+  /// Explicit key removal
+  Future<bool> removeKey(String key) async {
+    if (!_isInitialized) return false;
+    try {
+      await _box.remove(key);
+      return true;
+    } catch (e, stackTrace) {
+      _logStorageError('removeKey', key, e, stackTrace);
+      return false;
+    }
+  }
 
   /// Clear All Data (Session wipe)
   Future<bool> clearAll() async {
+    if (!_isInitialized) return false;
     try {
       await _box.erase();
-      // Log session wipes for security audits
-      Sentry.addBreadcrumb(
-        Breadcrumb(
-          message: 'Local Storage Wiped (Session Cleared)',
-          category: 'auth',
-          level: SentryLevel.warning,
-        ),
-      );
+      Sentry.addBreadcrumb(Breadcrumb(message: 'Local Storage Wiped (Session Cleared)', category: 'auth.session', level: SentryLevel.warning));
       return true;
     } catch (e, stackTrace) {
-      _logStorageError('clearAll', 'ALL_KEYS', e, stackTrace); // Re-routed through the centralized logger
+      _logStorageError('clearAll', 'ALL_KEYS', e, stackTrace);
       debugPrint('--- [STORAGE EXCEPTION] Operation: clearAll ---');
       debugPrint(e.toString());
       debugPrint(stackTrace.toString());
