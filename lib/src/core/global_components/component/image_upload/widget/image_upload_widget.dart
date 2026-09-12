@@ -185,7 +185,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
             Expanded(
               child: _buildDropzone(
                 context: context,
-                title: 'App Banner',
+                title: 'App Image',
                 specLabel: '1:1 Square (Min 300x300 px, Max 1MB)',
                 isMobile: true,
                 bytesRx: controller.mobileImageBytes,
@@ -198,7 +198,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
             Expanded(
               child: _buildDropzone(
                 context: context,
-                title: 'Website Banner',
+                title: 'Web Image',
                 specLabel: '16:9 Banner (Min 800x450 px, Max 2MB)',
                 isMobile: false,
                 bytesRx: controller.webImageBytes,
@@ -419,7 +419,6 @@ class ImageUploadView extends GetView<ImageUploadController> {
   }
 
   // SERVER RESPONSE STATUS BANNER
-
   Widget _buildServerResponseStatus(BuildContext context) {
     return Obx(() {
       final String msg = controller.uploadStatusMessage.value;
@@ -448,7 +447,6 @@ class ImageUploadView extends GetView<ImageUploadController> {
   }
 
   // FOOTER ACTIONS
-
   Widget _buildFooterActions(BuildContext context) {
     final isDark = context.isDark;
 
