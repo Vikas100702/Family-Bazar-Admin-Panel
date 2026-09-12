@@ -18,14 +18,13 @@ class DrawerGroupConfig {
 class DashboardDrawerController extends BaseController {
   final StorageService _storageService;
 
-  DashboardDrawerController({required StorageService storageService}) : _storageService = storageService;
+  DashboardDrawerController({required this._storageService});
 
   final RxList<DrawerMenuModel> menuItems = <DrawerMenuModel>[].obs;
 
-  // Strict Whitelists: Sirf inhi items ko allow kiya jayega
   static const Set<String> _allowedDirectKeys = {'firm setup', 'pin code settings'};
 
-  static const Set<String> _allowedProductKeys = {'productcategory', 'productsubcategory', 'productitem', 'productDashboardGroup'};
+  static const Set<String> _allowedProductKeys = {'productcategory', 'productsubcategory', 'productitem', 'productdashboardgroup'};
 
   @override
   void onInit() {
@@ -58,7 +57,7 @@ class DashboardDrawerController extends BaseController {
         final String? apiIconUrl = value['icon'] as String?;
         final String cleanKey = key.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
 
-        // 2. Filter Product sub-items: Sirf Category, Sub Category, Item
+        // 2. Filter Product sub-items
         if (_allowedProductKeys.contains(cleanKey) ||
             cleanKey == 'category' ||
             cleanKey == 'subcategory' ||
@@ -73,7 +72,7 @@ class DashboardDrawerController extends BaseController {
             ),
           );
         }
-        // 3. Filter Direct items: Sirf Firm Setup aur Pin Code Settings
+        // 3. Filter Direct items
         else if (_allowedDirectKeys.any((allowed) {
           final cleanAllowed = allowed.replaceAll(RegExp(r'[\s_\-]+'), '');
           return cleanKey.contains(cleanAllowed);
@@ -83,10 +82,10 @@ class DashboardDrawerController extends BaseController {
         // Baaki sabhi keys (App Management, User Management, Delivery boy, etc.) automatically reject ho jayengi
       });
 
-      // 4. Product Management dropdown attach karein (Category -> Sub Category -> Item order me)
+      // 4. Product Management dropdown attach
       if (productSubItems.isNotEmpty) {
         productSubItems.sort((a, b) {
-          const sortOrder = {'category': 1, 'sub category': 2, 'item': 3, 'dashboardgroup': 4};
+          const sortOrder = {'category': 1, 'sub category': 2, 'item': 3, 'dashboard group': 4};
           final aOrder = sortOrder[a.title.toLowerCase()] ?? 99;
           final bOrder = sortOrder[b.title.toLowerCase()] ?? 99;
           return aOrder.compareTo(bOrder);
