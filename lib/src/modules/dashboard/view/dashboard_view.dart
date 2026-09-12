@@ -9,6 +9,7 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/vi
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/view/category_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/view/dashboard_group_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/view/item_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/view/sub_cat_view.dart';
 import 'package:flutter/material.dart';
@@ -133,7 +134,6 @@ class DashboardView extends GetView<DashboardController> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Left: Collapse Toggle Button
           Row(
             children: [
               IconButton(
@@ -215,6 +215,8 @@ class DashboardView extends GetView<DashboardController> {
         return const ItemsView();
       case 'productsubcategory':
         return const SubCategoryView();
+      case 'productdashboardgroup':
+        return const DashboardGroupView();
       case 'masterbrandname':
         return const Center(child: Text('Master Brand Module - Coming Soon'));
       case 'firm setup':
@@ -263,15 +265,15 @@ class DashboardView extends GetView<DashboardController> {
       case 'store':
         return 'Store Operations';
       case 'category':
-      case 'mastercategory':
       case 'productcategory':
         return 'Category Management';
-      case 'mastersubcategory':
       case 'productsubcategory':
         return 'Sub-Category Management';
-      case 'product':
       case 'productitem':
         return 'Item Management';
+      case 'product':
+      case 'productdashboardgroup':
+        return 'Dashboard Group';
       case 'order':
         return 'Orders & Fulfillments';
       case 'customer':
