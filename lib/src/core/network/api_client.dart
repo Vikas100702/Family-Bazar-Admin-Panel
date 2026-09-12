@@ -11,10 +11,8 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
-
   factory ApiClient() => _instance;
 
-  // final StorageService _storageService = StorageService();
   late final Dio _dio;
   late final Dio _externalDio;
 
@@ -57,14 +55,30 @@ class ApiClient {
             );
 
             // SECURITY LOCK: Only attach Bearer token if the request is going to our internal API host
-            final isInternalRequest = options.uri.toString().startsWith(ApiConstants.baseUrl) || options.path.startsWith('/');
+            final uriString = options.uri.toString();
+            final baseUrl = _dio.options.baseUrl;
+            final isInternalRequest =
+                uriString.startsWith(ApiConstants.baseUrl) ||
+                (baseUrl.isNotEmpty && uriString.startsWith(baseUrl)) ||
+                options.path.startsWith('/') ||
+                !options.path.startsWith('http');
 
             if (isInternalRequest && Get.isRegistered<StorageService>()) {
               final StorageService storage = Get.find<StorageService>();
-              final token = storage.getString('auth_token');
+              final token = storage.getString(AppConstants.authTokenKey);
 
-              if (token != null && token.isNotEmpty) {
-                options.headers['Authorization'] = 'Bearer $token';
+              if (token != null && token.trim().isNotEmpty) {
+                final cleanToken = token.trim();
+                options.headers['Authorization'] = cleanToken.startsWith('Bearer ') ? cleanToken : 'Bearer $cleanToken';
+
+                if (kDebugMode) {
+                  debugPrint('--- [API CLIENT] Attached Bearer Token to ${options.path} ---');
+                }
+              } else {
+                options.headers.remove('Authorization');
+                if (kDebugMode) {
+                  debugPrint('--- [API CLIENT WARNING] No Token found in Storage for ${options.path} ---');
+                }
               }
             }
           } catch (e, stackTrace) {
