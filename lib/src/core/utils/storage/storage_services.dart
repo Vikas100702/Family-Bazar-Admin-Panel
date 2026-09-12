@@ -4,13 +4,11 @@ import 'package:get_storage/get_storage.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class StorageService extends GetxService {
-  late final GetStorage _box;
-  final bool _isInitialized = false;
+  GetStorage get _box => GetStorage();
 
   Future<StorageService> init() async {
     try {
       await GetStorage.init();
-      _box = GetStorage();
       Sentry.addBreadcrumb(Breadcrumb(message: 'Local Storage Initialized Successfully', category: 'storage.init', level: SentryLevel.info));
       return this;
     } catch (e, stackTrace) {
@@ -47,10 +45,6 @@ class StorageService extends GetxService {
 
   /// Centralized read logic
   T? _readData<T>(String key) {
-    if (!_isInitialized) {
-      debugPrint('--- [STORAGE WARNING] Read attempted before initialization on key: $key ---');
-      return null;
-    }
     try {
       return _box.read<T>(key);
     } catch (e, stackTrace) {
@@ -61,10 +55,6 @@ class StorageService extends GetxService {
 
   /// Centralized write logic
   Future<bool> _writeData(String key, dynamic value) async {
-    if (!_isInitialized) {
-      debugPrint('--- [STORAGE WARNING] Write attempted before initialization on key: $key ---');
-      return false;
-    }
     if (value == null) {
       await _box.remove(key);
       return true;
@@ -94,7 +84,6 @@ class StorageService extends GetxService {
 
   /// CHECK IF KEY EXISTS IN STORAGE
   bool hasData(String key) {
-    if (!_isInitialized) return false;
     try {
       return _box.hasData(key);
     } catch (e, stackTrace) {
@@ -105,7 +94,6 @@ class StorageService extends GetxService {
 
   /// Explicit key removal
   Future<bool> removeKey(String key) async {
-    if (!_isInitialized) return false;
     try {
       await _box.remove(key);
       return true;
@@ -117,7 +105,6 @@ class StorageService extends GetxService {
 
   /// Clear All Data (Session wipe)
   Future<bool> clearAll() async {
-    if (!_isInitialized) return false;
     try {
       await _box.erase();
       Sentry.addBreadcrumb(Breadcrumb(message: 'Local Storage Wiped (Session Cleared)', category: 'auth.session', level: SentryLevel.warning));
