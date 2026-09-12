@@ -19,4 +19,9 @@ abstract final class ApiConstants {
   static const String insertSubCatDetailsApiEndpoint = "$baseUrl/api/product/addSubCategory";
   static const String viewItemsApiEndpoint = "$baseUrl/api/product/viewItem";
   static const String insertItemDetailsApiEndpoint = "$baseUrl/api/product/addItem";
+  static const String viewDashboardGroupApiEndpoint = "$baseUrl/api/product/viewGroup";
+  static const String addDashboardGroupApiEndpoint = "$baseUrl/api/product/addGroup";
+  static const String viewGroupItemsApiEndpoint = "$baseUrl/api/product/viewGroupItems";
+  static const String addGroupItemsApiEndpoint = "$baseUrl/api/product/addGroupItems";
+  static const String deleteGroupItemsApiEndpoint = "$baseUrl/api/product/deleteGroupItem";
 }
