@@ -6,6 +6,8 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_s
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/binding/category_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/view/category_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/binding/dashboard_group_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/view/dashboard_group_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/binding/item_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/view/item_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/binding/sub_cat_binding.dart';
@@ -41,5 +43,11 @@ class AppPages {
     GetPage(name: AppRoutes.category, page: () => const CategoryView(), binding: CategoryBinding(), transition: Transition.noTransition),
     GetPage(name: AppRoutes.subCategory, page: () => const SubCategoryView(), binding: SubCategoryBinding(), transition: Transition.noTransition),
     GetPage(name: AppRoutes.item, page: () => const ItemsView(), binding: ItemBinding(), transition: Transition.noTransition),
+    GetPage(
+      name: AppRoutes.dashboardGroup,
+      page: () => const DashboardGroupView(),
+      binding: DashboardGroupBinding(),
+      transition: Transition.noTransition,
+    ),
   ];
 }
