@@ -9,4 +9,5 @@ abstract class AppRoutes {
   static const String category = '/category';
   static const String subCategory = '/sub-category';
   static const String item = '/item';
+  static const String dashboardGroup = '/dashboard-group';
 }
