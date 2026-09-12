@@ -43,6 +43,9 @@ class ViewItemDatum {
     required this.updatedAt,
     required this.itemGroup,
     required this.otherGroup,
+    required this.sbMRate,
+    required this.sbRateA,
+    required this.sbSaleableStock,
   });
 
   final int id;
@@ -61,6 +64,9 @@ class ViewItemDatum {
   final DateTime? updatedAt;
   final String itemGroup;
   final String otherGroup;
+  final int sbMRate;
+  final int sbRateA;
+  final int sbSaleableStock;
 
   ViewItemDatum copyWith({
     int? id,
@@ -79,6 +85,9 @@ class ViewItemDatum {
     DateTime? updatedAt,
     String? itemGroup,
     String? otherGroup,
+    int? sbMRate,
+    int? sbRateA,
+    int? sbSaleableStock,
   }) {
     return ViewItemDatum(
       id: id ?? this.id,
@@ -97,27 +106,33 @@ class ViewItemDatum {
       updatedAt: updatedAt ?? this.updatedAt,
       itemGroup: itemGroup ?? this.itemGroup,
       otherGroup: otherGroup ?? this.otherGroup,
+      sbMRate: sbMRate ?? this.sbMRate,
+      sbRateA: sbRateA ?? this.sbRateA,
+      sbSaleableStock: sbSaleableStock ?? this.sbSaleableStock,
     );
   }
 
   factory ViewItemDatum.fromJson(Map<String, dynamic> json) {
     return ViewItemDatum(
-      id: json["id"] ?? 0,
-      iItemGroup: json["I_ItemGroup"] ?? "",
-      iOtherGroup: json["I_OtherGroup"] ?? "",
-      iCode: json["I_Code"] ?? "",
-      iEuCode: json["I_EUCode"] ?? "",
-      iFirmCode: json["I_FirmCode"] ?? "",
-      eanCode: json["EANCode"] ?? "",
-      iName: json["I_Name"] ?? "",
-      iImgM: json["I_img_m"] ?? "",
-      iImgW: json["I_img_w"] ?? "",
-      status: json["status"] ?? 0,
-      insertedOn: DateTime.tryParse(json["inserted_on"] ?? ""),
-      createdAt: DateTime.tryParse(json["created_at"] ?? ""),
-      updatedAt: DateTime.tryParse(json["updated_at"] ?? ""),
-      itemGroup: json["ItemGroup"] ?? "",
-      otherGroup: json["OtherGroup"] ?? "",
+      id: int.tryParse(json["id"]?.toString() ?? '') ?? 0,
+      iItemGroup: json["I_ItemGroup"]?.toString() ?? "",
+      iOtherGroup: json["I_OtherGroup"]?.toString() ?? "",
+      iCode: json["I_Code"]?.toString() ?? "",
+      iEuCode: json["I_EUCode"]?.toString() ?? "",
+      iFirmCode: json["I_FirmCode"]?.toString() ?? "",
+      eanCode: json["EANCode"]?.toString() ?? "",
+      iName: json["I_Name"]?.toString() ?? "",
+      iImgM: json["I_img_m"]?.toString() ?? "",
+      iImgW: json["I_img_w"]?.toString() ?? "",
+      status: int.tryParse(json["status"]?.toString() ?? '') ?? 0,
+      insertedOn: DateTime.tryParse(json["inserted_on"]?.toString() ?? ""),
+      createdAt: DateTime.tryParse(json["created_at"]?.toString() ?? ""),
+      updatedAt: DateTime.tryParse(json["updated_at"]?.toString() ?? ""),
+      itemGroup: json["ItemGroup"]?.toString() ?? "",
+      otherGroup: json["OtherGroup"]?.toString() ?? "",
+      sbMRate: int.tryParse(json["sb_m_Rate"]?.toString() ?? '') ?? 0,
+      sbRateA: int.tryParse(json["SB_Rate_A"]?.toString() ?? '') ?? 0,
+      sbSaleableStock: int.tryParse(json["SB_Saleable_Stock"]?.toString() ?? '') ?? 0,
     );
   }
 
@@ -138,10 +153,13 @@ class ViewItemDatum {
     "updated_at": updatedAt?.toIso8601String(),
     "ItemGroup": itemGroup,
     "OtherGroup": otherGroup,
+    "sb_m_Rate": sbMRate,
+    "SB_Rate_A": sbRateA,
+    "SB_Saleable_Stock": sbSaleableStock,
   };
 
   @override
   String toString() {
-    return "$id, $iItemGroup, $iOtherGroup, $iCode, $iEuCode, $iFirmCode, $eanCode, $iName, $iImgM, $iImgW, $status, $insertedOn, $createdAt, $updatedAt, $itemGroup, $otherGroup, ";
+    return "$id, $iItemGroup, $iOtherGroup, $iCode, $iEuCode, $iFirmCode, $eanCode, $iName, $iImgM, $iImgW, $status, $insertedOn, $createdAt, $updatedAt, $itemGroup, $otherGroup, $sbMRate, $sbRateA, $sbSaleableStock";
   }
 }
