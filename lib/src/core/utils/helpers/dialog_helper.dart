@@ -3,6 +3,7 @@ import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 abstract final class DialogHelper {
   const DialogHelper._();
@@ -10,8 +11,8 @@ abstract final class DialogHelper {
   static bool _isDialogActive = false;
   static bool _isOfflineDialogActive = false;
 
-  // PUBLIC DIALOG TRIGGERS
-  /// Displays an error dialog safely with defensive stacking locks
+  /// PUBLIC DIALOG TRIGGERS
+  /// Displays an error dialog
   static void showError({String? title, required String message, VoidCallback? onPressed}) {
     if (Get.overlayContext == null) return;
     _showGlobalDialog(
@@ -20,10 +21,11 @@ abstract final class DialogHelper {
       accentColor: AppColors.statusRedError,
       icon: Icons.error_outline_rounded,
       onPressed: onPressed,
+      logCategory: 'ui.dialog.error',
     );
   }
 
-  /// Displays a success dialog safely
+  /// Displays a success dialog
   static void showSuccess({String? title, required String message, VoidCallback? onPressed}) {
     if (Get.overlayContext == null) return;
     _showGlobalDialog(
@@ -32,6 +34,7 @@ abstract final class DialogHelper {
       accentColor: AppColors.statusGreenSuccess,
       icon: Icons.check_circle_outline_rounded,
       onPressed: onPressed,
+      logCategory: 'ui.dialog.success',
     );
   }
 
@@ -44,9 +47,11 @@ abstract final class DialogHelper {
       accentColor: AppColors.statusAmberWarning,
       icon: Icons.warning_amber_rounded,
       onPressed: onPressed,
+      logCategory: 'ui.dialog.warning',
     );
   }
 
+  /// Displays an informational notice dialog
   /// Displays an informational notice dialog safely
   static void showInfo({String? title, required String message, VoidCallback? onPressed}) {
     if (Get.overlayContext == null) return;
@@ -56,6 +61,7 @@ abstract final class DialogHelper {
       accentColor: AppColors.statusBlueInfo,
       icon: Icons.info_outline_rounded,
       onPressed: onPressed,
+      logCategory: 'ui.dialog.info',
     );
   }
 
@@ -65,6 +71,7 @@ abstract final class DialogHelper {
     required String message,
     required Color accentColor,
     required IconData icon,
+    required String logCategory,
     VoidCallback? onPressed,
   }) {
     if (_isDialogActive || _isOfflineDialogActive) {
@@ -123,7 +130,12 @@ abstract final class DialogHelper {
                             Get.back();
                           }
                           if (onPressed != null) {
-                            onPressed();
+                            try {
+                              onPressed();
+                            } catch (e, stackTrace) {
+                              Sentry.captureException(Exception('Dialog Callback Failed: $e'), stackTrace: stackTrace);
+                              debugPrint('--- [DIALOG EXCEPTION] Callback Failed: $e ---');
+                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -193,7 +205,7 @@ abstract final class DialogHelper {
                     ),
                     SizedBox(height: context.responsiveHeight(10, 14)),
                     Text(
-                      'This application requires an active internet connection to synchronize enterprise data. Please check your network to resume.',
+                      'This application requires an active internet connection. Please check your network to resume.',
                       style: context.bodyTextStyle.copyWith(
                         fontSize: context.responsiveSize(13, 14),
                         color: isDark ? AppColors.textSecondaryMuted : AppColors.textSecondarySlate,
