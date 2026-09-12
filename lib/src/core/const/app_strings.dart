@@ -61,6 +61,7 @@ abstract final class AppStrings {
   static const String msg415 = "Unsupported Media Type. Unsupported media type in request.";
   static const String msg422 = "Unprocessable Entity. Invalid input. Cannot proceed with the provided data.";
   static const String msg429 = "Too Many Requests. Rate limit exceeded.";
+  static const String msg495 = "SSL/Certificate validation failed with the server.";
   static const String msg499 = "Request to API server was cancelled.";
   static const String msg500 = "Internal Server Error. Please try again later.";
   static const String msg502 = "Bad Gateway. Gateway is unavailable.";
