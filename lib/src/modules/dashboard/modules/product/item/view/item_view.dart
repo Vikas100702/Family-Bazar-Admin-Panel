@@ -60,6 +60,9 @@ class ItemsView extends GetView<ItemController> {
                       DataColumn(label: Text('ITEM NAME')),
                       DataColumn(label: Text('CATEGORY')),
                       DataColumn(label: Text('SUB-CATEGORY')),
+                      DataColumn(label: Text('ITEM MRP')),
+                      DataColumn(label: Text('SALES PRICE')),
+                      DataColumn(label: Text('AVAILABLE STOCK')),
                       DataColumn(label: Text('EU CODE')),
                       DataColumn(label: Text('EAN / BARCODE')),
                       DataColumn(label: Text('ACTIONS')),
@@ -105,19 +108,6 @@ class ItemsView extends GetView<ItemController> {
               ),
             ],
           ),
-          /* const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () {
-              // Action reserved for item creation dialog
-            },
-            icon: const Icon(Icons.add_box_outlined, size: 18),
-            label: const Text('Add Product Item'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: AppColors.onPrimaryWhite,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),*/
         ],
       );
     }
@@ -146,19 +136,6 @@ class ItemsView extends GetView<ItemController> {
                 style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
               );
             }),
-            /*const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                // Action reserved for item creation dialog
-              },
-              icon: const Icon(Icons.add_box_outlined, size: 18),
-              label: const Text('Add Product Item'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryRed,
-                foregroundColor: AppColors.onPrimaryWhite,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              ),
-            ),*/
           ],
         ),
       ],
@@ -199,6 +176,9 @@ class ItemsView extends GetView<ItemController> {
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentGoldAmber : AppColors.statusAmberWarning),
           ),
         ),
+        DataCell(Text(_formatText(item.sbMRate.toString()))),
+        DataCell(Text(_formatText(item.sbRateA.toString()))),
+        DataCell(Text(_formatText(item.sbSaleableStock.toString()))),
         DataCell(Text(_formatText(item.iEuCode))),
         DataCell(SelectableText(_formatText(item.eanCode), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
         DataCell(
