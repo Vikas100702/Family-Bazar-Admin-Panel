@@ -12,7 +12,7 @@ class NetworkManager extends GetxController {
 
   // Hardware connectivity instance and background listener
   final Connectivity _connectivity = Connectivity();
-  late StreamSubscription<List<ConnectivityResult>> _streamSubscription;
+  StreamSubscription<List<ConnectivityResult>>? _streamSubscription;
 
   @override
   void onInit() {
@@ -61,31 +61,40 @@ class NetworkManager extends GetxController {
   }
 
   void _updateConnectionStatus(List<ConnectivityResult> connectivityResultList) {
-    if (isClosed) return; // Abort immediately if the controller is already destroyed
+    if (isClosed) return;
+
+    final bool isOffline = connectivityResultList.isEmpty || connectivityResultList.contains(ConnectivityResult.none);
+
+    int targetType = 0;
+    if (!isOffline) {
+      if (connectivityResultList.contains(ConnectivityResult.wifi)) {
+        targetType = 1;
+      } else if (connectivityResultList.contains(ConnectivityResult.ethernet) ||
+          connectivityResultList.contains(ConnectivityResult.mobile) ||
+          connectivityResultList.contains(ConnectivityResult.vpn) ||
+          connectivityResultList.contains(ConnectivityResult.other)) {
+        targetType = 2;
+      }
+    }
+    if (connectionType.value == targetType && !isOffline) return;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (isClosed) return;
 
-      if (connectivityResultList.contains(ConnectivityResult.none)) {
-        connectionType.value = 0;
-        DialogHelper.showOfflineDialog(); // Global alert when offline
+      connectionType.value = targetType;
+
+      if (isOffline) {
+        DialogHelper.showOfflineDialog();
       } else {
-        // User is back online
-        if (connectivityResultList.contains(ConnectivityResult.wifi)) {
-          connectionType.value = 1;
-        } else if (connectivityResultList.contains(ConnectivityResult.mobile) ||
-            connectivityResultList.contains(ConnectivityResult.ethernet) ||
-            connectivityResultList.contains(ConnectivityResult.vpn) ||
-            connectivityResultList.contains(ConnectivityResult.other)) {
-          connectionType.value = 2;
-        }
-        DialogHelper.dismissOfflineDialog(); // Dismiss the Alert Box if it's currently showing
+        DialogHelper.dismissOfflineDialog();
       }
     });
   }
 
   @override
   void onClose() {
-    _streamSubscription.cancel();
+    _streamSubscription?.cancel();
+    _streamSubscription = null;
     super.onClose();
   }
 }
