@@ -11,7 +11,7 @@ class AppSearchField extends StatefulWidget {
   final VoidCallback? onClear;
   final String hintText;
   final Duration debounceDuration;
-  final double width;
+  final double? width;
   final double height;
   final bool autofocus;
 
@@ -60,7 +60,7 @@ class _AppSearchFieldState extends State<AppSearchField> {
   void didUpdateWidget(AppSearchField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != oldWidget.controller) {
-      oldWidget.controller?.removeListener(_onTextChanged);
+      _effectiveController.removeListener(_onTextChanged);
       if (_isInternalController) {
         _effectiveController.dispose();
       }
@@ -71,6 +71,7 @@ class _AppSearchFieldState extends State<AppSearchField> {
   }
 
   void _onTextChanged() {
+    if (!mounted) return;
     final bool hasText = _effectiveController.text.isNotEmpty;
     if (_hasText != hasText) {
       setState(() {
@@ -83,6 +84,7 @@ class _AppSearchFieldState extends State<AppSearchField> {
     if (widget.onChanged == null) return;
     _debounceTimer?.cancel();
     _debounceTimer = Timer(widget.debounceDuration, () {
+      if (!mounted) return;
       widget.onChanged?.call(value.trim());
     });
   }
@@ -107,25 +109,36 @@ class _AppSearchFieldState extends State<AppSearchField> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDark;
+    final effectiveWidth = widget.width ?? (context.isMobile ? double.infinity : 260.0);
 
     return SizedBox(
-      width: widget.width,
+      width: effectiveWidth,
       height: widget.height,
       child: TextField(
         controller: _effectiveController,
         autofocus: widget.autofocus,
         onChanged: _handleChanged,
         onSubmitted: widget.onSubmitted,
-        style: context.bodyTextStyle.copyWith(fontSize: 13, color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate),
+        style: context.bodyTextStyle.copyWith(
+          fontSize: context.responsiveSize(13, 13),
+          color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+        ),
         cursorColor: AppColors.primaryRed,
         decoration: InputDecoration(
           isDense: true,
           hintText: widget.hintText,
-          hintStyle: context.captionStyle.copyWith(fontSize: 13, color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
-          prefixIcon: Icon(Icons.search_rounded, size: 20, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
+          hintStyle: context.captionStyle.copyWith(
+            fontSize: context.responsiveSize(13, 13),
+            color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
+          ),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            size: context.responsiveSize(20, 20),
+            color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
+          ),
           suffixIcon: _hasText
               ? IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 16),
+                  icon: Icon(Icons.close_rounded, size: context.responsiveSize(16, 16)),
                   color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
                   splashRadius: 16,
                   tooltip: 'Clear Search',
@@ -134,17 +147,17 @@ class _AppSearchFieldState extends State<AppSearchField> {
               : null,
           filled: true,
           fillColor: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          contentPadding: .symmetric(horizontal: context.responsiveWidth(14, 14), vertical: context.responsiveHeight(10, 10)),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.responsiveRadius(8, 8),
             borderSide: BorderSide(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.responsiveRadius(8, 8),
             borderSide: BorderSide(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.responsiveRadius(8, 8),
             borderSide: const BorderSide(color: AppColors.primaryRed, width: 1.5),
           ),
         ),
