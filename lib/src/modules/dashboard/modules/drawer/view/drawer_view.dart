@@ -1,8 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_assets.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_coontroller.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/controller/drawer_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/model/drawer_menu_model/drawer_menu_model.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +16,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDark;
-    final dashboardController = Get.find<DashboardController>();
+    final DashboardController dashboardController = Get.find<DashboardController>();
 
     return Obx(() {
       final bool isCollapsed = context.isDesktop && dashboardController.isDrawerCollapsed.value;
@@ -125,7 +126,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
   }
 
   Widget _buildDynamicMenuItem(BuildContext context, DrawerMenuModel item, {required bool isCollapsed}) {
-    if (item.isExpansion && item.subItems != null && item.subItems!.isNotEmpty) {
+    if (item.hasSubItems) {
       return isCollapsed ? _buildCollapsedExpandableItem(context, item) : _buildExpandableMenuGroup(context, item);
     }
     return isCollapsed ? _buildCollapsedSingleItem(context, item) : _buildSingleMenuItem(context, item);
@@ -174,8 +175,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
 
     return Obx(() {
       final dashboardController = Get.find<DashboardController>();
-      final bool isAnyChildActive = item.subItems!.any((sub) => sub.identifier == dashboardController.selectedMenuKey.value);
-
+      final bool isAnyChildActive = item.subItems.any((sub) => sub.identifier == dashboardController.selectedMenuKey.value);
       final Color tileColor = isAnyChildActive ? AppColors.primaryRed.withValues(alpha: 0.12) : Colors.transparent;
       final Color borderColor = isAnyChildActive ? AppColors.primaryRed.withValues(alpha: 0.35) : Colors.transparent;
 
@@ -213,7 +213,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
                     ),
                   ),
                   const PopupMenuDivider(height: 1),
-                  ...item.subItems!.map((subItem) {
+                  ...item.subItems.map((subItem) {
                     final bool isSubActive = dashboardController.selectedMenuKey.value == subItem.identifier;
                     return PopupMenuItem<String>(
                       value: subItem.identifier,
@@ -274,6 +274,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
+            mouseCursor: SystemMouseCursors.click,
             hoverColor: AppColors.primaryRed.withValues(alpha: 0.05),
             splashColor: AppColors.primaryRed.withValues(alpha: 0.12),
             onTap: () => _handleItemTap(context, item.identifier),
@@ -328,7 +329,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
         ),
         iconColor: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
         collapsedIconColor: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
-        children: item.subItems!.map((subItem) {
+        children: item.subItems.map((subItem) {
           return _buildSubMenuItem(context, subItem);
         }).toList(),
       ),
@@ -432,11 +433,12 @@ class DrawerView extends GetView<DashboardDrawerController> {
       return SizedBox(
         width: iconSize,
         height: iconSize,
-        child: Image.network(
-          item.icon!,
+        child: CachedNetworkImage(
+          imageUrl: item.icon!,
           fit: BoxFit.contain,
           color: isActive ? AppColors.primaryRed : null,
-          errorBuilder: (context, error, stackTrace) {
+          colorBlendMode: isActive ? BlendMode.srcIn : null,
+          errorWidget: (context, error, stackTrace) {
             Sentry.addBreadcrumb(
               Breadcrumb(
                 message: AppStrings.failedToLoadIcon,
@@ -497,7 +499,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
     dashboardController.changeActiveMenu(identifier);
 
     // Auto-close overlay drawer on Mobile browsers
-    if (!context.isDesktop && Scaffold.of(context).isDrawerOpen) {
+    if (!context.isDesktop && Scaffold.maybeOf(context)?.isDrawerOpen == true) {
       Get.back();
     }
   }

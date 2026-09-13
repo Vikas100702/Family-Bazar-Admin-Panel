@@ -9,9 +9,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class DashboardDrawerController extends BaseController {
   final StorageService _storageService;
-
-  // Strict Named Constructor Injection
-  DashboardDrawerController({required StorageService storageService}) : _storageService = storageService;
+  DashboardDrawerController({required this._storageService});
 
   final RxList<DrawerMenuModel> menuItems = <DrawerMenuModel>[].obs;
 
@@ -42,7 +40,7 @@ class DashboardDrawerController extends BaseController {
 
       final Map<String, dynamic> apiPermissions = rawPermissions;
 
-      // 1. Dashboard is always anchored at the top
+      // Dashboard is always anchored at the top
       final List<DrawerMenuModel> builtMenu = [
         const DrawerMenuModel(title: 'Dashboard', identifier: 'dashboard', fallbackIcon: Icons.dashboard_rounded),
       ];
@@ -50,13 +48,13 @@ class DashboardDrawerController extends BaseController {
       final List<DrawerMenuModel> productSubItems = [];
 
       apiPermissions.forEach((key, value) {
-        // Defensive type check: Prevent runtime TypeError on Flutter Web
+        // Prevents runtime Type Error on Flutter Web
         if (value is! Map<String, dynamic>) return;
 
         final String? apiIconUrl = value['icon']?.toString();
         final String cleanKey = key.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
 
-        // 2. Filter Whitelisted Product sub-items
+        // Filter Product sub-items
         if (_allowedProductKeys.contains(cleanKey) ||
             cleanKey == 'category' ||
             cleanKey == 'subcategory' ||
@@ -71,7 +69,7 @@ class DashboardDrawerController extends BaseController {
             ),
           );
         }
-        // 3. Filter Whitelisted Direct root items
+        // Filter Direct root items
         else if (_allowedDirectKeys.any((allowed) {
           final cleanAllowed = allowed.replaceAll(RegExp(r'[\s_\-]+'), '');
           return cleanKey.contains(cleanAllowed);
@@ -80,7 +78,7 @@ class DashboardDrawerController extends BaseController {
         }
       });
 
-      // 4. Attach Product Management expandable group with deterministic sorting
+      // Attach Product Management expandable group with sorting
       if (productSubItems.isNotEmpty) {
         productSubItems.sort((a, b) {
           const sortOrder = {'category': 1, 'sub category': 2, 'item': 3, 'dashboard group': 4};
@@ -100,7 +98,7 @@ class DashboardDrawerController extends BaseController {
         );
       }
 
-      // Memory Guard: Protect state mutation if disposed during execution
+      // Protect state mutation if disposed during execution
       if (!isClosed) {
         menuItems.assignAll(builtMenu);
       }
@@ -149,7 +147,6 @@ class DashboardDrawerController extends BaseController {
 
   @override
   void onClose() {
-    // Proactive Memory Management: Flush reactive collections on teardown
     menuItems.clear();
     Sentry.addBreadcrumb(Breadcrumb(message: 'DashboardDrawerController Disposed', category: 'drawer.controller', level: SentryLevel.info));
     super.onClose();
