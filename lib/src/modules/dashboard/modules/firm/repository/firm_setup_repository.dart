@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/model/firm_setup_model.dart';
@@ -7,6 +8,7 @@ class FirmRepository {
   final ApiClient _apiClient;
 
   const FirmRepository({required this._apiClient});
+
   Future<ViewFirmModel> viewFirms() async {
     try {
       final response = await _apiClient.dio.post(ApiConstants.viewFirmApiEndpoint);
@@ -15,16 +17,19 @@ class FirmRepository {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return ViewFirmModel.fromJson(responseData);
       }
-      return ViewFirmModel(success: false, message: 'Invalid data format received from server', data: []);
+      throw FormatException('[FirmRepository.viewFirms]: Invalid data format received from endpoint: ${ApiConstants.viewFirmApiEndpoint}');
     } catch (e, stackTrace) {
-      Sentry.addBreadcrumb(Breadcrumb(message: 'Failed to fetch or parse Firm list', category: 'FirmRepository.viewFirms', level: SentryLevel.error));
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('repository', 'FirmRepository');
-        },
-      );
+      if (e is! DioException) {
+        Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          withScope: (scope) {
+            scope.setTag('layer', 'firm_repository');
+            scope.setTag('endpoint', ApiConstants.viewFirmApiEndpoint);
+            scope.setTag('action', 'viewFirms');
+          },
+        );
+      }
       rethrow;
     }
   }
