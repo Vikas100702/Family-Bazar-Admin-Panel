@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/component/image_upload/controller/image_upload_controller.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -30,26 +32,29 @@ class ImageUploadView extends GetView<ImageUploadController> {
 
   @override
   Widget build(BuildContext context) {
-    // Synchronize the entity data and callback into the controller
-    controller.configureEntity(
-      entityCode: entityCode,
-      type: uploadType,
-      onLinkEntity: onLinkEntity,
-      onSuccess: onSuccess,
-      initialWebImageUrl: initialWebImageUrl,
-      initialMobileImageUrl: initialMobileImageUrl,
-    );
+    // Post-frame dispatch avoids "markNeedsBuild() called during build" errors
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Synchronize the entity data and callback into the controller
+      controller.configureEntity(
+        entityCode: entityCode,
+        type: uploadType,
+        onLinkEntity: onLinkEntity,
+        onSuccess: onSuccess,
+        initialWebImageUrl: initialWebImageUrl,
+        initialMobileImageUrl: initialMobileImageUrl,
+      );
+    });
 
     final isDark = context.isDark;
-    final mediaQuery = MediaQuery.sizeOf(context);
+    // final mediaQuery = MediaQuery.sizeOf(context);
 
     return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(maxWidth: 840, maxHeight: mediaQuery.height * 0.92),
+      width: .infinity,
+      constraints: BoxConstraints(maxWidth: 840, maxHeight: context.screenHeight * 0.92),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
         borderRadius: context.responsiveRadius(12, 16),
-        border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
+        border: .all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
@@ -58,7 +63,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
           ),
         ],
       ),
-      padding: EdgeInsets.all(context.responsiveSize(20, 28)),
+      padding: .all(context.responsiveSize(20, 28)),
       child: Column(
         mainAxisSize: .min,
         crossAxisAlignment: .stretch,
@@ -67,7 +72,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
           SizedBox(height: context.responsiveHeight(16, 20)),
           Flexible(
             child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               child: Column(
                 mainAxisSize: .min,
                 crossAxisAlignment: .stretch,
@@ -92,7 +97,6 @@ class ImageUploadView extends GetView<ImageUploadController> {
     final String resolvedTitle = entityTitle != null && entityTitle!.trim().isNotEmpty
         ? entityTitle!.trim()
         : (uploadType.isNotEmpty ? '${uploadType[0].toUpperCase()}${uploadType.substring(1)}' : 'Asset');
-    final String resolvedCode = 'Code: ${entityCode.trim()} (${uploadType.toUpperCase()})';
 
     return Row(
       mainAxisAlignment: .spaceBetween,
@@ -118,7 +122,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$resolvedCode • Web Banner (16:9) & Mobile Icon (1:1)',
+                      'Code: ${entityCode.trim()}',
                       style: context.captionStyle.copyWith(color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -157,7 +161,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
             children: [
               _buildDropzone(
                 context: context,
-                title: 'App Banner',
+                title: 'App Image',
                 specLabel: '1:1 Square (Min 300x300 px, Max 1MB)',
                 isMobile: true,
                 bytesRx: controller.mobileImageBytes,
@@ -168,7 +172,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
               SizedBox(height: context.responsiveHeight(16, 16)),
               _buildDropzone(
                 context: context,
-                title: 'Website Banner',
+                title: 'Web Image',
                 specLabel: '16:9 Banner (Min 800x450 px, Max 2MB)',
                 isMobile: false,
                 bytesRx: controller.webImageBytes,
@@ -345,10 +349,10 @@ class ImageUploadView extends GetView<ImageUploadController> {
                             ? Stack(
                                 fit: StackFit.expand,
                                 children: [
-                                  Image.network(
-                                    uploadedUrl.startsWith('http') ? uploadedUrl : 'https://abctest.animationmedia.org$uploadedUrl',
+                                  CachedNetworkImage(
+                                    imageUrl: uploadedUrl.startsWith('http') ? uploadedUrl : '${ApiConstants.baseUrl}$uploadedUrl',
                                     fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+                                    errorWidget: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
                                   ),
                                   Positioned(
                                     bottom: 0,
