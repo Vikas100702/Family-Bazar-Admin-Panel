@@ -102,7 +102,6 @@ class ImageUploadController extends BaseController {
 
     try {
       final List<PlatformFile> files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: config.allowedExtensions);
-
       if (files.isEmpty) return;
       final PlatformFile file = files.first;
 
@@ -195,9 +194,7 @@ class ImageUploadController extends BaseController {
     }
 
     await runWithLoading(() async {
-      // PHASE 1: Generic Binary Upload to /uploadImage
-      // debugPrint('➡️ [PHASE 1 START] Uploading image (Type: "${uploadType.value}", Entity: "${targetEntityCode.value}")');
-
+      // PHASE 1: Generic Binary Upload to /upload Image
       final uploadResponse = await _imageUploadRepository.uploadImage(
         wImgBytes: webImageBytes.value,
         wImgFileName: webImageFileName.value,
@@ -205,15 +202,6 @@ class ImageUploadController extends BaseController {
         mImgFileName: mobileImageFileName.value,
         type: uploadType.value,
       );
-
-      // debugPrint('========================================');
-      // debugPrint('📸 [PHASE 1 RESPONSE - /uploadImage]');
-      // debugPrint('Success : ${uploadResponse.success}');
-      // debugPrint('Message : ${uploadResponse.message}');
-      // debugPrint('Type    : ${uploadResponse.type}');
-      // debugPrint('M-Img   : ${uploadResponse.mImg}');
-      // debugPrint('W-Img   : ${uploadResponse.wImg}');
-      // debugPrint('========================================');
 
       if (isClosed) return;
 
@@ -228,21 +216,17 @@ class ImageUploadController extends BaseController {
 
       // PHASE 2: Generic Entity Association via Injected Callback
       if (_onLinkEntity != null) {
-        // debugPrint('➡️ [PHASE 2 START] Delegating entity link for ${uploadType.value} (${targetEntityCode.value})');
-
         final bool isLinkedSuccessfully = await _onLinkEntity!(
           entityCode: targetEntityCode.value,
           webImageUrl: uploadResponse.wImg,
           mobileImageUrl: uploadResponse.mImg,
         );
-
         debugPrint('🔗 [PHASE 2 RESULT]: isLinkedSuccessfully = $isLinkedSuccessfully');
-
         if (isClosed) return;
-
         if (isLinkedSuccessfully) {
           uploadStatusMessage.value = 'Images successfully uploaded and linked.';
-          successMessage(title: 'Operation Successful', message: 'Images linked successfully with ${uploadType.value.toUpperCase()}.');
+          Get.back();
+          successMessage(title: 'Successful', message: 'Images linked successfully with ${uploadType.value.toUpperCase()}.');
           _onSuccess?.call(); // Trigger caller's refresh callback (e.g. refreshCategories)
           Get.back();
         } else {
