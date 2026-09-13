@@ -14,10 +14,8 @@ class FirmView extends GetView<FirmController> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDark;
-
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: .stretch,
       children: [
         _buildHeader(context),
         SizedBox(height: context.responsiveHeight(16, 20)),
@@ -44,24 +42,26 @@ class FirmView extends GetView<FirmController> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: DataTableWidget<Datum>(
-                    items: controller.pagedList.toList(),
-                    horizontalScrollController: controller.horizontalScrollController,
-                    verticalScrollController: controller.verticalScrollController,
-                    emptyTitle: 'No Registered Firms Found',
-                    emptySubtitle: 'Add a new firm or refresh to sync with server.',
-                    emptyIcon: Icons.domain_disabled_rounded,
-                    columns: const [
-                      DataColumn(label: Text('FIRM CODE')),
-                      DataColumn(label: Text('FIRM NAME')),
-                      DataColumn(label: Text('GSTIN / UIN')),
-                      DataColumn(label: Text('LOCATION')),
-                      DataColumn(label: Text('UNIT ACC')),
-                      DataColumn(label: Text('STATUS')),
-                      DataColumn(label: Text('FULL ADDRESS')),
-                      DataColumn(label: Text('ACTIONS')),
-                    ],
-                    rowBuilder: (context, firm) => _buildDataRow(context, firm),
+                  child: RepaintBoundary(
+                    child: DataTableWidget<Datum>(
+                      items: controller.pagedList.toList(),
+                      horizontalScrollController: controller.horizontalScrollController,
+                      verticalScrollController: controller.verticalScrollController,
+                      emptyTitle: 'No Registered Firms Found',
+                      emptySubtitle: 'Add a new firm or refresh to sync with server.',
+                      emptyIcon: Icons.domain_disabled_rounded,
+                      columns: const [
+                        DataColumn(label: Text('FIRM CODE')),
+                        DataColumn(label: Text('FIRM NAME')),
+                        DataColumn(label: Text('GSTIN / UIN')),
+                        DataColumn(label: Text('LOCATION')),
+                        DataColumn(label: Text('UNIT ACC')),
+                        DataColumn(label: Text('STATUS')),
+                        DataColumn(label: Text('FULL ADDRESS')),
+                        DataColumn(label: Text('ACTIONS')),
+                      ],
+                      rowBuilder: (context, firm) => _buildDataRow(context, firm),
+                    ),
                   ),
                 ),
                 SizedBox(height: context.responsiveHeight(12, 16)),
@@ -95,6 +95,7 @@ class FirmView extends GetView<FirmController> {
             children: [
               IconButton(
                 icon: const Icon(Icons.refresh_rounded, size: 20),
+                mouseCursor: SystemMouseCursors.click,
                 color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
                 tooltip: 'Refresh Data',
                 onPressed: controller.fetchFirms,
@@ -103,19 +104,6 @@ class FirmView extends GetView<FirmController> {
           ),
           const SizedBox(height: 12),
           AppSearchField(hintText: 'Search firm name, code, GST...', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
-          /* const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () {
-              // Action reserved for Firm creation dialog
-            },
-            icon: const Icon(Icons.add_business_rounded, size: 18),
-            label: const Text('Add New Firm'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: AppColors.onPrimaryWhite,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),*/
         ],
       );
     }
@@ -147,7 +135,10 @@ class FirmView extends GetView<FirmController> {
                       )
                     : const Icon(Icons.refresh_rounded, size: 18),
                 label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                style: OutlinedButton.styleFrom(
+                  enabledMouseCursor: SystemMouseCursors.click,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
               );
             }),
             const SizedBox(width: 12),
@@ -171,7 +162,6 @@ class FirmView extends GetView<FirmController> {
 
   DataRow _buildDataRow(BuildContext context, Datum firm) {
     final isDark = context.isDark;
-
     final address = [firm.fFirmAdd1, firm.fFirmAdd2, firm.fFirmAdd3].where((part) => part.trim().isNotEmpty).join(', ');
 
     return DataRow(
@@ -180,11 +170,15 @@ class FirmView extends GetView<FirmController> {
         DataCell(
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 220),
-            child: Text(
-              firm.fFirmName.isEmpty ? 'N/A' : firm.fFirmName,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Tooltip(
+              message: firm.fFirmName.isEmpty ? 'N/A' : firm.fFirmName,
+              waitDuration: const Duration(milliseconds: 400),
+              child: Text(
+                firm.fFirmName.isEmpty ? 'N/A' : firm.fFirmName,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ),
@@ -228,7 +222,11 @@ class FirmView extends GetView<FirmController> {
         DataCell(
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 240),
-            child: Text(address.isEmpty ? 'N/A' : address, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.captionStyle),
+            child: Tooltip(
+              message: address.isEmpty ? 'N/A' : address,
+              waitDuration: const Duration(milliseconds: 400),
+              child: Text(address.isEmpty ? 'N/A' : address, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.captionStyle),
+            ),
           ),
         ),
         DataCell(
@@ -237,20 +235,12 @@ class FirmView extends GetView<FirmController> {
             children: [
               IconButton(
                 icon: const Icon(Icons.visibility_outlined, size: 18),
+                mouseCursor: SystemMouseCursors.click,
                 color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
                 tooltip: 'View Full Firm Details',
                 splashRadius: 18,
                 onPressed: () => _inspectFirmDetails(context, firm),
               ),
-              /* IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                color: AppColors.statusBlueInfo,
-                tooltip: 'Edit Firm Configuration',
-                splashRadius: 18,
-                onPressed: () {
-                  // Action reserved for Edit Firm dialog
-                },
-              ),*/
             ],
           ),
         ),
