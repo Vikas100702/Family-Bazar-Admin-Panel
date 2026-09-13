@@ -11,6 +11,7 @@ class SplashView extends GetView<SplashController> {
 
   @override
   Widget build(BuildContext context) {
+    controller; // Explicitly touches GetView getter to trigger Get.lazyPut instantiation & fire onInit()
     return ResponsiveLayout(
       mobile: const _SplashContent(logoSize: 150.0),
       tablet: const _SplashContent(logoSize: 180.0),
@@ -27,28 +28,38 @@ class _SplashContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          RepaintBoundary(
-            child: Image.asset(
-              AppAssets.appLogo,
-              width: logoSize,
-              height: logoSize,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.medium,
-              errorBuilder: (context, error, stackTrace) => Icon(Icons.storefront_rounded, size: logoSize * 0.5, color: AppColors.primaryRed),
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        child: Column(
+          mainAxisAlignment: .center,
+          children: [
+            RepaintBoundary(
+              child: Image.asset(
+                AppAssets.appLogo,
+                width: logoSize,
+                height: logoSize,
+                fit: .contain,
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (context, error, stackTrace) => Icon(Icons.storefront_rounded, size: logoSize * 0.5, color: AppColors.primaryRed),
+              ),
             ),
-          ),
-          SizedBox(height: context.responsiveHeight(24, 32)),
-          const RepaintBoundary(
-            child: SizedBox(
-              width: 26,
-              height: 26,
-              child: CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+            SizedBox(height: context.responsiveHeight(24, 32)),
+            RepaintBoundary(
+              child: SizedBox(
+                width: logoSize * 0.8,
+                height: 3.5,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(2.0),
+                  child: LinearProgressIndicator(
+                    semanticsLabel: 'Initializing Application',
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryRed),
+                    backgroundColor: AppColors.primaryRed.withValues(alpha: 0.15),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
