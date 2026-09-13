@@ -92,7 +92,6 @@ class DataTableWidget<T> extends StatelessWidget {
   }
 
   // BI-DIRECTIONAL SCROLLABLE TABLE CANVAS
-
   Widget _buildTableCanvas(BuildContext context) {
     final isDark = context.isDark;
 
@@ -102,17 +101,18 @@ class DataTableWidget<T> extends StatelessWidget {
           controller: horizontalScrollController,
           thumbVisibility: true,
           trackVisibility: false,
+          notificationPredicate: (notification) => notification.metrics.axis == Axis.horizontal,
           child: SingleChildScrollView(
             controller: horizontalScrollController,
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
-              // Forces the table to expand across the full desktop card canvas
-              // while preserving horizontal scroll capability on mobile screens
+              // Forces the table to expand across the full desktop card canvas while preserving horizontal scroll capability on mobile screens
               constraints: BoxConstraints(minWidth: constraints.maxWidth),
               child: Scrollbar(
                 controller: verticalScrollController,
                 thumbVisibility: true,
                 trackVisibility: false,
+                notificationPredicate: (notification) => notification.metrics.axis == Axis.vertical,
                 child: SingleChildScrollView(
                   controller: verticalScrollController,
                   scrollDirection: Axis.vertical,
