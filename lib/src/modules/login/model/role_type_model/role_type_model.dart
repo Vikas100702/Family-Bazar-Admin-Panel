@@ -1,27 +1,45 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:flutter/foundation.dart';
 
-part 'role_type_model.freezed.dart';
-part 'role_type_model.g.dart';
+@immutable
+class GetRoleModel {
+  final bool status;
+  final String message;
+  final List<RoleDatum> data;
 
-@freezed
-abstract class GetRoleModel with _$GetRoleModel {
-  const factory GetRoleModel({
-    @Default(false) bool status,
-    @Default('') String message,
-    @Default([]) List<RoleDatum> data,
-  }) = _GetRoleModel;
+  const GetRoleModel({this.status = false, this.message = '', this.data = const <RoleDatum>[]});
 
-  factory GetRoleModel.fromJson(Map<String, dynamic> json) => _$GetRoleModelFromJson(json);
+  factory GetRoleModel.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const GetRoleModel();
+
+    return GetRoleModel(
+      status: json['status'] as bool? ?? false,
+      message: json['message'] as String? ?? '',
+      data: (json['data'] as List<dynamic>?)?.map((e) => RoleDatum.fromJson(e as Map<String, dynamic>?)).toList() ?? const <RoleDatum>[],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'status': status, 'message': message, 'data': data.map((e) => e.toJson()).toList()};
 }
 
-@freezed
-abstract class RoleDatum with _$RoleDatum {
-  const factory RoleDatum({
-    @Default(0) int id,
-    @JsonKey(name: 'role_name') @Default('') String roleName,
-    @JsonKey(name: 'created_at') @Default('') String createdAt,
-    @JsonKey(name: 'updated_at') @Default('') String updatedAt,
-}) = _RoleDatum;
+@immutable
+class RoleDatum {
+  final int id;
+  final String roleName;
+  final String createdAt;
+  final String updatedAt;
 
-  factory RoleDatum.fromJson(Map<String, dynamic> json) => _$RoleDatumFromJson(json);
+  const RoleDatum({this.id = 0, this.roleName = '', this.createdAt = '', this.updatedAt = ''});
+
+  factory RoleDatum.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const RoleDatum();
+
+    return RoleDatum(
+      id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      roleName: json['role_name'] as String? ?? '',
+      createdAt: json['created_at'] as String? ?? '',
+      updatedAt: json['updated_at'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'id': id, 'role_name': roleName, 'created_at': createdAt, 'updated_at': updatedAt};
 }
