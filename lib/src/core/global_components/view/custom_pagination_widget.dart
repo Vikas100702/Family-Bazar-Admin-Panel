@@ -53,11 +53,11 @@ class CustomPaginationWidget extends StatelessWidget {
   // DESKTOP VIEWPORT LAYOUT
   Widget _buildDesktopLayout(BuildContext context, int startItem, int endItem, int totalPages, int safeCurrentPage) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: .spaceBetween,
       children: [
         // Left: Range Indicator & Rows Per Page Selector
         Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: .min,
           children: [
             Text('Showing $startItem to $endItem of $totalItems entries', style: context.captionStyle.copyWith(fontWeight: FontWeight.w500)),
             if (onItemsPerPageChanged != null) ...[const SizedBox(width: 16), _buildRowsPerPageDropdown(context)],
@@ -70,17 +70,18 @@ class CustomPaginationWidget extends StatelessWidget {
     );
   }
 
-  // 2. MOBILE VIEWPORT LAYOUT (Wrapped Stacking)
-
+  // MOBILE VIEWPORT LAYOUT (Wrapped Stacking)
   Widget _buildMobileLayout(BuildContext context, int startItem, int endItem, int totalPages, int safeCurrentPage) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: .min,
+      crossAxisAlignment: .center,
       children: [
-        Text('$startItem-$endItem of $totalItems entries', style: context.captionStyle.copyWith(fontSize: 12)),
+        Text('$startItem-$endItem of $totalItems entries', style: context.captionStyle.copyWith(fontSize: context.responsiveSize(12, 12))),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 12,
+          runSpacing: 8,
           children: [
             if (onItemsPerPageChanged != null) _buildRowsPerPageDropdown(context) else const SizedBox.shrink(),
             _buildNavigationControls(context, totalPages, safeCurrentPage),
@@ -91,7 +92,6 @@ class CustomPaginationWidget extends StatelessWidget {
   }
 
   // ROWS PER PAGE DROPDOWN SELECTOR
-
   Widget _buildRowsPerPageDropdown(BuildContext context) {
     final isDark = context.isDark;
 
@@ -131,9 +131,12 @@ class CustomPaginationWidget extends StatelessWidget {
     final canGoNext = safeCurrentPage < totalPages && !isLoading;
 
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: .min,
       children: [
-        // Previous Button
+        _buildNavButton(context: context, icon: Icons.first_page_rounded, tooltip: 'First Page', isEnabled: canGoPrev, onTap: () => onPageChanged(1)),
+        const SizedBox(width: 4),
+
+        // Previous Page Button
         _buildNavButton(
           context: context,
           icon: Icons.chevron_left_rounded,
@@ -157,13 +160,23 @@ class CustomPaginationWidget extends StatelessWidget {
         ),
         const SizedBox(width: 6),
 
-        // Next Button
+        // Next Page Button
         _buildNavButton(
           context: context,
           icon: Icons.chevron_right_rounded,
           tooltip: 'Next Page',
           isEnabled: canGoNext,
           onTap: () => onPageChanged(safeCurrentPage + 1),
+        ),
+        const SizedBox(width: 4),
+
+        // Last Page Button
+        _buildNavButton(
+          context: context,
+          icon: Icons.last_page_rounded,
+          tooltip: 'Last Page',
+          isEnabled: canGoNext,
+          onTap: () => onPageChanged(totalPages),
         ),
       ],
     );
