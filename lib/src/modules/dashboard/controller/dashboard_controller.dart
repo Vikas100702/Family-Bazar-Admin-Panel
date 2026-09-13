@@ -3,8 +3,7 @@ import 'package:get/get.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class DashboardController extends BaseController {
-  // Default screen will always be 'Dashboard'
-  final RxString selectedMenuKey = 'dashboard'.obs;
+  final RxString selectedMenuKey = 'dashboard'.obs; // Default screen will always be 'Dashboard'
   final RxBool isDrawerCollapsed = false.obs;
 
   @override
@@ -13,10 +12,13 @@ class DashboardController extends BaseController {
     Sentry.addBreadcrumb(Breadcrumb(message: 'Dashboard SPA Controller Initialized', category: 'dashboard.controller', level: SentryLevel.info));
   }
 
-  /// This method will be called by the DrawerView when a menu item is tapped.
+  /// This method will be called by the Drawer View when a menu item is tapped.
   void changeActiveMenu(String newMenuKey) {
-    if (selectedMenuKey.value != newMenuKey) {
-      selectedMenuKey.value = newMenuKey;
+    final String trimmedKey = newMenuKey.trim();
+    if (trimmedKey.isEmpty) return;
+
+    if (selectedMenuKey.value != trimmedKey) {
+      selectedMenuKey.value = trimmedKey;
 
       // Observability: Track which modules the admin is accessing
       Sentry.addBreadcrumb(
@@ -34,5 +36,11 @@ class DashboardController extends BaseController {
     if (isDrawerCollapsed.value != collapsed) {
       isDrawerCollapsed.value = collapsed;
     }
+  }
+
+  @override
+  void onClose() {
+    Sentry.addBreadcrumb(Breadcrumb(message: 'Dashboard SPA Controller Disposed', category: 'dashboard.controller', level: SentryLevel.info));
+    super.onClose();
   }
 }
