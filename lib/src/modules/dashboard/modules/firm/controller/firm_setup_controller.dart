@@ -27,7 +27,7 @@ class FirmController extends BaseTableController<Datum> {
         if (response.success) {
           setMasterData(response.data);
         } else {
-          errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch the firm list.');
+          throw Exception(response.message.isNotEmpty ? response.message : 'Failed to fetch the firm list from server.');
         }
       } catch (e, stackTrace) {
         Sentry.captureException(
@@ -43,4 +43,10 @@ class FirmController extends BaseTableController<Datum> {
   }
 
   Future<void> refreshFirms() async => fetchFirms();
+
+  @override
+  void onClose() {
+    Sentry.addBreadcrumb(Breadcrumb(message: 'FirmController Disposed', category: 'firm.controller', level: SentryLevel.info));
+    super.onClose();
+  }
 }
