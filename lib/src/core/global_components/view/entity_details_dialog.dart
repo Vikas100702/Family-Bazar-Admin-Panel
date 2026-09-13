@@ -254,12 +254,15 @@ class EntityDetailsDialog extends StatelessWidget {
               ),
               if (item.isCopyable && item.displayValue != 'N/A') ...[
                 const SizedBox(width: 4),
-                InkWell(
-                  borderRadius: BorderRadius.circular(4),
-                  onTap: () => _copyToClipboard(context, item.label, item.displayValue),
-                  child: Padding(
-                    padding: const EdgeInsets.all(2.0),
-                    child: Icon(Icons.copy_rounded, size: 13, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
+                Tooltip(
+                  message: 'Copy ${item.label}',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(4),
+                    onTap: () => _copyToClipboard(context, item.label, item.displayValue),
+                    child: Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: Icon(Icons.copy_rounded, size: 13, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
+                    ),
                   ),
                 ),
               ],
@@ -320,8 +323,10 @@ class EntityDetailsDialog extends StatelessWidget {
 
   void _copyToClipboard(BuildContext context, String label, String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Copied "$label" to clipboard'), duration: const Duration(seconds: 2), behavior: SnackBarBehavior.floating),
-    );
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text('Copied "$label" to clipboard'), duration: const Duration(seconds: 2), behavior: SnackBarBehavior.floating),
+      );
   }
 }
