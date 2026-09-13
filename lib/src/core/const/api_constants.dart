@@ -5,6 +5,16 @@ abstract final class ApiConstants {
   const ApiConstants._();
 
   static const String baseUrl = "https://abctest.animationmedia.org";
+  static String resolveImageUrl(String? path) {
+    if (path == null || path.trim().isEmpty) return '';
+    final cleanPath = path.trim();
+    if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+      return cleanPath;
+    }
+    final formattedPath = cleanPath.startsWith('/') ? cleanPath : '/$cleanPath';
+    return '$baseUrl$formattedPath';
+  }
+
   static const String tokenApiEndpoint = "$baseUrl/api/admin/get-token";
   static const String roleApiEndpoint = "$baseUrl/api/admin/role-type";
   static const String loginApiEndpoint = "$baseUrl/api/admin/login";
