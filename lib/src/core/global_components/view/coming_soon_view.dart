@@ -6,8 +6,9 @@ class ComingSoonView extends StatelessWidget {
   final String title;
   final String? subtitle;
   final IconData icon;
+  final Widget? action;
 
-  const ComingSoonView({super.key, required this.title, this.subtitle, this.icon = Icons.construction_rounded});
+  const ComingSoonView({super.key, required this.title, this.subtitle, this.icon = Icons.construction_rounded, this.action});
 
   @override
   Widget build(BuildContext context) {
@@ -15,22 +16,23 @@ class ComingSoonView extends StatelessWidget {
 
     return Center(
       child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(16, 24), vertical: context.responsiveHeight(20, 32)),
+        physics: const ClampingScrollPhysics(),
+        padding: .symmetric(horizontal: context.responsiveWidth(16, 24), vertical: context.responsiveHeight(20, 32)),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 640, minHeight: 320),
           child: Container(
-            padding: EdgeInsets.all(context.responsiveSize(24, 40)),
+            padding: .all(context.responsiveSize(24, 40)),
             decoration: context.defaultDecoration,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: .min,
+              mainAxisAlignment: .center,
               children: [
                 Container(
-                  padding: EdgeInsets.all(context.responsiveSize(16, 22)),
+                  padding: .all(context.responsiveSize(16, 22)),
                   decoration: BoxDecoration(
                     color: AppColors.primaryRed.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.2), width: 1.5),
+                    border: .all(color: AppColors.primaryRed.withValues(alpha: 0.2), width: 1.5),
                   ),
                   child: Icon(icon, size: context.responsiveSize(36, 48), color: AppColors.primaryRed),
                 ),
@@ -40,10 +42,9 @@ class ComingSoonView extends StatelessWidget {
                 Text(
                   title,
                   style: context.titleStyleActive.copyWith(fontSize: context.responsiveSize(18, 22), letterSpacing: -0.3),
-                  textAlign: TextAlign.center,
+                  textAlign: .center,
                 ),
                 const SizedBox(height: 10),
-
                 Text(
                   subtitle ??
                       'This enterprise module is scheduled for release in an upcoming system deployment. Real-time data and configuration controls will be accessible here.',
@@ -52,20 +53,20 @@ class ComingSoonView extends StatelessWidget {
                     color: isDark ? AppColors.textSecondaryMuted : AppColors.textSecondarySlate,
                     height: 1.5,
                   ),
-                  textAlign: TextAlign.center,
+                  textAlign: .center,
                 ),
                 SizedBox(height: context.responsiveHeight(20, 28)),
 
                 // Status Indicator
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const .symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
+                    border: .all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: .min,
                     children: [
                       Container(
                         width: 8,
@@ -83,6 +84,7 @@ class ComingSoonView extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (action != null) ...[SizedBox(height: context.responsiveHeight(16, 24)), action!],
               ],
             ),
           ),
