@@ -4,7 +4,8 @@ import 'package:family_bazar_admin_panel/src/core/global_components/layout/respo
 import 'package:family_bazar_admin_panel/src/core/global_components/view/coming_soon_view.dart';
 import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_coontroller.dart';
+import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/view/drawer_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
@@ -28,9 +29,9 @@ class DashboardView extends GetView<DashboardController> {
       backgroundColor: isDark ? AppColors.canvasDarkSlate : AppColors.canvasLightGray,
       drawer: isDesktop ? null : const DrawerView(),
       appBar: isDesktop ? null : _buildMobileAppBar(context),
-      desktop: _buildDesktopLayout(context),
-      tablet: _buildMobileTabletLayout(context),
-      mobile: _buildMobileTabletLayout(context),
+      desktop: isDesktop ? _buildDesktopLayout(context) : const SizedBox.shrink(),
+      tablet: !isDesktop ? _buildMobileTabletLayout(context) : null,
+      mobile: !isDesktop ? _buildMobileTabletLayout(context) : const SizedBox.shrink(),
     );
   }
 
@@ -113,6 +114,12 @@ class DashboardView extends GetView<DashboardController> {
             Get.changeThemeMode(isDark ? ThemeMode.light : ThemeMode.dark);
           },
         ),
+        IconButton(
+          icon: const Icon(Icons.logout_rounded, size: 20),
+          color: AppColors.primaryRed,
+          tooltip: 'Logout',
+          onPressed: () => _confirmLogout(context),
+        ),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
@@ -192,10 +199,10 @@ class DashboardView extends GetView<DashboardController> {
                   ),
                 ),*/
                 child: IconButton(
-                  onPressed: () {
-                    Get.offAllNamed(AppRoutes.login);
-                  },
-                  icon: Icon(Icons.logout_rounded, color: AppColors.primaryRed, size: 13),
+                  tooltip: 'Logout Session',
+                  mouseCursor: SystemMouseCursors.click,
+                  onPressed: () => _confirmLogout(context),
+                  icon: const Icon(Icons.logout_rounded, color: AppColors.primaryRed, size: 16),
                 ),
               ),
             ],
@@ -217,8 +224,6 @@ class DashboardView extends GetView<DashboardController> {
         return const SubCategoryView();
       case 'productdashboardgroup':
         return const DashboardGroupView();
-      case 'masterbrandname':
-        return const Center(child: Text('Master Brand Module - Coming Soon'));
       case 'firm setup':
         return const FirmView();
       case 'pin code settings':
@@ -296,5 +301,26 @@ class DashboardView extends GetView<DashboardController> {
         }
         return key.toUpperCase();
     }
+  }
+
+  void _confirmLogout(BuildContext context) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to terminate your administrative session?'),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryRed),
+            onPressed: () {
+              Get.back();
+              Get.find<StorageService>().clearAll();
+              Get.offAllNamed(AppRoutes.login);
+            },
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 }
