@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 class ImageUploadBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<ImageUploadRepository>(() => ImageUploadRepository(apiClient: Get.find<ApiClient>()));
-    Get.lazyPut<ImageUploadController>(() => ImageUploadController(imageUploadRepository: Get.find<ImageUploadRepository>()));
+    Get.lazyPut<ImageUploadRepository>(() => ImageUploadRepository(apiClient: Get.find<ApiClient>()), fenix: true);
+    Get.lazyPut<ImageUploadController>(() => ImageUploadController(imageUploadRepository: Get.find<ImageUploadRepository>()), fenix: true);
   }
 }
