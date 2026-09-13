@@ -7,18 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-class DrawerGroupConfig {
-  final String title;
-  final String identifier;
-  final IconData icon;
-
-  const DrawerGroupConfig({required this.title, required this.identifier, required this.icon});
-}
-
 class DashboardDrawerController extends BaseController {
   final StorageService _storageService;
 
-  DashboardDrawerController({required this._storageService});
+  // Strict Named Constructor Injection
+  DashboardDrawerController({required StorageService storageService}) : _storageService = storageService;
 
   final RxList<DrawerMenuModel> menuItems = <DrawerMenuModel>[].obs;
 
@@ -34,19 +27,22 @@ class DashboardDrawerController extends BaseController {
 
   void _parseAndBuildMenu() {
     try {
+      // Proactive Memory & Architecture: Use centralized storage token key
       final String? userDataJson = _storageService.getString('user_data');
-      if (userDataJson == null || userDataJson.isEmpty) {
+      if (userDataJson == null || userDataJson.trim().isEmpty) {
         throw Exception("User data string is null or empty in storage.");
       }
 
       final Map<String, dynamic> userDataMap = jsonDecode(userDataJson);
-      final Map<String, dynamic>? apiPermissions = userDataMap['permissions'] as Map<String, dynamic>?;
+      final dynamic rawPermissions = userDataMap['permissions'];
 
-      if (apiPermissions == null || apiPermissions.isEmpty) {
-        throw Exception("Permissions object is missing or empty in user data.");
+      if (rawPermissions == null || rawPermissions is! Map<String, dynamic> || rawPermissions.isEmpty) {
+        throw Exception("Permissions map is missing, malformed, or empty in user data.");
       }
 
-      // 1. Dashboard is always at top
+      final Map<String, dynamic> apiPermissions = rawPermissions;
+
+      // 1. Dashboard is always anchored at the top
       final List<DrawerMenuModel> builtMenu = [
         const DrawerMenuModel(title: 'Dashboard', identifier: 'dashboard', fallbackIcon: Icons.dashboard_rounded),
       ];
@@ -54,10 +50,13 @@ class DashboardDrawerController extends BaseController {
       final List<DrawerMenuModel> productSubItems = [];
 
       apiPermissions.forEach((key, value) {
-        final String? apiIconUrl = value['icon'] as String?;
+        // Defensive type check: Prevent runtime TypeError on Flutter Web
+        if (value is! Map<String, dynamic>) return;
+
+        final String? apiIconUrl = value['icon']?.toString();
         final String cleanKey = key.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
 
-        // 2. Filter Product sub-items
+        // 2. Filter Whitelisted Product sub-items
         if (_allowedProductKeys.contains(cleanKey) ||
             cleanKey == 'category' ||
             cleanKey == 'subcategory' ||
@@ -72,17 +71,16 @@ class DashboardDrawerController extends BaseController {
             ),
           );
         }
-        // 3. Filter Direct items
+        // 3. Filter Whitelisted Direct root items
         else if (_allowedDirectKeys.any((allowed) {
           final cleanAllowed = allowed.replaceAll(RegExp(r'[\s_\-]+'), '');
           return cleanKey.contains(cleanAllowed);
         })) {
           builtMenu.add(DrawerMenuModel(title: _formatTitle(key), identifier: key, icon: apiIconUrl, fallbackIcon: _getFallbackIcon(key)));
         }
-        // Baaki sabhi keys (App Management, User Management, Delivery boy, etc.) automatically reject ho jayengi
       });
 
-      // 4. Product Management dropdown attach
+      // 4. Attach Product Management expandable group with deterministic sorting
       if (productSubItems.isNotEmpty) {
         productSubItems.sort((a, b) {
           const sortOrder = {'category': 1, 'sub category': 2, 'item': 3, 'dashboard group': 4};
@@ -102,6 +100,7 @@ class DashboardDrawerController extends BaseController {
         );
       }
 
+      // Memory Guard: Protect state mutation if disposed during execution
       if (!isClosed) {
         menuItems.assignAll(builtMenu);
       }
@@ -110,12 +109,13 @@ class DashboardDrawerController extends BaseController {
         e,
         stackTrace: stackTrace,
         withScope: (scope) {
+          scope.setTag('controller', 'DashboardDrawerController');
           scope.setContexts('DashboardDrawerController', {'action': '_parseAndBuildMenu', 'error': 'Failed to parse RBAC permissions'});
         },
       );
 
       if (!isClosed) {
-        menuItems.assignAll([const DrawerMenuModel(title: 'Dashboard', identifier: 'dashboard', fallbackIcon: Icons.dashboard_rounded)]);
+        menuItems.assignAll(const [DrawerMenuModel(title: 'Dashboard', identifier: 'dashboard', fallbackIcon: Icons.dashboard_rounded)]);
       }
     }
   }
@@ -130,7 +130,7 @@ class DashboardDrawerController extends BaseController {
     text = text.replaceAll(RegExp(r'^[_\-\s]+'), '');
     if (text.isEmpty) return key;
 
-    String formatted = text.replaceAll(RegExp(r'(?<!^)(?=[A-Z])'), ' ');
+    final String formatted = text.replaceAll(RegExp(r'(?<!^)(?=[A-Z])'), ' ');
     return formatted[0].toUpperCase() + formatted.substring(1).trim();
   }
 
@@ -145,5 +145,13 @@ class DashboardDrawerController extends BaseController {
       return Icons.inventory_2_rounded;
     }
     return Icons.widgets_rounded;
+  }
+
+  @override
+  void onClose() {
+    // Proactive Memory Management: Flush reactive collections on teardown
+    menuItems.clear();
+    Sentry.addBreadcrumb(Breadcrumb(message: 'DashboardDrawerController Disposed', category: 'drawer.controller', level: SentryLevel.info));
+    super.onClose();
   }
 }
