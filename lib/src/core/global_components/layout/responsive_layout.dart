@@ -31,8 +31,7 @@ class ResponsiveLayout extends StatelessWidget {
   static bool isMobile(BuildContext context) => MediaQuery.sizeOf(context).width < AppConstants.mobileBreakpoint;
 
   static bool isTablet(BuildContext context) =>
-      MediaQuery.sizeOf(context).width >= AppConstants.mobileBreakpoint &&
-      MediaQuery.sizeOf(context).width < AppConstants.tabletBreakpoint;
+      MediaQuery.sizeOf(context).width >= AppConstants.mobileBreakpoint && MediaQuery.sizeOf(context).width < AppConstants.tabletBreakpoint;
 
   static bool isDesktop(BuildContext context) => MediaQuery.sizeOf(context).width >= AppConstants.tabletBreakpoint;
 
@@ -54,7 +53,7 @@ class ResponsiveLayout extends StatelessWidget {
     if (useSafeArea) bodyContent = SafeArea(child: bodyContent);
 
     return Scaffold(
-      // backgroundColor: backgroundColor ?? Colors.white,
+      backgroundColor: backgroundColor,
       appBar: appBar,
       drawer: drawer,
       endDrawer: endDrawer,
