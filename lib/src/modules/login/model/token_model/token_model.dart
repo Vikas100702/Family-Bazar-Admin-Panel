@@ -1,15 +1,22 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+class GetTokenModel {
+  GetTokenModel({required this.status, required this.message, required this.token});
 
-part 'token_model.freezed.dart';
-part 'token_model.g.dart';
+  final bool status;
+  final String message;
+  final String token;
 
-@freezed
-abstract class GetTokenModel with _$GetTokenModel {
-  const factory GetTokenModel({
-    @Default(false) bool status,
-    @Default('') String message,
-    @Default('') String token,
-}) = _GetTokenModel;
+  GetTokenModel copyWith({bool? status, String? message, String? token}) {
+    return GetTokenModel(status: status ?? this.status, message: message ?? this.message, token: token ?? this.token);
+  }
 
-  factory GetTokenModel.fromJson(Map<String, dynamic> json) => _$GetTokenModelFromJson(json);
+  factory GetTokenModel.fromJson(Map<String, dynamic> json) {
+    return GetTokenModel(status: json["status"] ?? false, message: json["message"] ?? "", token: json["token"] ?? "");
+  }
+
+  Map<String, dynamic> toJson() => {"status": status, "message": message, "token": token};
+
+  @override
+  String toString() {
+    return "$status, $message, $token, ";
+  }
 }
