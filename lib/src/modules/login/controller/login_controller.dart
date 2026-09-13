@@ -16,7 +16,7 @@ class LoginController extends BaseController {
   final StorageService _storageService;
   final DeviceMetaService _deviceMetaService;
 
-  LoginController(this._loginRepository, this._storageService, this._deviceMetaService);
+  LoginController({required this._loginRepository, required this._storageService, required this._deviceMetaService});
 
   // --- UI CONTROLLERS & KEYS ---
   final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
