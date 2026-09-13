@@ -1,9 +1,8 @@
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/component/image_upload/model/image_upload_model.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class ImageUploadRepository {
@@ -18,6 +17,14 @@ class ImageUploadRepository {
     required String type, // 'category', 'subcategory', 'item', etc.
   }) async {
     try {
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          message: 'Initiating multipart image binary upload for type: $type',
+          category: 'media.upload',
+          level: SentryLevel.info,
+          data: {'has_mobile_bytes': mImgBytes != null && mImgBytes.isNotEmpty, 'has_web_bytes': wImgBytes != null && wImgBytes.isNotEmpty},
+        ),
+      );
       if ((mImgBytes == null || mImgBytes.isEmpty) && (wImgBytes == null || wImgBytes.isEmpty)) {
         throw ArgumentError('At least one image (mobile or web) is required.');
       }
@@ -51,7 +58,17 @@ class ImageUploadRepository {
 
       throw const FormatException('Invalid data format received from server. Expected JSON Map.');
     } catch (e, stackTrace) {
-      Sentry.captureException(e, stackTrace: stackTrace);
+      Sentry.captureException(
+        e,
+        stackTrace: stackTrace,
+        withScope: (scope) {
+          scope.setTag('layer', 'image_upload_repository');
+          scope.setTag('endpoint', ApiConstants.uploadImgApiEndpoint);
+          scope.setTag('upload_type', type);
+          scope.setContexts('upload_meta', {'m_filename': mImgFileName, 'w_filename': wImgFileName});
+        },
+      );
+      debugPrint('--- [IMAGE UPLOAD REPOSITORY] Upload failed: $e ---');
       rethrow;
     }
   }
