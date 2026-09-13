@@ -9,22 +9,23 @@ class InitialBindings extends Bindings {
   @override
   void dependencies() {
     try {
-      // This ensures that the app will not proceed until Storage is loaded into memory.
-      Get.putAsync<StorageService>(() async => await StorageService().init(), permanent: true);
-      Get.put<NetworkManager>(NetworkManager(), permanent: true); // Global Network Monitoring: Locked permanently.
-      Get.put<ApiClient>(ApiClient(), permanent: true); // Global API Client
-      Get.put<StorageService>(StorageService(), permanent: true); // Global Storage Service
+      if (!Get.isRegistered<StorageService>()) {
+        final storageService = StorageService();
+        Get.put<StorageService>(storageService, permanent: true);
+      }
+      if (!Get.isRegistered<NetworkManager>()) {
+        Get.put<NetworkManager>(NetworkManager(), permanent: true);
+      }
+      if (!Get.isRegistered<ApiClient>()) {
+        Get.put<ApiClient>(ApiClient(), permanent: true);
+      }
       Sentry.addBreadcrumb(
-        Breadcrumb(
-          message: '[SYSTEM]: Global Dependencies Injected Successfully',
-          category: 'system.bindings',
-          level: SentryLevel.info,
-        )
+        Breadcrumb(message: '[SYSTEM]: Global Dependencies Injected Successfully', category: 'system.bindings', level: SentryLevel.info),
       );
     } catch (error, stackTrace) {
       // Capture critical DI failures before they cause silent app deaths
       Sentry.captureException(
-        Exception('CRITICAL FATAL: Binding Injection Failed - $error'),
+        Exception('CRITICAL: Binding Injection Failed - $error'),
         stackTrace: stackTrace,
         withScope: (scope) => scope.setTag('layer', 'initial_bindings'),
       );
