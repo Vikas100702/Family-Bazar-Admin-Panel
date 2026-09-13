@@ -12,35 +12,40 @@ class LoginView extends GetView<LoginController> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDesktop = ResponsiveLayout.isDesktop(context);
     return ResponsiveLayout(
       useSafeArea: true,
       backgroundColor: context.isDark ? AppColors.canvasDarkSlate : AppColors.canvasLightGray,
-      desktop: _buildDesktopLayout(context),
-      tablet: _buildMobileLayout(context),
-      mobile: _buildMobileLayout(context),
+      desktop: isDesktop ? _buildDesktopLayout(context) : const SizedBox.shrink(),
+      tablet: !isDesktop ? _buildMobileLayout(context) : null,
+      mobile: !isDesktop ? _buildMobileLayout(context) : const SizedBox.shrink(),
     );
   }
 
   Widget _buildDesktopLayout(BuildContext context) {
     return Center(
-      child: Container(
-        width: context.screenWidth * 0.85,
-        height: context.screenHeight * 0.85,
-        constraints: const BoxConstraints(maxWidth: 1120, maxHeight: 740, minHeight: 580),
-        decoration: context.defaultDecoration.copyWith(borderRadius: BorderRadius.circular(16)),
-        clipBehavior: Clip.antiAlias,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(flex: 5, child: _buildBrandHeroSection(context)),
-            VerticalDivider(width: 1, thickness: 1, color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-            Expanded(
-              flex: 5,
-              child: Center(
-                child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 36), child: _buildLoginForm(context)),
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        padding: const .symmetric(vertical: 24),
+        child: Container(
+          width: context.screenWidth * 0.85,
+          height: context.screenHeight * 0.85,
+          constraints: const BoxConstraints(maxWidth: 1120, maxHeight: 740, minHeight: 580),
+          decoration: context.defaultDecoration.copyWith(borderRadius: BorderRadius.circular(16)),
+          clipBehavior: Clip.antiAlias,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(flex: 5, child: _buildBrandHeroSection(context)),
+              VerticalDivider(width: 1, thickness: 1, color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+              Expanded(
+                flex: 5,
+                child: Center(
+                  child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 36), child: _buildLoginForm(context)),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -86,6 +91,7 @@ class LoginView extends GetView<LoginController> {
                     child: Center(
                       child: Image.asset(
                         AppAssets.appLogo,
+                        semanticLabel: 'Family Bazar Logo',
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => const Icon(Icons.storefront_rounded, size: 40, color: AppColors.primaryRed),
                       ),
@@ -111,11 +117,13 @@ class LoginView extends GetView<LoginController> {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Image.asset(
-                  AppAssets.signInBanner,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.shopping_bag_rounded, size: 96, color: AppColors.primaryRed.withValues(alpha: 0.5)),
+                child: RepaintBoundary(
+                  child: Image.asset(
+                    AppAssets.signInBanner,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Icon(Icons.shopping_bag_rounded, size: 96, color: AppColors.primaryRed.withValues(alpha: 0.5)),
+                  ),
                 ),
               ),
             ),
@@ -157,6 +165,7 @@ class LoginView extends GetView<LoginController> {
               controller: controller.usernameController,
               autofillHints: const [AutofillHints.username, AutofillHints.telephoneNumber],
               textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
               keyboardType: TextInputType.text,
               style: context.bodyTextStyle,
               decoration: const InputDecoration(hintText: 'Enter username', prefixIcon: Icon(Icons.person_outline_rounded, size: 20)),
@@ -188,7 +197,7 @@ class LoginView extends GetView<LoginController> {
                       color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
                     ),
                     onPressed: controller.togglePasswordVisibility,
-                    splashRadius: 18,
+                    mouseCursor: SystemMouseCursors.click,
                     tooltip: controller.isPasswordVisible.value ? 'Hide password' : 'Show password',
                   ),
                 ),
