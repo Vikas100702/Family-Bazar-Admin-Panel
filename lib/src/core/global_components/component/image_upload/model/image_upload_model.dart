@@ -17,13 +17,16 @@ class ImageUploadModel {
     );
   }
 
-  factory ImageUploadModel.fromJson(Map<String, dynamic> json) {
+  factory ImageUploadModel.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return ImageUploadModel(success: false, message: 'Empty response payload received', type: '', mImg: '', wImg: '');
+    }
     return ImageUploadModel(
-      success: json["success"] ?? false,
-      message: json["message"] ?? "",
-      type: json["type"] ?? "",
-      mImg: json["m_img"] ?? "",
-      wImg: json["w_img"] ?? "",
+      success: _parseBool(json["success"]),
+      message: json["message"]?.toString().trim() ?? "",
+      type: json["type"]?.toString().trim() ?? "",
+      mImg: json["m_img"]?.toString().trim() ?? json["cat_m_img"]?.toString().trim() ?? "",
+      wImg: json["w_img"]?.toString().trim() ?? json["cat_w_img"]?.toString().trim() ?? "",
     );
   }
 
@@ -31,6 +34,13 @@ class ImageUploadModel {
 
   @override
   String toString() {
-    return "$success, $message, $type, $mImg, $wImg, ";
+    return "ImageUploadModel(success: $success, message: $message, type: $type, mImg: $mImg, wImg: $wImg)";
+  }
+
+  static bool _parseBool(dynamic val) {
+    if (val == null) return false;
+    if (val is bool) return val;
+    final str = val.toString().trim().toLowerCase();
+    return str == '1' || str == 'true';
   }
 }
