@@ -11,35 +11,31 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class LoginRepository {
   final ApiClient _apiClient;
-  const LoginRepository(this._apiClient);
+  const LoginRepository({required this._apiClient});
 
   Future<GetTokenModel> fetchToken() async {
     try {
-      Sentry.addBreadcrumb(
-        Breadcrumb(message: 'Initiating fetchToken API call', category: 'auth.repository', level: SentryLevel.info),
-      );
+      Sentry.addBreadcrumb(Breadcrumb(message: 'Initiating fetchToken API call', category: 'auth.repository', level: SentryLevel.info));
       final response = await _apiClient.dio.post(ApiConstants.tokenApiEndpoint);
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return GetTokenModel.fromJson(response.data);
+        final tokenModel = GetTokenModel.fromJson(response.data as Map<String, dynamic>);
+        if (tokenModel.status == true && tokenModel.token.isNotEmpty) {
+          return tokenModel;
+        } else {
+          throw Exception(tokenModel.message.isNotEmpty ? tokenModel.message : '[Token API]: Failed to generate valid handshake token');
+        }
       } else {
         throw FormatException("[Token API]: ${AppStrings.emptyData}");
       }
     } catch (e, stackTrace) {
-      _logRepositoryException(
-        exception: e,
-        stackTrace: stackTrace,
-        endpoint: ApiConstants.tokenApiEndpoint,
-        action: 'fetchToken',
-      );
+      _logRepositoryException(exception: e, stackTrace: stackTrace, endpoint: ApiConstants.tokenApiEndpoint, action: 'fetchToken');
       rethrow;
     }
   }
 
   Future<GetRoleModel> fetchRoleTypes() async {
     try {
-      Sentry.addBreadcrumb(
-        Breadcrumb(message: 'Initiating fetchRoleTypes API call', category: 'auth.repository', level: SentryLevel.info),
-      );
+      Sentry.addBreadcrumb(Breadcrumb(message: 'Initiating fetchRoleTypes API call', category: 'auth.repository', level: SentryLevel.info));
 
       final response = await _apiClient.dio.post(ApiConstants.roleApiEndpoint);
       if (response.data != null) {
@@ -102,22 +98,12 @@ class LoginRepository {
         throw FormatException("[Login API]: ${AppStrings.emptyData}");
       }
     } catch (e, stackTrace) {
-      _logRepositoryException(
-        exception: e,
-        stackTrace: stackTrace,
-        endpoint: ApiConstants.loginApiEndpoint,
-        action: 'fetchLoginUser',
-      );
+      _logRepositoryException(exception: e, stackTrace: stackTrace, endpoint: ApiConstants.loginApiEndpoint, action: 'fetchLoginUser');
       rethrow;
     }
   }
 
-  void _logRepositoryException({
-    required Object exception,
-    required StackTrace stackTrace,
-    required String endpoint,
-    required String action,
-  }) {
+  void _logRepositoryException({required Object exception, required StackTrace stackTrace, required String endpoint, required String action}) {
     if (exception is! DioException) {
       Sentry.captureException(
         exception,
