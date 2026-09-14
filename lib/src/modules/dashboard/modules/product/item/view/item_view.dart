@@ -46,28 +46,30 @@ class ItemsView extends GetView<ItemController> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: DataTableWidget<ViewItemDatum>(
-                    items: controller.pagedList.toList(),
-                    horizontalScrollController: controller.horizontalScrollController,
-                    verticalScrollController: controller.verticalScrollController,
-                    emptyTitle: 'No Product Items Available',
-                    emptySubtitle: 'Sync with server or configure inventory catalog.',
-                    emptyIcon: Icons.inventory_2_outlined,
-                    columns: const [
-                      DataColumn(label: Text('ITEM CODE')),
-                      DataColumn(label: Text('FIRM CODE')),
-                      DataColumn(label: Text('IMAGES')),
-                      DataColumn(label: Text('ITEM NAME')),
-                      DataColumn(label: Text('CATEGORY')),
-                      DataColumn(label: Text('SUB-CATEGORY')),
-                      DataColumn(label: Text('ITEM MRP')),
-                      DataColumn(label: Text('SALES PRICE')),
-                      DataColumn(label: Text('AVAILABLE STOCK')),
-                      DataColumn(label: Text('EU CODE')),
-                      DataColumn(label: Text('EAN / BARCODE')),
-                      DataColumn(label: Text('ACTIONS')),
-                    ],
-                    rowBuilder: (context, item) => _buildDataRow(context, item),
+                  child: RepaintBoundary(
+                    child: DataTableWidget<ViewItemDatum>(
+                      items: controller.pagedList,
+                      horizontalScrollController: controller.horizontalScrollController,
+                      verticalScrollController: controller.verticalScrollController,
+                      emptyTitle: 'No Product Items Available',
+                      emptySubtitle: 'Sync with server or configure inventory catalog.',
+                      emptyIcon: Icons.inventory_2_outlined,
+                      columns: const [
+                        DataColumn(label: Text('ITEM CODE')),
+                        DataColumn(label: Text('FIRM CODE')),
+                        DataColumn(label: Text('IMAGES')),
+                        DataColumn(label: Text('ITEM NAME')),
+                        DataColumn(label: Text('CATEGORY')),
+                        DataColumn(label: Text('SUB-CATEGORY')),
+                        DataColumn(label: Text('ITEM MRP')),
+                        DataColumn(label: Text('SALES PRICE')),
+                        DataColumn(label: Text('AVAILABLE STOCK')),
+                        DataColumn(label: Text('EU CODE')),
+                        DataColumn(label: Text('EAN / BARCODE')),
+                        DataColumn(label: Text('ACTIONS')),
+                      ],
+                      rowBuilder: (context, item) => _buildDataRow(context, item),
+                    ),
                   ),
                 ),
                 SizedBox(height: context.responsiveHeight(12, 16)),
@@ -99,13 +101,22 @@ class ItemsView extends GetView<ItemController> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Item Catalog', style: context.headingTextStyle.copyWith(fontSize: 18)),
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded, size: 20),
-                color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
-                tooltip: 'Refresh Items',
-                onPressed: controller.refreshCategories,
-              ),
+              Obx(() {
+                final bool isRefreshing = controller.isLoading.value;
+                return IconButton(
+                  icon: isRefreshing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
+                        )
+                      : const Icon(Icons.refresh_rounded, size: 20),
+                  mouseCursor: SystemMouseCursors.click,
+                  color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                  tooltip: 'Refresh Items',
+                  onPressed: isRefreshing ? null : controller.refreshCategories,
+                );
+              }),
             ],
           ),
         ],
@@ -124,7 +135,7 @@ class ItemsView extends GetView<ItemController> {
             Obx(() {
               final bool isRefreshing = controller.isLoading.value;
               return OutlinedButton.icon(
-                onPressed: controller.refreshCategories,
+                onPressed: isRefreshing ? null : controller.refreshCategories,
                 icon: isRefreshing
                     ? const SizedBox(
                         width: 18,
@@ -133,7 +144,10 @@ class ItemsView extends GetView<ItemController> {
                       )
                     : const Icon(Icons.refresh_rounded, size: 18),
                 label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                style: OutlinedButton.styleFrom(
+                  enabledMouseCursor: SystemMouseCursors.click,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
               );
             }),
           ],
@@ -155,6 +169,7 @@ class ItemsView extends GetView<ItemController> {
             constraints: const BoxConstraints(maxWidth: 240),
             child: Tooltip(
               message: _formatText(item.iName),
+              waitDuration: const Duration(milliseconds: 400),
               child: Text(
                 _formatText(item.iName),
                 style: const TextStyle(fontWeight: FontWeight.w500),
@@ -184,6 +199,7 @@ class ItemsView extends GetView<ItemController> {
         DataCell(
           IconButton(
             icon: const Icon(Icons.visibility_outlined, size: 18),
+            mouseCursor: SystemMouseCursors.click,
             color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
             tooltip: 'View Item Details',
             splashRadius: 18,
@@ -202,6 +218,7 @@ class ItemsView extends GetView<ItemController> {
     if (!hasWebImg && !hasMobileImg) {
       return InkWell(
         onTap: () => _openImageUploadModal(context, item),
+        mouseCursor: SystemMouseCursors.click,
         borderRadius: BorderRadius.circular(6),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -226,6 +243,7 @@ class ItemsView extends GetView<ItemController> {
     }
     return InkWell(
       onTap: () => _openImageUploadModal(context, item),
+      mouseCursor: SystemMouseCursors.click,
       borderRadius: BorderRadius.circular(6),
       child: Tooltip(
         message: 'Click to view / update category images',
