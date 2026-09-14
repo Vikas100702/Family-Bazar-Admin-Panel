@@ -28,7 +28,7 @@ class SubCategoryController extends BaseTableController<ViewSubCategoryDatum> {
         if (response.success) {
           setMasterData(response.data);
         } else {
-          errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch the sub category list.');
+          throw Exception(response.message.isNotEmpty ? response.message : 'Failed to fetch the sub category list from server.');
         }
       } catch (e, stackTrace) {
         Sentry.captureException(
@@ -44,4 +44,9 @@ class SubCategoryController extends BaseTableController<ViewSubCategoryDatum> {
   }
 
   Future<void> refreshCategories() async => fetchSubCategories();
+
+  @override
+  void onClose() {
+    super.onClose();
+  }
 }
