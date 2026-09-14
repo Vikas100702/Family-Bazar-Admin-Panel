@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/model/insert_item_details_model.dart';
@@ -16,28 +17,42 @@ class ItemRepository {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return ViewItemModel.fromJson(responseData);
       }
-      return ViewItemModel(success: false, message: 'Invalid data format received from server', data: []);
+      throw FormatException('[ItemRepository.viewItems]: Invalid data format received from endpoint: ${ApiConstants.viewItemsApiEndpoint}');
     } catch (e, stackTrace) {
-      Sentry.addBreadcrumb(Breadcrumb(message: 'Failed to fetch or parse Item list', category: 'ItemRepository.viewItems', level: SentryLevel.error));
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('repository', 'ItemRepository');
-        },
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          message: 'Failed to fetch or parse Item list',
+          category: 'item.repository',
+          level: SentryLevel.error,
+          data: {'endpoint': ApiConstants.viewItemsApiEndpoint, 'error': e.toString()},
+        ),
       );
+
+      if (e is! DioException) {
+        Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          withScope: (scope) {
+            scope.setTag('repository', 'ItemRepository');
+            scope.setTag('action', 'viewItems');
+          },
+        );
+      }
       rethrow;
     }
   }
 
   Future<InsertItemDetailsModel> addItemDetails({required String itemCode, required String mImg, required String wImg}) async {
+    final String trimmedItemCode = itemCode.trim();
+    final String trimmedMImg = mImg.trim();
+    final String trimmedWImg = wImg.trim();
+
+    if (trimmedItemCode.isEmpty) {
+      throw ArgumentError('Item code cannot be empty.');
+    }
+
+    final Map<String, dynamic> payload = {'I_Code': trimmedItemCode, 'w_img': trimmedWImg, 'm_img': trimmedMImg};
     try {
-      if (itemCode.trim().isEmpty) {
-        throw ArgumentError('Item code cannot be empty.');
-      }
-
-      final Map<String, dynamic> payload = {'I_Code': itemCode.trim(), 'w_img': wImg.trim(), 'm_img': mImg.trim()};
-
       final response = await _apiClient.dio.post(ApiConstants.insertItemDetailsApiEndpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
