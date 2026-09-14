@@ -1,4 +1,4 @@
-import 'package:family_bazar_admin_panel/src/core/base_controller/base_controller.dart';
+import 'package:family_bazar_admin_panel/src/core/base_controller/base_table_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_item_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-class DashboardGroupController extends BaseController {
+class DashboardGroupController extends BaseTableController<GroupItemDatum> {
   final DashboardGroupRepository _groupRepository;
   final ItemRepository _itemRepository;
 
@@ -21,21 +21,11 @@ class DashboardGroupController extends BaseController {
   final Rxn<ViewDashboardGroupDatum> selectedGroup = Rxn<ViewDashboardGroupDatum>();
   final RxInt selectedGroupId = 0.obs;
 
-  // REACTIVE ITEM CATALOG STATE
+  // GROUP ITEMS CATALOG & TABLE STATE
   final RxBool isItemsLoading = false.obs;
   final RxList<GroupItemDatum> allGroupItems = <GroupItemDatum>[].obs;
-  final RxList<GroupItemDatum> filteredGroupItems = <GroupItemDatum>[].obs;
-  final RxList<GroupItemDatum> pagedGroupItems = <GroupItemDatum>[].obs;
 
-  // PAGINATION & SEARCH STATE
-  final RxInt currentPage = 1.obs;
-  final RxInt itemsPerPage = 20.obs;
-  final RxInt totalRecords = 0.obs;
-  final List<int> pageSizeOptions = const [10, 20, 50, 100];
-  final RxString searchQuery = ''.obs;
-
-  late final ScrollController horizontalScrollController;
-  late final ScrollController verticalScrollController;
+  RxList<GroupItemDatum> get pagedGroupItems => pagedList;
 
   // ADD GROUP MUTATION STATE
   final GlobalKey<FormState> addGroupFormKey = GlobalKey<FormState>();
@@ -52,11 +42,14 @@ class DashboardGroupController extends BaseController {
   @override
   void onInit() {
     super.onInit();
-    horizontalScrollController = ScrollController();
-    verticalScrollController = ScrollController();
     groupNameController = TextEditingController();
     masterItemSearchController = TextEditingController();
     fetchDashboardGroups();
+  }
+
+  @override
+  String searchTokenBuilder(GroupItemDatum item) {
+    return '${item.iCode} ${item.iName} ${item.eanCode} ${item.iFirmCode} ${item.iItemGroup} ${item.iOtherGroup}';
   }
 
   int extractItemCode(String iCode, int fallback) {
@@ -78,9 +71,10 @@ class DashboardGroupController extends BaseController {
           groupList.clear();
           selectedGroup.value = null;
           selectedGroupId.value = 0;
-          _clearItemsState();
+          allGroupItems.clear();
+          setMasterData([]);
         } else {
-          errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to retrieve dashboard groups.');
+          throw Exception(response.message.isNotEmpty ? response.message : 'Failed to retrieve dashboard groups.');
         }
       } catch (e, stackTrace) {
         _logException(e, stackTrace, 'fetchDashboardGroups');
@@ -96,8 +90,7 @@ class DashboardGroupController extends BaseController {
 
     selectedGroup.value = group;
     selectedGroupId.value = group.groupId;
-    searchQuery.value = '';
-    currentPage.value = 1;
+    clearSearch();
 
     fetchGroupItems(group.groupId);
   }
@@ -122,7 +115,7 @@ class DashboardGroupController extends BaseController {
           final created = groupList.firstWhereOrNull((g) => g.groupId == response.data!.groupId);
           if (created != null) selectGroup(created);
         } else {
-          errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to add group.');
+          throw Exception(response.message.isNotEmpty ? response.message : 'Failed to add group.');
         }
       } catch (e, stackTrace) {
         _logException(e, stackTrace, 'createGroup', {'group_name': name});
@@ -143,16 +136,18 @@ class DashboardGroupController extends BaseController {
 
       if (response.success && response.data != null) {
         allGroupItems.assignAll(response.data!.items);
-        _applyFilterAndPagination();
+        setMasterData(response.data!.items);
       } else {
-        _clearItemsState();
+        allGroupItems.clear();
+        setMasterData([]);
         if (response.message.isNotEmpty && !response.success) {
           errorMessage(message: response.message);
         }
       }
     } catch (e, stackTrace) {
       _logException(e, stackTrace, 'fetchGroupItems', {'group_id': groupId});
-      _clearItemsState();
+      allGroupItems.clear();
+      setMasterData([]);
       errorMessage(message: 'Failed to retrieve catalog items for the selected group.');
     } finally {
       if (!isClosed) isItemsLoading.value = false;
@@ -176,7 +171,6 @@ class DashboardGroupController extends BaseController {
     selectedItemIdsToAdd.clear();
     masterItemSearchController.clear();
 
-    // Pre-select items that already exist in this group
     for (final item in allGroupItems) {
       final codeInt = extractItemCode(item.iCode, item.id);
       if (codeInt != 0) {
@@ -215,20 +209,21 @@ class DashboardGroupController extends BaseController {
     } else {
       filteredMasterItemList.assignAll(
         masterItemList.where((item) {
+          final String ean = item.eanCode;
           return item.iName.toLowerCase().contains(cleanQuery) ||
               item.iCode.toLowerCase().contains(cleanQuery) ||
-              (item.eanCode).toLowerCase().contains(cleanQuery) ||
+              ean.toLowerCase().contains(cleanQuery) ||
               item.iFirmCode.toLowerCase().contains(cleanQuery);
         }).toList(),
       );
     }
   }
 
-  void toggleItemSelection(int itemId) {
-    if (selectedItemIdsToAdd.contains(itemId)) {
-      selectedItemIdsToAdd.remove(itemId);
+  void toggleItemSelection(int itemCodeNumber) {
+    if (selectedItemIdsToAdd.contains(itemCodeNumber)) {
+      selectedItemIdsToAdd.remove(itemCodeNumber);
     } else {
-      selectedItemIdsToAdd.add(itemId);
+      selectedItemIdsToAdd.add(itemCodeNumber);
     }
   }
 
@@ -288,10 +283,12 @@ class DashboardGroupController extends BaseController {
     await runWithLoading(() async {
       try {
         final AddGroupItemsModel response = await _groupRepository.deleteGroupItems(groupId: selectedGroupId.value, itemId: itemCodeNumber);
+
         if (isClosed) return;
 
         if (response.success) {
           isSuccess = true;
+          successMessage(title: 'Deleted', message: response.message.isNotEmpty ? response.message : 'Item removed from group successfully.');
           await refreshCurrentGroupItems();
         } else {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to remove item from group.');
@@ -305,79 +302,7 @@ class DashboardGroupController extends BaseController {
     return isSuccess;
   }
 
-  void onSearchChanged(String query) {
-    searchQuery.value = query.trim().toLowerCase();
-    currentPage.value = 1;
-    _applyFilterAndPagination();
-  }
-
-  void clearSearch() {
-    searchQuery.value = '';
-    currentPage.value = 1;
-    _applyFilterAndPagination();
-  }
-
-  void changePage(int newPage) {
-    final int maxPage = (totalRecords.value / itemsPerPage.value).ceil();
-    if (newPage < 1 || (maxPage > 0 && newPage > maxPage)) return;
-    currentPage.value = newPage;
-    _updatePagedList();
-  }
-
-  void changePageSize(int newSize) {
-    if (!pageSizeOptions.contains(newSize)) return;
-    itemsPerPage.value = newSize;
-    currentPage.value = 1;
-    _applyFilterAndPagination();
-  }
-
-  void _applyFilterAndPagination() {
-    final query = searchQuery.value;
-
-    if (query.isEmpty) {
-      filteredGroupItems.assignAll(allGroupItems);
-    } else {
-      filteredGroupItems.assignAll(
-        allGroupItems.where((item) {
-          return item.iName.toLowerCase().contains(query) ||
-              item.iCode.toLowerCase().contains(query) ||
-              item.eanCode.toLowerCase().contains(query) ||
-              item.iFirmCode.toLowerCase().contains(query) ||
-              item.iItemGroup.toLowerCase().contains(query) ||
-              item.iOtherGroup.toLowerCase().contains(query);
-        }).toList(),
-      );
-    }
-
-    totalRecords.value = filteredGroupItems.length;
-    _updatePagedList();
-  }
-
-  void _updatePagedList() {
-    if (filteredGroupItems.isEmpty) {
-      pagedGroupItems.clear();
-      return;
-    }
-
-    final int startIndex = (currentPage.value - 1) * itemsPerPage.value;
-    if (startIndex >= filteredGroupItems.length) {
-      currentPage.value = 1;
-      _updatePagedList();
-      return;
-    }
-
-    final int endIndex = (startIndex + itemsPerPage.value).clamp(0, filteredGroupItems.length);
-
-    pagedGroupItems.assignAll(filteredGroupItems.sublist(startIndex, endIndex));
-  }
-
-  void _clearItemsState() {
-    allGroupItems.clear();
-    filteredGroupItems.clear();
-    pagedGroupItems.clear();
-    totalRecords.value = 0;
-    currentPage.value = 1;
-  }
+  // 9. OBSERVABILITY & DISPOSAL
 
   void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {
     Sentry.captureException(
@@ -394,13 +319,11 @@ class DashboardGroupController extends BaseController {
   void onClose() {
     groupNameController.dispose();
     masterItemSearchController.dispose();
-    horizontalScrollController.dispose();
-    verticalScrollController.dispose();
     groupList.clear();
+    allGroupItems.clear();
     masterItemList.clear();
     filteredMasterItemList.clear();
     selectedItemIdsToAdd.clear();
-    _clearItemsState();
     selectedGroup.value = null;
     super.onClose();
   }
