@@ -43,7 +43,7 @@ class ItemController extends BaseTableController<ViewItemDatum> {
     });
   }
 
-  Future<void> refreshCategories() async => fetchItems();
+  Future<void> refreshItems() async => fetchItems();
 
   @override
   void onClose() {
