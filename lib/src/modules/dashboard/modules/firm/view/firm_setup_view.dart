@@ -1,8 +1,8 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/app_search_field.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/controller/firm_setup_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/model/firm_setup_model.dart';
@@ -17,7 +17,14 @@ class FirmView extends GetView<FirmController> {
     return Column(
       crossAxisAlignment: .stretch,
       children: [
-        _buildHeader(context),
+        TableHeaderWidget(
+          searchHintText: 'Search firm code, GSTIN, name...',
+          onSearchChanged: controller.onSearchChanged,
+          onSearchClear: controller.clearSearch,
+          onRefresh: controller.refreshFirms,
+          rxIsRefreshing: controller.isLoading,
+          refreshTooltip: 'Refresh Registered Firms',
+        ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
           child: Obx(() {
@@ -56,7 +63,6 @@ class FirmView extends GetView<FirmController> {
                         DataColumn(label: Text('GSTIN / UIN')),
                         DataColumn(label: Text('LOCATION')),
                         DataColumn(label: Text('UNIT ACC')),
-                        DataColumn(label: Text('STATUS')),
                         DataColumn(label: Text('FULL ADDRESS')),
                         DataColumn(label: Text('ACTIONS')),
                       ],
@@ -77,84 +83,6 @@ class FirmView extends GetView<FirmController> {
               ],
             );
           }),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    final isDark = context.isDark;
-    final isMobile = context.isMobile;
-
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded, size: 20),
-                mouseCursor: SystemMouseCursors.click,
-                color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
-                tooltip: 'Refresh Data',
-                onPressed: controller.fetchFirms,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          AppSearchField(hintText: 'Search firm name, code, GST...', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
-        ],
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppSearchField(
-              width: 260,
-              hintText: 'Search firm code, GSTIN, name...',
-              onChanged: controller.onSearchChanged,
-              onClear: controller.clearSearch,
-            ),
-            const SizedBox(width: 12),
-            Obx(() {
-              final bool isRefreshing = controller.isLoading.value;
-
-              return OutlinedButton.icon(
-                onPressed: controller.fetchFirms,
-                icon: isRefreshing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      )
-                    : const Icon(Icons.refresh_rounded, size: 18),
-                label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
-                style: OutlinedButton.styleFrom(
-                  enabledMouseCursor: SystemMouseCursors.click,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-              );
-            }),
-            const SizedBox(width: 12),
-            /* ElevatedButton.icon(
-              onPressed: () {
-                // Action reserved for Firm creation dialog
-              },
-              icon: const Icon(Icons.add_business_rounded, size: 18),
-              label: const Text('Add New Firm'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryRed,
-                foregroundColor: AppColors.onPrimaryWhite,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              ),
-            ),*/
-          ],
         ),
       ],
     );
@@ -190,35 +118,6 @@ class FirmView extends GetView<FirmController> {
         ),
         DataCell(Text(firm.fLocationCode.isEmpty ? 'N/A' : firm.fLocationCode)),
         DataCell(Text(firm.fUnitAccCode.isEmpty ? 'N/A' : firm.fUnitAccCode)),
-        DataCell(
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: (firm.fSaleAllow ? AppColors.statusGreenSuccess : AppColors.statusRedError).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: (firm.fSaleAllow ? AppColors.statusGreenSuccess : AppColors.statusRedError).withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  firm.fSaleAllow ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                  size: 12,
-                  color: firm.fSaleAllow ? AppColors.statusGreenSuccess : AppColors.statusRedError,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  firm.fSaleAllow ? 'Active' : 'Inactive',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: firm.fSaleAllow ? AppColors.statusGreenSuccess : AppColors.statusRedError,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
         DataCell(
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 240),
