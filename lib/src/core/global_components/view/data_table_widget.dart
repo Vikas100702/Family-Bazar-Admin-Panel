@@ -1,4 +1,5 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/empty_state_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:flutter/material.dart';
 
@@ -58,37 +59,7 @@ class DataTableWidget<T> extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final isDark = context.isDark;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.06), shape: BoxShape.circle),
-              child: Icon(emptyIcon, size: 40, color: AppColors.primaryRed.withValues(alpha: 0.7)),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              emptyTitle,
-              style: context.titleStyleRegular.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
-            ),
-            if (emptySubtitle != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                emptySubtitle!,
-                style: context.captionStyle.copyWith(color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
+    return EmptyStateWidget(isCard: false, title: emptyTitle, subtitle: emptySubtitle, icon: emptyIcon);
   }
 
   // BI-DIRECTIONAL SCROLLABLE TABLE CANVAS
