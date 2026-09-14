@@ -28,7 +28,7 @@ class CategoryController extends BaseTableController<ViewCategoryDatum> {
         if (response.success) {
           setMasterData(response.data);
         } else {
-          errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch the category list.');
+          throw Exception(response.message.isNotEmpty ? response.message : 'Failed to fetch the category list from server.');
         }
       } catch (e, stackTrace) {
         Sentry.captureException(
@@ -44,4 +44,9 @@ class CategoryController extends BaseTableController<ViewCategoryDatum> {
   }
 
   Future<void> refreshCategories() async => fetchCategories();
+
+  @override
+  void onClose() {
+    super.onClose();
+  }
 }
