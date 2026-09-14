@@ -1,19 +1,19 @@
-class InsertCatDetailsModel {
-  InsertCatDetailsModel({required this.success, required this.message, required this.data});
+class AddCatDetailsModel {
+  AddCatDetailsModel({required this.success, required this.message, required this.data});
 
   final bool success;
   final String message;
-  final InsertCatDetailsData? data;
+  final AddCatDetailsData? data;
 
-  InsertCatDetailsModel copyWith({bool? success, String? message, InsertCatDetailsData? data}) {
-    return InsertCatDetailsModel(success: success ?? this.success, message: message ?? this.message, data: data ?? this.data);
+  AddCatDetailsModel copyWith({bool? success, String? message, AddCatDetailsData? data}) {
+    return AddCatDetailsModel(success: success ?? this.success, message: message ?? this.message, data: data ?? this.data);
   }
 
-  factory InsertCatDetailsModel.fromJson(Map<String, dynamic> json) {
-    return InsertCatDetailsModel(
+  factory AddCatDetailsModel.fromJson(Map<String, dynamic> json) {
+    return AddCatDetailsModel(
       success: json["success"] ?? false,
       message: json["message"] ?? "",
-      data: json["data"] == null ? null : InsertCatDetailsData.fromJson(json["data"]),
+      data: json["data"] == null ? null : AddCatDetailsData.fromJson(json["data"]),
     );
   }
 
@@ -25,15 +25,8 @@ class InsertCatDetailsModel {
   }
 }
 
-class InsertCatDetailsData {
-  InsertCatDetailsData({
-    required this.id,
-    required this.catCode,
-    required this.catName,
-    required this.mImg,
-    required this.wImg,
-    required this.action,
-  });
+class AddCatDetailsData {
+  AddCatDetailsData({required this.id, required this.catCode, required this.catName, required this.mImg, required this.wImg, required this.action});
 
   final int id;
   final String catCode;
@@ -42,8 +35,8 @@ class InsertCatDetailsData {
   final String wImg;
   final String action;
 
-  InsertCatDetailsData copyWith({int? id, String? catCode, String? catName, String? mImg, String? wImg, String? action}) {
-    return InsertCatDetailsData(
+  AddCatDetailsData copyWith({int? id, String? catCode, String? catName, String? mImg, String? wImg, String? action}) {
+    return AddCatDetailsData(
       id: id ?? this.id,
       catCode: catCode ?? this.catCode,
       catName: catName ?? this.catName,
@@ -53,8 +46,8 @@ class InsertCatDetailsData {
     );
   }
 
-  factory InsertCatDetailsData.fromJson(Map<String, dynamic> json) {
-    return InsertCatDetailsData(
+  factory AddCatDetailsData.fromJson(Map<String, dynamic> json) {
+    return AddCatDetailsData(
       id: json["id"] ?? 0,
       catCode: json["cat_code"] ?? "",
       catName: json["cat_name"] ?? "",
