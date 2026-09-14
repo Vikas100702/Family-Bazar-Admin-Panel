@@ -3,6 +3,7 @@ import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_item_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_model.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/view_group_items_model.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -169,7 +170,44 @@ class DashboardGroupRepository {
     }
   }
 
-  Future<AddGroupItemsModel> deleteGroupItems({required int groupId, required int itemId}) async {
+  Future<CommonDeleteModel> deleteGroup({required int groupId}) async {
+    const String endpoint = ApiConstants.deleteDashboardGroupApiEndpoint;
+
+    try {
+      final response = await _apiClient.dio.post(endpoint, data: {'group_id': groupId});
+
+      if (response.data != null && response.data is Map<String, dynamic>) {
+        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
+        return CommonDeleteModel.fromJson(responseData);
+      }
+
+      throw FormatException('[DashboardGroupRepository.deleteGroup]: Invalid response format received from endpoint: $endpoint');
+    } catch (e, stackTrace) {
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          message: 'Failed executing deleteGroup mutation',
+          category: 'DashboardGroupRepository.deleteGroup',
+          level: SentryLevel.error,
+          data: {'endpoint': endpoint, 'group_id': groupId},
+        ),
+      );
+
+      if (e is! DioException) {
+        Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          withScope: (scope) {
+            scope.setTag('repository', 'DashboardGroupRepository');
+            scope.setTag('group_id', groupId.toString());
+            scope.setContexts('delete_group_action', {'endpoint': endpoint, 'group_id': groupId});
+          },
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<CommonDeleteModel> deleteGroupItems({required int groupId, required int itemId}) async {
     const String endpoint = ApiConstants.deleteGroupItemsApiEndpoint;
 
     try {
@@ -177,7 +215,7 @@ class DashboardGroupRepository {
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
-        return AddGroupItemsModel.fromJson(responseData);
+        return CommonDeleteModel.fromJson(responseData);
       }
 
       throw FormatException('[DashboardGroupRepository.deleteGroupItem]: Invalid response format received from endpoint: $endpoint');
