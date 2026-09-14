@@ -17,16 +17,16 @@ class NetworkExceptions implements Exception {
       case DioExceptionType.connectionTimeout:
         return NetworkExceptions(message: AppStrings.connectionTimeout, statusCode: 408);
       case DioExceptionType.receiveTimeout:
-        return NetworkExceptions(message: AppStrings.receiveTimeout, statusCode: 408);
+        return NetworkExceptions(message: AppStrings.msg504, statusCode: 504);
       case DioExceptionType.sendTimeout:
-        return NetworkExceptions(message: AppStrings.sendTimeout, statusCode: 408);
+        return NetworkExceptions(message: AppStrings.msg408, statusCode: 408);
       case DioExceptionType.badResponse:
         return NetworkExceptions(
           message: _handleStatusError(dioException.response?.statusCode, dioException.response?.data),
           statusCode: dioException.response?.statusCode,
         );
       case DioExceptionType.connectionError:
-        return NetworkExceptions(message: AppStrings.noInternet, statusCode: 503);
+        return NetworkExceptions(message: AppStrings.msg503, statusCode: 503);
       case DioExceptionType.unknown:
         return NetworkExceptions(message: AppStrings.unexpectedError, statusCode: 500);
       default:
