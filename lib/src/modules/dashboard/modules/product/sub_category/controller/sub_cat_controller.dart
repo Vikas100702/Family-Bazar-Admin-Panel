@@ -43,7 +43,7 @@ class SubCategoryController extends BaseTableController<ViewSubCategoryDatum> {
     });
   }
 
-  Future<void> refreshCategories() async => fetchSubCategories();
+  Future<void> refreshSubCategories() async => fetchSubCategories();
 
   @override
   void onClose() {
