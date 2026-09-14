@@ -1,6 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/base_controller/base_table_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_item_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_model.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/view_group_items_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/repository/dashboard_group_repository.dart';
@@ -52,8 +53,8 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
     return '${item.iCode} ${item.iName} ${item.eanCode} ${item.iFirmCode} ${item.iItemGroup} ${item.iOtherGroup}';
   }
 
-  int extractItemCode(String iCode, int fallback) {
-    return int.tryParse(iCode.trim()) ?? fallback;
+  int extractCode(String code, int fallback) {
+    return int.tryParse(code.trim()) ?? fallback;
   }
 
   Future<void> fetchDashboardGroups() async {
@@ -172,7 +173,7 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
     masterItemSearchController.clear();
 
     for (final item in allGroupItems) {
-      final codeInt = extractItemCode(item.iCode, item.id);
+      final codeInt = extractCode(item.iCode, item.id);
       if (codeInt != 0) {
         selectedItemIdsToAdd.add(codeInt);
       }
@@ -266,13 +267,53 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
     return isSuccess;
   }
 
+  Future<bool> deleteGroup(ViewDashboardGroupDatum group) async {
+    if (group.groupId == 0) {
+      errorMessage(message: 'Invalid group selected.');
+      return false;
+    }
+
+    bool isSuccess = false;
+
+    await runWithLoading(() async {
+      try {
+        final CommonDeleteModel response = await _groupRepository.deleteGroup(groupId: group.groupId);
+
+        if (isClosed) return;
+
+        if (response.success) {
+          isSuccess = true;
+          successMessage(title: 'Deleted', message: response.message.isNotEmpty ? response.message : 'Group deleted successfully.');
+
+          // Clear selection if the deleted group was currently open
+          if (selectedGroupId.value == group.groupId) {
+            selectedGroup.value = null;
+            selectedGroupId.value = 0;
+            allGroupItems.clear();
+            setMasterData([]);
+          }
+
+          // Reload master group tabs
+          await fetchDashboardGroups();
+        } else {
+          errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to delete group.');
+        }
+      } catch (e, stackTrace) {
+        _logException(e, stackTrace, 'deleteGroup', {'group_id': group.groupId, 'group_name': group.groupName});
+        errorMessage(message: 'An error occurred while deleting the dashboard group.');
+      }
+    });
+
+    return isSuccess;
+  }
+
   Future<bool> deleteGroupItem(GroupItemDatum item) async {
     if (selectedGroupId.value == 0) {
       errorMessage(message: 'No active dashboard group selected.');
       return false;
     }
 
-    final int itemCodeNumber = extractItemCode(item.iCode, item.id);
+    final int itemCodeNumber = extractCode(item.iCode, item.id);
     if (itemCodeNumber == 0) {
       errorMessage(message: 'Unable to resolve valid item code.');
       return false;
@@ -282,7 +323,7 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
 
     await runWithLoading(() async {
       try {
-        final AddGroupItemsModel response = await _groupRepository.deleteGroupItems(groupId: selectedGroupId.value, itemId: itemCodeNumber);
+        final CommonDeleteModel response = await _groupRepository.deleteGroupItems(groupId: selectedGroupId.value, itemId: itemCodeNumber);
 
         if (isClosed) return;
 
