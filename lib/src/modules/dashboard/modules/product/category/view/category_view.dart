@@ -1,11 +1,9 @@
-import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/component/image_upload/binding/image_upload_binding.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/component/image_upload/widget/image_upload_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/app_search_field.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/table_image_cell_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/controller/category_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/model/category_model.dart';
@@ -22,7 +20,14 @@ class CategoryView extends GetView<CategoryController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildHeader(context),
+        TableHeaderWidget(
+          searchHintText: 'Search category code, name, EU code...',
+          onSearchChanged: controller.onSearchChanged,
+          onSearchClear: controller.clearSearch,
+          onRefresh: controller.refreshCategories,
+          rxIsRefreshing: controller.isLoading,
+          refreshTooltip: 'Refresh Categories',
+        ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
           child: Obx(() {
@@ -86,80 +91,6 @@ class CategoryView extends GetView<CategoryController> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    final isDark = context.isDark;
-    final isMobile = context.isMobile;
-
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Category Master', style: context.headingTextStyle.copyWith(fontSize: 18)),
-              Obx(() {
-                final bool isRefreshing = controller.isLoading.value;
-                return IconButton(
-                  icon: isRefreshing
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                        )
-                      : const Icon(Icons.refresh_rounded, size: 20),
-                  mouseCursor: SystemMouseCursors.click,
-                  color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
-                  tooltip: 'Refresh Categories',
-                  onPressed: isRefreshing ? null : controller.refreshCategories,
-                );
-              }),
-            ],
-          ),
-          const SizedBox(height: 12),
-          AppSearchField(hintText: 'Search category code, name, EU code...', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
-        ],
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppSearchField(
-              width: 260,
-              hintText: 'Search category code, name, EU code...',
-              onChanged: controller.onSearchChanged,
-              onClear: controller.clearSearch,
-            ),
-            const SizedBox(width: 12),
-            Obx(() {
-              final bool isRefreshing = controller.isLoading.value;
-              return OutlinedButton.icon(
-                onPressed: isRefreshing ? null : controller.refreshCategories,
-                icon: isRefreshing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      )
-                    : const Icon(Icons.refresh_rounded, size: 18),
-                label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
-                style: OutlinedButton.styleFrom(
-                  enabledMouseCursor: SystemMouseCursors.click,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-              );
-            }),
-          ],
-        ),
-      ],
-    );
-  }
-
   DataRow _buildDataRow(BuildContext context, ViewCategoryDatum category) {
     final isDark = context.isDark;
 
@@ -168,7 +99,21 @@ class CategoryView extends GetView<CategoryController> {
         DataCell(
           SelectableText(category.igCode.isEmpty ? 'N/A' : category.igCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
         ),
-        DataCell(_buildImagesCell(context, category)),
+        DataCell(
+          TableImageCellWidget(
+            webImageUrl: category.catWImg,
+            mobileImageUrl: category.catMImg,
+            uploadType: 'category',
+            entityCode: category.igCode,
+            entityTitle: category.igName,
+            onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
+              final repo = Get.find<CategoryRepository>();
+              final res = await repo.addCategoryDetails(catCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
+              return res.success;
+            },
+            onSuccess: controller.refreshCategories,
+          ),
+        ),
         DataCell(
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 220),
@@ -198,145 +143,6 @@ class CategoryView extends GetView<CategoryController> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildImagesCell(BuildContext context, ViewCategoryDatum category) {
-    final String webImg = category.catWImg.isNotEmpty ? category.catWImg : "";
-    final String mobImg = category.catMImg.isNotEmpty ? category.catMImg : "";
-    final bool hasWebImg = webImg.trim().isNotEmpty;
-    final bool hasMobileImg = mobImg.trim().isNotEmpty;
-    final isDark = context.isDark;
-
-    if (!hasWebImg && !hasMobileImg) {
-      return InkWell(
-        onTap: () => _openImageUploadModal(context, category),
-        mouseCursor: SystemMouseCursors.click,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.primaryRed.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.25)),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_photo_alternate_outlined, size: 15, color: AppColors.primaryRed),
-              SizedBox(width: 4),
-              Text(
-                'Upload',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primaryRed),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return InkWell(
-      onTap: () => _openImageUploadModal(context, category),
-      mouseCursor: SystemMouseCursors.click,
-      borderRadius: BorderRadius.circular(6),
-      child: Tooltip(
-        message: 'Click to view / update category images',
-        waitDuration: const Duration(milliseconds: 400),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildMiniThumbnail(imageUrl: webImg, width: 40, height: 24, placeholderIcon: Icons.desktop_mac_rounded, tooltipLabel: 'Web Banner'),
-              const SizedBox(width: 6),
-              _buildMiniThumbnail(imageUrl: mobImg, width: 24, height: 24, placeholderIcon: Icons.phone_android_rounded, tooltipLabel: 'Mobile Icon'),
-              const SizedBox(width: 4),
-              Icon(Icons.edit_outlined, size: 13, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMiniThumbnail({
-    required String imageUrl,
-    required double width,
-    required double height,
-    required IconData placeholderIcon,
-    required String tooltipLabel,
-  }) {
-    final bool hasImage = imageUrl.trim().isNotEmpty;
-    final String resolvedUrl = _resolveImageUrl(imageUrl);
-
-    return Tooltip(
-      message: tooltipLabel,
-      waitDuration: const Duration(milliseconds: 300),
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: hasImage
-            ? Image.network(
-                resolvedUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(placeholderIcon, size: 12, color: Colors.grey),
-                loadingBuilder: (_, child, progress) => progress == null
-                    ? child
-                    : const Center(child: SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5))),
-              )
-            : Icon(placeholderIcon, size: 12, color: Colors.grey.shade400),
-      ),
-    );
-  }
-
-  static String _resolveImageUrl(String path) {
-    if (path.isEmpty) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    const String baseDomain = ApiConstants.baseUrl;
-    return '$baseDomain${path.startsWith('/') ? '' : '/'}$path';
-  }
-
-  void _openImageUploadModal(BuildContext context, ViewCategoryDatum category) {
-    final String webImg = category.catWImg.isNotEmpty ? category.catWImg : "";
-    final String mobImg = category.catMImg.isNotEmpty ? category.catMImg : "";
-
-    ImageUploadBinding().dependencies();
-
-    Get.dialog(
-      barrierDismissible: false,
-      Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        insetPadding: EdgeInsets.symmetric(horizontal: context.responsiveSize(16, 24), vertical: context.responsiveSize(16, 24)),
-        child: ImageUploadView(
-          uploadType: 'category',
-          entityCode: category.igCode,
-          entityTitle: category.igName,
-          initialWebImageUrl: webImg,
-          initialMobileImageUrl: mobImg,
-          onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
-            final repo = Get.find<CategoryRepository>();
-            final res = await repo.addCategoryDetails(catCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
-            return res.success;
-          },
-          onSuccess: () {
-            if (Get.isRegistered<CategoryController>()) {
-              Get.find<CategoryController>().refreshCategories();
-            }
-          },
-          onDismiss: () => Get.back(),
-        ),
-      ),
     );
   }
 
