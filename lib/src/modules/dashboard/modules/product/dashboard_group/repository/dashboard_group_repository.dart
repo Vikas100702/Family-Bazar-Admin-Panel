@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_item_model.dart';
@@ -20,25 +21,29 @@ class DashboardGroupRepository {
         return ViewDashboardGroupModel.fromJson(responseData);
       }
 
-      return ViewDashboardGroupModel(success: false, message: 'Invalid data format received from server', data: []);
+      throw FormatException(
+        '[DashboardGroupRepository.viewGroups]: Invalid data format received from endpoint: ${ApiConstants.viewDashboardGroupApiEndpoint}',
+      );
     } catch (e, stackTrace) {
       Sentry.addBreadcrumb(
         Breadcrumb(
           message: 'Failed to fetch Dashboard Group list',
-          category: 'DashboardGroupRepository.viewGroups',
+          category: 'dashboard_group.repository',
           level: SentryLevel.error,
-          data: {'endpoint': ApiConstants.viewDashboardGroupApiEndpoint},
+          data: {'endpoint': ApiConstants.viewDashboardGroupApiEndpoint, 'error': e.toString()},
         ),
       );
 
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('repository', 'DashboardGroupRepository');
-          scope.setContexts('network_action', {'endpoint': ApiConstants.viewDashboardGroupApiEndpoint, 'method': 'POST'});
-        },
-      );
+      if (e is! DioException) {
+        Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          withScope: (scope) {
+            scope.setTag('repository', 'DashboardGroupRepository');
+            scope.setContexts('network_action', {'endpoint': ApiConstants.viewDashboardGroupApiEndpoint, 'method': 'POST'});
+          },
+        );
+      }
 
       rethrow;
     }
@@ -55,37 +60,39 @@ class DashboardGroupRepository {
         return ViewGroupItemsModel.fromJson(responseData);
       }
 
-      return const ViewGroupItemsModel(success: false, message: 'Invalid item data format received from server', data: null);
+      throw FormatException('[DashboardGroupRepository.viewGroupItems]: Invalid item data format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       Sentry.addBreadcrumb(
         Breadcrumb(
           message: 'Failed to fetch items for group ID: $groupId',
-          category: 'DashboardGroupRepository.viewGroupItems',
+          category: 'dashboard_group.repository',
           level: SentryLevel.error,
-          data: {'endpoint': endpoint, 'group_id': groupId},
+          data: {'endpoint': endpoint, 'group_id': groupId, 'error': e.toString()},
         ),
       );
 
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('repository', 'DashboardGroupRepository');
-          scope.setTag('group_id', groupId.toString());
-          scope.setContexts('network_action', {
-            'endpoint': endpoint,
-            'method': 'POST',
-            'query_params': {'group_id': groupId},
-          });
-        },
-      );
+      if (e is! DioException) {
+        Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          withScope: (scope) {
+            scope.setTag('repository', 'DashboardGroupRepository');
+            scope.setTag('group_id', groupId.toString());
+            scope.setContexts('network_action', {
+              'endpoint': endpoint,
+              'method': 'POST',
+              'query_params': {'group_id': groupId},
+            });
+          },
+        );
+      }
 
       rethrow;
     }
   }
 
   Future<AddGroupModel> addGroup({required String groupName}) async {
-    const String endpoint = '/api/product/addGroup';
+    const String endpoint = ApiConstants.addDashboardGroupApiEndpoint;
 
     try {
       final sanitizedName = groupName.trim();
@@ -100,7 +107,7 @@ class DashboardGroupRepository {
         return AddGroupModel.fromJson(responseData);
       }
 
-      return AddGroupModel(success: false, message: 'Invalid response format received from server', data: null);
+      throw FormatException('[DashboardGroupRepository.addGroup]: Invalid response format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       Sentry.addBreadcrumb(
         Breadcrumb(
@@ -111,21 +118,22 @@ class DashboardGroupRepository {
         ),
       );
 
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('repository', 'DashboardGroupRepository');
-          scope.setContexts('add_group_action', {'endpoint': endpoint, 'group_name': groupName});
-        },
-      );
-
+      if (e is! DioException) {
+        Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          withScope: (scope) {
+            scope.setTag('repository', 'DashboardGroupRepository');
+            scope.setContexts('add_group_action', {'endpoint': endpoint, 'group_name': groupName});
+          },
+        );
+      }
       rethrow;
     }
   }
 
   Future<AddGroupItemsModel> addGroupItems({required int groupId, required List<int> itemIds}) async {
-    const String endpoint = '/api/product/addGroupItems';
+    const String endpoint = ApiConstants.addGroupItemsApiEndpoint;
 
     try {
       final response = await _apiClient.dio.post(endpoint, data: {'group_id': groupId, 'item_ids': itemIds});
@@ -135,7 +143,7 @@ class DashboardGroupRepository {
         return AddGroupItemsModel.fromJson(responseData);
       }
 
-      return const AddGroupItemsModel(success: false, message: 'Invalid response format received from server', data: null);
+      throw FormatException('[DashboardGroupRepository.addGroupItems]: Invalid response format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       Sentry.addBreadcrumb(
         Breadcrumb(
@@ -146,16 +154,17 @@ class DashboardGroupRepository {
         ),
       );
 
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('repository', 'DashboardGroupRepository');
-          scope.setTag('group_id', groupId.toString());
-          scope.setContexts('add_group_items_action', {'endpoint': endpoint, 'group_id': groupId, 'item_ids': itemIds});
-        },
-      );
-
+      if (e is! DioException) {
+        Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          withScope: (scope) {
+            scope.setTag('repository', 'DashboardGroupRepository');
+            scope.setTag('group_id', groupId.toString());
+            scope.setContexts('add_group_items_action', {'endpoint': endpoint, 'group_id': groupId, 'item_ids': itemIds});
+          },
+        );
+      }
       rethrow;
     }
   }
@@ -171,7 +180,7 @@ class DashboardGroupRepository {
         return AddGroupItemsModel.fromJson(responseData);
       }
 
-      return const AddGroupItemsModel(success: false, message: 'Invalid response format received from server', data: null);
+      throw FormatException('[DashboardGroupRepository.deleteGroupItem]: Invalid response format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       Sentry.addBreadcrumb(
         Breadcrumb(
@@ -182,16 +191,17 @@ class DashboardGroupRepository {
         ),
       );
 
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('repository', 'DashboardGroupRepository');
-          scope.setTag('group_id', groupId.toString());
-          scope.setContexts('delete_group_item_action', {'endpoint': endpoint, 'group_id': groupId, 'item_id': itemId});
-        },
-      );
-
+      if (e is! DioException) {
+        Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          withScope: (scope) {
+            scope.setTag('repository', 'DashboardGroupRepository');
+            scope.setTag('group_id', groupId.toString());
+            scope.setContexts('delete_group_item_action', {'endpoint': endpoint, 'group_id': groupId, 'item_id': itemId});
+          },
+        );
+      }
       rethrow;
     }
   }
