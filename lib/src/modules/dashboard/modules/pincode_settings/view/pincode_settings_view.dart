@@ -1,8 +1,9 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/app_search_field.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/model/firm_setup_model.dart' as firm_model;
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/controller/pincode_settings_controller.dart';
@@ -15,12 +16,33 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDark;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildHeader(context),
+        TableHeaderWidget(
+          searchHintText: 'Search pincode, firm, user...',
+          onSearchChanged: controller.onSearchChanged,
+          onSearchClear: controller.clearSearch,
+          onRefresh: controller.refreshPincodes,
+          rxIsRefreshing: controller.isLoading,
+          refreshTooltip: 'Refresh Pincodes',
+          extraActions: [
+            ElevatedButton.icon(
+              onPressed: () {
+                controller.clearForm();
+                _showPincodeDialog(context, isEdit: false);
+              },
+              icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+              label: const Text('Map New Pincode'),
+              style: ElevatedButton.styleFrom(
+                enabledMouseCursor: SystemMouseCursors.click,
+                backgroundColor: AppColors.primaryRed,
+                foregroundColor: AppColors.onPrimaryWhite,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              ),
+            ),
+          ],
+        ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
           child: Obx(() {
@@ -84,101 +106,6 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    final isDark = context.isDark;
-    final isMobile = context.isMobile;
-
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Pincode Management', style: context.headingTextStyle.copyWith(fontSize: 18)),
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded, size: 20),
-                mouseCursor: SystemMouseCursors.click,
-                color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
-                tooltip: 'Refresh Pincodes',
-                onPressed: controller.isLoading.value ? null : controller.refreshPincodes,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          AppSearchField(hintText: 'Search pincode, firm, user...', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () {
-              controller.clearForm();
-              _showPincodeDialog(context, isEdit: false);
-            },
-            icon: const Icon(Icons.add_location_alt_rounded, size: 18),
-            label: const Text('Map New Pincode'),
-            style: ElevatedButton.styleFrom(
-              enabledMouseCursor: SystemMouseCursors.click,
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: AppColors.onPrimaryWhite,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppSearchField(
-              width: 260,
-              hintText: 'Search pincode, firm, user...',
-              onChanged: controller.onSearchChanged,
-              onClear: controller.clearSearch,
-            ),
-            const SizedBox(width: 12),
-            Obx(() {
-              final bool isRefreshing = controller.isLoading.value;
-              return OutlinedButton.icon(
-                onPressed: isRefreshing ? null : controller.refreshPincodes,
-                icon: isRefreshing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      )
-                    : const Icon(Icons.refresh_rounded, size: 18),
-                label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
-                style: OutlinedButton.styleFrom(
-                  enabledMouseCursor: SystemMouseCursors.click,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-              );
-            }),
-            const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                controller.clearForm();
-                _showPincodeDialog(context, isEdit: false);
-              },
-              icon: const Icon(Icons.add_location_alt_rounded, size: 18),
-              label: const Text('Map New Pincode'),
-              style: ElevatedButton.styleFrom(
-                enabledMouseCursor: SystemMouseCursors.click,
-                backgroundColor: AppColors.primaryRed,
-                foregroundColor: AppColors.onPrimaryWhite,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   DataRow _buildDataRow(BuildContext context, Datum pincode) {
     final isDark = context.isDark;
     final bool isActive = pincode.status == 1;
@@ -209,7 +136,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
           ),
         ),
         DataCell(Text(_formatText(pincode.userName))),
-        DataCell(_buildStatusBadge(isActive)),
+        DataCell(StatusBadge(statusValue: pincode.status, activeLabel: 'Active', inactiveLabel: 'Inactive')),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -237,30 +164,6 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildStatusBadge(bool isActive) {
-    final color = isActive ? AppColors.statusGreenSuccess : AppColors.statusRedError;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(isActive ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            isActive ? 'Active' : 'Inactive',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
-          ),
-        ],
-      ),
     );
   }
 
