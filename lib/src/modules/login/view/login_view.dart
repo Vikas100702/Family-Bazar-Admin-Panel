@@ -78,7 +78,7 @@ class LoginView extends GetView<LoginController> {
             clipper: RedHeaderClipper(),
             child: Container(
               width: double.infinity,
-              color: AppColors.primaryRed,
+              color: AppColors.borderSubtleSlate,
               padding: const EdgeInsets.fromLTRB(24, 32, 24, 60),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -87,7 +87,7 @@ class LoginView extends GetView<LoginController> {
                     width: 90,
                     height: 90,
                     padding: const EdgeInsets.all(1),
-                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(color: AppColors.primaryRed, shape: BoxShape.circle),
                     child: Center(
                       child: Image.asset(
                         AppAssets.appLogo,
@@ -100,13 +100,22 @@ class LoginView extends GetView<LoginController> {
                   const SizedBox(height: 18),
                   Text(
                     'GROCERIES FROM THE BEST BRANDS',
-                    style: context.titleStyleActive.copyWith(color: Colors.white, fontSize: 15, letterSpacing: 0.8, fontWeight: FontWeight.bold),
+                    style: context.titleStyleActive.copyWith(
+                      color: AppColors.primaryRed,
+                      fontSize: 15,
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.bold,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Delivered to your doorstep',
-                    style: context.subTitleStyle.copyWith(color: Colors.white.withValues(alpha: 0.9), fontSize: 13, fontWeight: FontWeight.w400),
+                    style: context.subTitleStyle.copyWith(
+                      color: AppColors.primaryRed.withValues(alpha: 0.9),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
