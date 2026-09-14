@@ -5,6 +5,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class ItemController extends BaseTableController<ViewItemDatum> {
   final ItemRepository _itemRepository;
+
   ItemController({required this._itemRepository});
 
   @override
@@ -27,7 +28,7 @@ class ItemController extends BaseTableController<ViewItemDatum> {
         if (response.success) {
           setMasterData(response.data);
         } else {
-          errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch the item list.');
+          throw Exception(response.message.isNotEmpty ? response.message : 'Failed to fetch the item list from server.');
         }
       } catch (e, stackTrace) {
         Sentry.captureException(
@@ -43,4 +44,9 @@ class ItemController extends BaseTableController<ViewItemDatum> {
   }
 
   Future<void> refreshCategories() async => fetchItems();
+
+  @override
+  void onClose() {
+    super.onClose();
+  }
 }
