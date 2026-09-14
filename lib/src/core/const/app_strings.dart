@@ -132,8 +132,8 @@ abstract final class AppStrings {
   static const String exceptionVerify2FACode = "Exception while verifying 2FA code:";
 
   /// Timeout Messages
-  static const String connectionTimeout = 'We\'re having trouble reaching our servers. Please check your Wi-Fi or cellular data.';
-  static const String receiveTimeout = 'Looks like the server is a bit slow today. Give it a moment and try again.';
+  static const String connectionTimeout =
+      'Server connection timed out. The server is unreachable or not responding. Please check your Wi-Fi or cellular data or Please try again later.';
   static const String sendTimeout = 'We couldn\'t send your request. Please check your network stability and try again.';
 
   /// Connection Error Messages
@@ -149,7 +149,7 @@ abstract final class AppStrings {
   static const String msg404 = "Not Found. The requested resource was not found.";
   static const String msg405 = "Method Not Allowed. The requested method is not allowed.";
   static const String msg406 = "Input format mismatched or unacceptable.";
-  static const String msg408 = "Request Timeout. The request took too long to respond.";
+  static const String msg408 = "Unable to send data to the server within the time limit. Please try again.";
   static const String msg409 = "Conflict. Data already exists.";
   static const String msg413 = "Payload Too Large. Request entity is too large.";
   static const String msg415 = "Unsupported Media Type. Unsupported media type in request.";
@@ -159,8 +159,8 @@ abstract final class AppStrings {
   static const String msg499 = "Request to API server was cancelled.";
   static const String msg500 = "Internal Server Error. Please try again later.";
   static const String msg502 = "Bad Gateway. Gateway is unavailable.";
-  static const String msg503 = "Service Unavailable. Server is temporarily unavailable.";
-  static const String msg504 = "Gateway Timeout. Gateway took too long to respond.";
+  static const String msg503 = 'Unable to connect to the server. The server appears to be offline or undergoing maintenance.';
+  static const String msg504 = 'The server is taking too long to respond. It may be overloaded or down.';
   static const String msg505 = "HTTP Version Not Supported. Client is using an unsupported version of HTTP.";
   static const String msg522 = "Connection Timed Out. It is taking too long to connect to the server.";
   static const String errorMsgDefault = "Error while communicating with server";
