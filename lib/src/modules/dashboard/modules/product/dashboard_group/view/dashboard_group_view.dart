@@ -67,6 +67,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                           child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
                         )
                       : const Icon(Icons.refresh_rounded, size: 20),
+                  mouseCursor: SystemMouseCursors.click,
                   color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
                   tooltip: 'Refresh Group & Items',
                   onPressed: isRefreshing ? null : controller.refreshAll,
@@ -133,7 +134,10 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                       )
                     : const Icon(Icons.refresh_rounded, size: 18),
                 label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                style: OutlinedButton.styleFrom(
+                  enabledMouseCursor: SystemMouseCursors.click,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
               );
             }),
             const SizedBox(width: 12),
@@ -309,27 +313,29 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: DataTableWidget<GroupItemDatum>(
-              items: controller.pagedGroupItems.toList(),
-              horizontalScrollController: controller.horizontalScrollController,
-              verticalScrollController: controller.verticalScrollController,
-              emptyTitle: 'No Items Assigned to This Group',
-              emptySubtitle: 'Click "Add Items" above to assign catalog inventory.',
-              emptyIcon: Icons.inventory_2_outlined,
-              columns: const [
-                DataColumn(label: Text('ITEM CODE')),
-                DataColumn(label: Text('FIRM CODE')),
-                DataColumn(label: Text('IMAGES')),
-                DataColumn(label: Text('ITEM NAME')),
-                DataColumn(label: Text('CATEGORY')),
-                DataColumn(label: Text('SUB-CATEGORY')),
-                DataColumn(label: Text('ITEM MRP')),
-                DataColumn(label: Text('SALES PRICE')),
-                DataColumn(label: Text('STOCK')),
-                DataColumn(label: Text('STATUS')),
-                DataColumn(label: Text('ACTIONS')),
-              ],
-              rowBuilder: (context, item) => _buildDataRow(context, item),
+            child: RepaintBoundary(
+              child: DataTableWidget<GroupItemDatum>(
+                items: controller.pagedGroupItems,
+                horizontalScrollController: controller.horizontalScrollController,
+                verticalScrollController: controller.verticalScrollController,
+                emptyTitle: 'No Items Assigned to This Group',
+                emptySubtitle: 'Click "Add Items" above to assign catalog inventory.',
+                emptyIcon: Icons.inventory_2_outlined,
+                columns: const [
+                  DataColumn(label: Text('ITEM CODE')),
+                  DataColumn(label: Text('FIRM CODE')),
+                  DataColumn(label: Text('IMAGES')),
+                  DataColumn(label: Text('ITEM NAME')),
+                  DataColumn(label: Text('CATEGORY')),
+                  DataColumn(label: Text('SUB-CATEGORY')),
+                  DataColumn(label: Text('ITEM MRP')),
+                  DataColumn(label: Text('SALES PRICE')),
+                  DataColumn(label: Text('STOCK')),
+                  DataColumn(label: Text('STATUS')),
+                  DataColumn(label: Text('ACTIONS')),
+                ],
+                rowBuilder: (context, item) => _buildDataRow(context, item),
+              ),
             ),
           ),
           SizedBox(height: context.responsiveHeight(12, 16)),
@@ -395,6 +401,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
             children: [
               IconButton(
                 icon: const Icon(Icons.visibility_outlined, size: 18),
+                mouseCursor: SystemMouseCursors.click,
                 color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
                 tooltip: 'View Item Details',
                 splashRadius: 18,
@@ -402,6 +409,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
               ),
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                mouseCursor: SystemMouseCursors.click,
                 color: isDark ? AppColors.primaryRedLight : AppColors.primaryRedDark,
                 tooltip: 'Delete Item',
                 splashRadius: 18,
@@ -422,6 +430,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
     if (!hasWebImg && !hasMobileImg) {
       return InkWell(
         onTap: () => _openImageUploadModal(context, item),
+        mouseCursor: SystemMouseCursors.click,
         borderRadius: BorderRadius.circular(6),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -447,6 +456,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
 
     return InkWell(
       onTap: () => _openImageUploadModal(context, item),
+      mouseCursor: SystemMouseCursors.click,
       borderRadius: BorderRadius.circular(6),
       child: Tooltip(
         message: 'Click to view / update item images',
