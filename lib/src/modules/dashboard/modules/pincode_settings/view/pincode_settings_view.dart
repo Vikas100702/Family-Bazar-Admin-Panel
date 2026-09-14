@@ -45,23 +45,25 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: DataTableWidget<Datum>(
-                    items: controller.pagedList.toList(),
-                    horizontalScrollController: controller.horizontalScrollController,
-                    verticalScrollController: controller.verticalScrollController,
-                    emptyTitle: 'No Pincode Configurations Available',
-                    emptySubtitle: 'Map a new delivery pincode or refresh from server.',
-                    emptyIcon: Icons.location_off_outlined,
-                    columns: const [
-                      DataColumn(label: Text('ID')),
-                      DataColumn(label: Text('FIRM CODE')),
-                      DataColumn(label: Text('FIRM NAME')),
-                      DataColumn(label: Text('PINCODE')),
-                      DataColumn(label: Text('CREATED BY')),
-                      DataColumn(label: Text('STATUS')),
-                      DataColumn(label: Text('ACTIONS')),
-                    ],
-                    rowBuilder: (context, pincode) => _buildDataRow(context, pincode),
+                  child: RepaintBoundary(
+                    child: DataTableWidget<Datum>(
+                      items: controller.pagedList,
+                      horizontalScrollController: controller.horizontalScrollController,
+                      verticalScrollController: controller.verticalScrollController,
+                      emptyTitle: 'No Pincode Configurations Available',
+                      emptySubtitle: 'Map a new delivery pincode or refresh from server.',
+                      emptyIcon: Icons.location_off_outlined,
+                      columns: const [
+                        DataColumn(label: Text('ID')),
+                        DataColumn(label: Text('FIRM CODE')),
+                        DataColumn(label: Text('FIRM NAME')),
+                        DataColumn(label: Text('PINCODE')),
+                        DataColumn(label: Text('CREATED BY')),
+                        DataColumn(label: Text('STATUS')),
+                        DataColumn(label: Text('ACTIONS')),
+                      ],
+                      rowBuilder: (context, pincode) => _buildDataRow(context, pincode),
+                    ),
                   ),
                 ),
                 SizedBox(height: context.responsiveHeight(12, 16)),
@@ -96,12 +98,15 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
               Text('Pincode Management', style: context.headingTextStyle.copyWith(fontSize: 18)),
               IconButton(
                 icon: const Icon(Icons.refresh_rounded, size: 20),
+                mouseCursor: SystemMouseCursors.click,
                 color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
-                tooltip: 'Refresh',
-                onPressed: controller.refreshPincodes,
+                tooltip: 'Refresh Pincodes',
+                onPressed: controller.isLoading.value ? null : controller.refreshPincodes,
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          AppSearchField(hintText: 'Search pincode, firm, user...', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
           const SizedBox(height: 12),
           ElevatedButton.icon(
             onPressed: () {
@@ -111,6 +116,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
             icon: const Icon(Icons.add_location_alt_rounded, size: 18),
             label: const Text('Map New Pincode'),
             style: ElevatedButton.styleFrom(
+              enabledMouseCursor: SystemMouseCursors.click,
               backgroundColor: AppColors.primaryRed,
               foregroundColor: AppColors.onPrimaryWhite,
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -127,12 +133,17 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppSearchField(hintText: 'Search', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
+            AppSearchField(
+              width: 260,
+              hintText: 'Search pincode, firm, user...',
+              onChanged: controller.onSearchChanged,
+              onClear: controller.clearSearch,
+            ),
             const SizedBox(width: 12),
             Obx(() {
               final bool isRefreshing = controller.isLoading.value;
               return OutlinedButton.icon(
-                onPressed: controller.refreshPincodes,
+                onPressed: isRefreshing ? null : controller.refreshPincodes,
                 icon: isRefreshing
                     ? const SizedBox(
                         width: 18,
@@ -141,7 +152,10 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                       )
                     : const Icon(Icons.refresh_rounded, size: 18),
                 label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                style: OutlinedButton.styleFrom(
+                  enabledMouseCursor: SystemMouseCursors.click,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
               );
             }),
             const SizedBox(width: 12),
@@ -153,6 +167,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
               icon: const Icon(Icons.add_location_alt_rounded, size: 18),
               label: const Text('Map New Pincode'),
               style: ElevatedButton.styleFrom(
+                enabledMouseCursor: SystemMouseCursors.click,
                 backgroundColor: AppColors.primaryRed,
                 foregroundColor: AppColors.onPrimaryWhite,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -177,6 +192,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
             constraints: const BoxConstraints(maxWidth: 220),
             child: Tooltip(
               message: _formatText(pincode.pFirmName),
+              waitDuration: const Duration(milliseconds: 400),
               child: Text(
                 _formatText(pincode.pFirmName),
                 maxLines: 1,
@@ -200,6 +216,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
             children: [
               IconButton(
                 icon: const Icon(Icons.visibility_outlined, size: 18),
+                mouseCursor: SystemMouseCursors.click,
                 color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
                 tooltip: 'View Mapping Details',
                 splashRadius: 18,
@@ -207,6 +224,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
               ),
               IconButton(
                 icon: const Icon(Icons.edit_outlined, size: 18),
+                mouseCursor: SystemMouseCursors.click,
                 color: AppColors.statusBlueInfo,
                 tooltip: 'Edit Pincode Mapping',
                 splashRadius: 18,
@@ -254,16 +272,16 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
       headerIcon: Icons.pin_drop_rounded,
       sections: [
         DetailSection(
-          title: '',
+          title: '1. Jurisdiction & Entity Mapping',
           items: [
-            DetailItem(label: 'Pincode', value: pincode.pPinCode),
-            DetailItem(label: 'Firm Code', value: pincode.pFirmCode),
-            DetailItem(label: 'Firm Name', value: pincode.pFirmName.isNotEmpty ? pincode.pFirmName : ''),
+            DetailItem(label: 'Pincode', value: pincode.pPinCode, isCopyable: true),
+            DetailItem(label: 'Firm Code', value: pincode.pFirmCode, isCopyable: true),
+            DetailItem(label: 'Firm Name', value: pincode.pFirmName),
           ],
         ),
         DetailSection(
-          title: '',
-          flags: [DetailFlag(label: 'Pincode Status', value: pincode.status == 1)],
+          title: '2. Audit & Access Controls',
+          flags: [DetailFlag(label: 'Route Active', value: pincode.status == 1)],
           items: [DetailItem(label: 'Assigned By', value: pincode.userName)],
         ),
       ],
@@ -273,7 +291,6 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
   void _showPincodeDialog(BuildContext context, {required bool isEdit, int? id}) {
     final isDark = context.isDark;
     final mediaQuery = MediaQuery.sizeOf(context);
-
     Get.dialog(
       barrierDismissible: false,
       Dialog(
@@ -286,8 +303,14 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
           width: context.isDesktop ? 480 : mediaQuery.width * 0.92,
           padding: EdgeInsets.all(context.responsiveSize(20, 24)),
           child: SingleChildScrollView(
-            child: Obx(
-              () => Form(
+            child: Obx(() {
+              final firm_model.Datum? currentFirm = controller.selectedFirm.value;
+              final firm_model.Datum? matchedFirm =
+                  currentFirm != null && controller.firmDropdownList.any((f) => f.fFirmCode == currentFirm.fFirmCode)
+                  ? controller.firmDropdownList.firstWhere((f) => f.fFirmCode == currentFirm.fFirmCode)
+                  : null;
+
+              return Form(
                 key: controller.pincodeFormKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -299,6 +322,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                         Text(isEdit ? 'Edit Pincode Mapping' : 'Map New Pincode', style: context.titleStyleActive.copyWith(fontSize: 17)),
                         IconButton(
                           icon: const Icon(Icons.close_rounded, size: 20),
+                          mouseCursor: SystemMouseCursors.click,
                           splashRadius: 18,
                           color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
                           onPressed: () {
@@ -320,7 +344,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                       )
                     else
                       DropdownButtonFormField<firm_model.Datum>(
-                        value: controller.selectedFirm.value,
+                        value: matchedFirm,
                         isExpanded: true,
                         dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
                         decoration: const InputDecoration(
@@ -416,6 +440,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                               width: double.infinity,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
+                                  enabledMouseCursor: SystemMouseCursors.click,
                                   backgroundColor: AppColors.primaryRed,
                                   foregroundColor: AppColors.onPrimaryWhite,
                                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -431,6 +456,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
+                            style: TextButton.styleFrom(enabledMouseCursor: SystemMouseCursors.click),
                             onPressed: () {
                               controller.clearForm();
                               Get.back();
@@ -444,6 +470,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
+                            style: TextButton.styleFrom(enabledMouseCursor: SystemMouseCursors.click),
                             onPressed: () {
                               controller.clearForm();
                               Get.back();
@@ -453,6 +480,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                           const SizedBox(width: 12),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
+                              enabledMouseCursor: SystemMouseCursors.click,
                               backgroundColor: AppColors.primaryRed,
                               foregroundColor: AppColors.onPrimaryWhite,
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -465,8 +493,8 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                     ],
                   ],
                 ),
-              ),
-            ),
+              );
+            }),
           ),
         ),
       ),
@@ -475,7 +503,6 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
 
   void _showUnmapConfirmationDialog(BuildContext context) {
     final isDark = context.isDark;
-
     Get.dialog(
       barrierDismissible: false,
       AlertDialog(
@@ -491,11 +518,16 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
         ),
         actions: [
           TextButton(
+            style: TextButton.styleFrom(enabledMouseCursor: SystemMouseCursors.click),
             onPressed: () => Get.back(),
             child: Text('No', style: TextStyle(color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryRed, foregroundColor: AppColors.onPrimaryWhite),
+            style: ElevatedButton.styleFrom(
+              enabledMouseCursor: SystemMouseCursors.click,
+              backgroundColor: AppColors.primaryRed,
+              foregroundColor: AppColors.onPrimaryWhite,
+            ),
             onPressed: () {
               Get.back();
               Get.back();
