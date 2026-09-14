@@ -47,23 +47,25 @@ class CategoryView extends GetView<CategoryController> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: DataTableWidget<ViewCategoryDatum>(
-                    items: controller.pagedList.toList(),
-                    horizontalScrollController: controller.horizontalScrollController,
-                    verticalScrollController: controller.verticalScrollController,
-                    emptyTitle: 'No Product Categories Found',
-                    emptySubtitle: 'Sync with server or add a new category.',
-                    emptyIcon: Icons.category_outlined,
-                    columns: const [
-                      DataColumn(label: Text('CODE')),
-                      DataColumn(label: Text('IMAGES')),
-                      DataColumn(label: Text('CATEGORY NAME')),
-                      DataColumn(label: Text('TYPE')),
-                      DataColumn(label: Text('EU CODE')),
-                      DataColumn(label: Text('ENTRY DATE')),
-                      DataColumn(label: Text('ACTIONS')),
-                    ],
-                    rowBuilder: (context, category) => _buildDataRow(context, category),
+                  child: RepaintBoundary(
+                    child: DataTableWidget<ViewCategoryDatum>(
+                      items: controller.pagedList,
+                      horizontalScrollController: controller.horizontalScrollController,
+                      verticalScrollController: controller.verticalScrollController,
+                      emptyTitle: 'No Product Categories Found',
+                      emptySubtitle: 'Sync with server or add a new category.',
+                      emptyIcon: Icons.category_outlined,
+                      columns: const [
+                        DataColumn(label: Text('CODE')),
+                        DataColumn(label: Text('IMAGES')),
+                        DataColumn(label: Text('CATEGORY NAME')),
+                        DataColumn(label: Text('TYPE')),
+                        DataColumn(label: Text('EU CODE')),
+                        DataColumn(label: Text('ENTRY DATE')),
+                        DataColumn(label: Text('ACTIONS')),
+                      ],
+                      rowBuilder: (context, category) => _buildDataRow(context, category),
+                    ),
                   ),
                 ),
                 SizedBox(height: context.responsiveHeight(12, 16)),
@@ -106,27 +108,16 @@ class CategoryView extends GetView<CategoryController> {
                           child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
                         )
                       : const Icon(Icons.refresh_rounded, size: 20),
+                  mouseCursor: SystemMouseCursors.click,
                   color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
                   tooltip: 'Refresh Categories',
-                  onPressed: controller.refreshCategories,
+                  onPressed: isRefreshing ? null : controller.refreshCategories,
                 );
               }),
             ],
           ),
-          AppSearchField(hintText: 'Search', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
-          /*const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () {
-              // Action reserved for category creation modal
-            },
-            icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
-            label: const Text('Add Category'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: AppColors.onPrimaryWhite,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),*/
+          const SizedBox(height: 12),
+          AppSearchField(hintText: 'Search category code, name, EU code...', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
         ],
       );
     }
@@ -138,12 +129,17 @@ class CategoryView extends GetView<CategoryController> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppSearchField(hintText: 'Search', onChanged: controller.onSearchChanged, onClear: controller.clearSearch),
+            AppSearchField(
+              width: 260,
+              hintText: 'Search category code, name, EU code...',
+              onChanged: controller.onSearchChanged,
+              onClear: controller.clearSearch,
+            ),
             const SizedBox(width: 12),
             Obx(() {
               final bool isRefreshing = controller.isLoading.value;
               return OutlinedButton.icon(
-                onPressed: controller.refreshCategories,
+                onPressed: isRefreshing ? null : controller.refreshCategories,
                 icon: isRefreshing
                     ? const SizedBox(
                         width: 18,
@@ -152,22 +148,12 @@ class CategoryView extends GetView<CategoryController> {
                       )
                     : const Icon(Icons.refresh_rounded, size: 18),
                 label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                style: OutlinedButton.styleFrom(
+                  enabledMouseCursor: SystemMouseCursors.click,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
               );
             }),
-            /* const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                // Action reserved for category creation modal
-              },
-              icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
-              label: const Text('Add Category'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryRed,
-                foregroundColor: AppColors.onPrimaryWhite,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              ),
-            ),*/
           ],
         ),
       ],
@@ -188,6 +174,7 @@ class CategoryView extends GetView<CategoryController> {
             constraints: const BoxConstraints(maxWidth: 220),
             child: Tooltip(
               message: category.igName.trim().isEmpty ? 'N/A' : category.igName,
+              waitDuration: const Duration(milliseconds: 400),
               child: Text(
                 category.igName.trim().isEmpty ? 'N/A' : category.igName,
                 style: const TextStyle(fontWeight: FontWeight.w500),
@@ -203,6 +190,7 @@ class CategoryView extends GetView<CategoryController> {
         DataCell(
           IconButton(
             icon: const Icon(Icons.visibility_outlined, size: 18),
+            mouseCursor: SystemMouseCursors.click,
             color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
             tooltip: 'View Category Details',
             splashRadius: 18,
@@ -214,13 +202,16 @@ class CategoryView extends GetView<CategoryController> {
   }
 
   Widget _buildImagesCell(BuildContext context, ViewCategoryDatum category) {
-    final bool hasWebImg = category.catWImg.trim().isNotEmpty;
-    final bool hasMobileImg = category.catMImg.trim().isNotEmpty;
+    final String webImg = category.catWImg.isNotEmpty ? category.catWImg : "";
+    final String mobImg = category.catMImg.isNotEmpty ? category.catMImg : "";
+    final bool hasWebImg = webImg.trim().isNotEmpty;
+    final bool hasMobileImg = mobImg.trim().isNotEmpty;
     final isDark = context.isDark;
 
     if (!hasWebImg && !hasMobileImg) {
       return InkWell(
         onTap: () => _openImageUploadModal(context, category),
+        mouseCursor: SystemMouseCursors.click,
         borderRadius: BorderRadius.circular(6),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -243,11 +234,14 @@ class CategoryView extends GetView<CategoryController> {
         ),
       );
     }
+
     return InkWell(
       onTap: () => _openImageUploadModal(context, category),
+      mouseCursor: SystemMouseCursors.click,
       borderRadius: BorderRadius.circular(6),
       child: Tooltip(
         message: 'Click to view / update category images',
+        waitDuration: const Duration(milliseconds: 400),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           decoration: BoxDecoration(
@@ -257,22 +251,9 @@ class CategoryView extends GetView<CategoryController> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildMiniThumbnail(
-                imageUrl: category.catWImg,
-                width: 40,
-                height: 24,
-                placeholderIcon: Icons.desktop_mac_rounded,
-                tooltipLabel: 'Web Banner',
-              ),
+              _buildMiniThumbnail(imageUrl: webImg, width: 40, height: 24, placeholderIcon: Icons.desktop_mac_rounded, tooltipLabel: 'Web Banner'),
               const SizedBox(width: 6),
-              _buildMiniThumbnail(
-                imageUrl: category.catMImg,
-                width: 24,
-                height: 24,
-                placeholderIcon: Icons.phone_android_rounded,
-                tooltipLabel: 'Mobile Icon',
-              ),
-
+              _buildMiniThumbnail(imageUrl: mobImg, width: 24, height: 24, placeholderIcon: Icons.phone_android_rounded, tooltipLabel: 'Mobile Icon'),
               const SizedBox(width: 4),
               Icon(Icons.edit_outlined, size: 13, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
             ],
@@ -294,6 +275,7 @@ class CategoryView extends GetView<CategoryController> {
 
     return Tooltip(
       message: tooltipLabel,
+      waitDuration: const Duration(milliseconds: 300),
       child: Container(
         width: width,
         height: height,
@@ -325,9 +307,13 @@ class CategoryView extends GetView<CategoryController> {
   }
 
   void _openImageUploadModal(BuildContext context, ViewCategoryDatum category) {
+    final String webImg = category.catWImg.isNotEmpty ? category.catWImg : "";
+    final String mobImg = category.catMImg.isNotEmpty ? category.catMImg : "";
+
     ImageUploadBinding().dependencies();
 
     Get.dialog(
+      barrierDismissible: false,
       Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -336,8 +322,8 @@ class CategoryView extends GetView<CategoryController> {
           uploadType: 'category',
           entityCode: category.igCode,
           entityTitle: category.igName,
-          initialWebImageUrl: category.catWImg,
-          initialMobileImageUrl: category.catMImg,
+          initialWebImageUrl: webImg,
+          initialMobileImageUrl: mobImg,
           onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
             final repo = Get.find<CategoryRepository>();
             final res = await repo.addCategoryDetails(catCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
@@ -350,32 +336,6 @@ class CategoryView extends GetView<CategoryController> {
           },
           onDismiss: () => Get.back(),
         ),
-      ),
-      barrierDismissible: false,
-    );
-  }
-
-  Widget _buildStatusBadge({required dynamic value, required String activeLabel, required String inactiveLabel}) {
-    final bool isActive = value == true || value == 1 || value == '1' || value == 'Y' || value == 'true';
-    final color = isActive ? AppColors.statusGreenSuccess : AppColors.statusRedError;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(isActive ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            isActive ? activeLabel : inactiveLabel,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
-          ),
-        ],
       ),
     );
   }
@@ -397,6 +357,7 @@ class CategoryView extends GetView<CategoryController> {
       headerIcon: Icons.category_rounded,
       sections: [
         DetailSection(
+          title: '1. Identification & Classification',
           items: [
             DetailItem(label: 'Category Code', value: category.igCode, isCopyable: true),
             DetailItem(label: 'Category Name', value: category.igName),
@@ -407,6 +368,7 @@ class CategoryView extends GetView<CategoryController> {
           ],
         ),
         DetailSection(
+          title: '2. POS & Operational Settings',
           flags: [
             DetailFlag(label: 'On POS', value: category.igOnPos),
             DetailFlag(label: 'Negative Stock Billing', value: category.igNegativeStockBilling),
@@ -422,6 +384,7 @@ class CategoryView extends GetView<CategoryController> {
           ],
         ),
         DetailSection(
+          title: '3. Audit & Tracking Meta',
           items: [
             DetailItem(label: 'EU Code', value: category.igEucode),
             DetailItem(label: 'MU Code', value: category.igMucode),
@@ -431,6 +394,7 @@ class CategoryView extends GetView<CategoryController> {
           ],
         ),
         DetailSection(
+          title: '4. MRP & Rate Slabs',
           items: [
             DetailItem(label: 'Less Than Or Equal To', value: category.igMrpRateSlabLessThanOrEqualTo),
             DetailItem(label: 'Slab F1', value: category.igMrpRateSlabF1),
@@ -443,42 +407,36 @@ class CategoryView extends GetView<CategoryController> {
           ],
         ),
         DetailSection(
+          title: '5. Tax Slabs (State & Ex-State)',
           items: [
-            DetailItem(label: 'Less Than Or Equal To', value: category.igStateTaxSlabLessThanOrEqualTo),
-            DetailItem(label: 'Tax Slab 1', value: category.igStateTaxSlab1),
-            DetailItem(label: 'Tax Slab 2', value: category.igStateTaxSlab2),
-            DetailItem(label: 'Tax Slab 3', value: category.igStateTaxSlab3),
-            DetailItem(label: 'Greater Than Or Equal To', value: category.igStateTaxSlabGreaterThanOrEqualTo),
+            DetailItem(label: 'State Tax Less Than Or Equal To', value: category.igStateTaxSlabLessThanOrEqualTo),
+            DetailItem(label: 'State Tax Slab 1', value: category.igStateTaxSlab1),
+            DetailItem(label: 'State Tax Slab 2', value: category.igStateTaxSlab2),
+            DetailItem(label: 'State Tax Slab 3', value: category.igStateTaxSlab3),
+            DetailItem(label: 'State Tax Greater Than Or Equal To', value: category.igStateTaxSlabGreaterThanOrEqualTo),
+            DetailItem(label: 'Ex-State Tax Less Than Or Equal To', value: category.igExStateTaxSlabLessThanOrEqualTo),
+            DetailItem(label: 'Ex-State Tax Slab 1', value: category.igExStateTaxSlab1),
+            DetailItem(label: 'Ex-State Tax Slab 2', value: category.igExStateTaxSlab2),
+            DetailItem(label: 'Ex-State Tax Slab 3', value: category.igExStateTaxSlab3),
+            DetailItem(label: 'Ex-State Tax Greater Than Or Equal To', value: category.igExStateTaxSlabGreaterThanOrEqualTo),
           ],
         ),
         DetailSection(
+          title: '6. Rate Difference Policy',
           items: [
-            DetailItem(label: 'Less Than Or Equal To', value: category.igExStateTaxSlabLessThanOrEqualTo),
-            DetailItem(label: 'Ex-Tax Slab 1', value: category.igExStateTaxSlab1),
-            DetailItem(label: 'Ex-Tax Slab 2', value: category.igExStateTaxSlab2),
-            DetailItem(label: 'Ex-Tax Slab 3', value: category.igExStateTaxSlab3),
-            DetailItem(label: 'Greater Than Or Equal To', value: category.igExStateTaxSlabGreaterThanOrEqualTo),
-          ],
-        ),
-        DetailSection(
-          items: [
-            DetailItem(label: 'Less Than Or Equal To', value: category.igRateDiffDaysLessThanOrEqualTo),
+            DetailItem(label: 'Days Less Than Or Equal To', value: category.igRateDiffDaysLessThanOrEqualTo),
             DetailItem(label: 'Days Slab F1', value: category.igRateDiffDaysSlabF1),
             DetailItem(label: 'Days Slab U1', value: category.igRateDiffDaysSlabU1),
             DetailItem(label: 'Days Slab F2', value: category.igRateDiffDaysSlabF2),
             DetailItem(label: 'Days Slab U2', value: category.igRateDiffDaysSlabU2),
             DetailItem(label: 'Days Slab F3', value: category.igRateDiffDaysSlabF3),
             DetailItem(label: 'Days Slab U3', value: category.igRateDiffDaysSlabU3),
-            DetailItem(label: 'Greater Than Or Equal To', value: category.igRateDiffDaysGreaterThanOrEqualTo),
-          ],
-        ),
-        DetailSection(
-          items: [
-            DetailItem(label: 'Less Than Or Equal To', value: category.igRateDiffRateLessThanOrEqualTo),
+            DetailItem(label: 'Days Greater Than Or Equal To', value: category.igRateDiffDaysGreaterThanOrEqualTo),
+            DetailItem(label: 'Rate Diff Less Than Or Equal To', value: category.igRateDiffRateLessThanOrEqualTo),
             DetailItem(label: 'Rate Slab 1', value: category.igRateDiffRateSlab1),
             DetailItem(label: 'Rate Slab 2', value: category.igRateDiffRateSlab2),
             DetailItem(label: 'Rate Slab 3', value: category.igRateDiffRateSlab3),
-            DetailItem(label: 'Greater Than Or Equal To', value: category.igRateDiffRateGreaterThanOrEqualTo),
+            DetailItem(label: 'Rate Diff Greater Than Or Equal To', value: category.igRateDiffRateGreaterThanOrEqualTo),
           ],
         ),
       ],
