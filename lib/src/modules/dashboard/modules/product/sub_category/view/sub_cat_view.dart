@@ -47,23 +47,25 @@ class SubCategoryView extends GetView<SubCategoryController> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: DataTableWidget<ViewSubCategoryDatum>(
-                    items: controller.pagedList.toList(),
-                    horizontalScrollController: controller.horizontalScrollController,
-                    verticalScrollController: controller.verticalScrollController,
-                    emptyTitle: 'No Sub-Categories Available',
-                    emptySubtitle: 'Sync with server or configure a new sub-category.',
-                    emptyIcon: Icons.account_tree_outlined,
-                    columns: const [
-                      DataColumn(label: Text('CODE')),
-                      DataColumn(label: Text('IMAGES')),
-                      DataColumn(label: Text('SUB CATEGORY NAME')),
-                      DataColumn(label: Text('SC CODE')),
-                      DataColumn(label: Text('EU CODE')),
-                      DataColumn(label: Text('ENTRY DATE')),
-                      DataColumn(label: Text('ACTIONS')),
-                    ],
-                    rowBuilder: (context, subCategory) => _buildDataRow(context, subCategory),
+                  child: RepaintBoundary(
+                    child: DataTableWidget<ViewSubCategoryDatum>(
+                      items: controller.pagedList,
+                      horizontalScrollController: controller.horizontalScrollController,
+                      verticalScrollController: controller.verticalScrollController,
+                      emptyTitle: 'No Sub-Categories Available',
+                      emptySubtitle: 'Sync with server or configure a new sub-category.',
+                      emptyIcon: Icons.account_tree_outlined,
+                      columns: const [
+                        DataColumn(label: Text('CODE')),
+                        DataColumn(label: Text('IMAGES')),
+                        DataColumn(label: Text('SUB CATEGORY NAME')),
+                        DataColumn(label: Text('SC CODE')),
+                        DataColumn(label: Text('EU CODE')),
+                        DataColumn(label: Text('ENTRY DATE')),
+                        DataColumn(label: Text('ACTIONS')),
+                      ],
+                      rowBuilder: (context, subCategory) => _buildDataRow(context, subCategory),
+                    ),
                   ),
                 ),
                 SizedBox(height: context.responsiveHeight(12, 16)),
@@ -106,6 +108,7 @@ class SubCategoryView extends GetView<SubCategoryController> {
                           child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
                         )
                       : const Icon(Icons.refresh_rounded, size: 20),
+                  mouseCursor: SystemMouseCursors.click,
                   color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
                   tooltip: 'Refresh Sub-Categories',
                   onPressed: controller.refreshCategories,
@@ -113,19 +116,6 @@ class SubCategoryView extends GetView<SubCategoryController> {
               }),
             ],
           ),
-          /*const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () {
-              // Action reserved for sub-category creation dialog
-            },
-            icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
-            label: const Text('Add Sub-Category'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: AppColors.onPrimaryWhite,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),*/
         ],
       );
     }
@@ -151,22 +141,12 @@ class SubCategoryView extends GetView<SubCategoryController> {
                       )
                     : const Icon(Icons.refresh_rounded, size: 18),
                 label: Text(isRefreshing ? 'Refreshing...' : 'Refresh'),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                style: OutlinedButton.styleFrom(
+                  enabledMouseCursor: SystemMouseCursors.click,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
               );
             }),
-            /*const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                // Action reserved for sub-category creation dialog
-              },
-              icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
-              label: const Text('Add Sub-Category'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryRed,
-                foregroundColor: AppColors.onPrimaryWhite,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              ),
-            ),*/
           ],
         ),
       ],
@@ -207,6 +187,7 @@ class SubCategoryView extends GetView<SubCategoryController> {
         DataCell(
           IconButton(
             icon: const Icon(Icons.visibility_outlined, size: 18),
+            mouseCursor: SystemMouseCursors.click,
             color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
             tooltip: 'View SubCategory Configurations',
             splashRadius: 18,
@@ -225,6 +206,7 @@ class SubCategoryView extends GetView<SubCategoryController> {
     if (!hasWebImg && !hasMobileImg) {
       return InkWell(
         onTap: () => _openImageUploadModal(context, subCategory),
+        mouseCursor: SystemMouseCursors.click,
         borderRadius: BorderRadius.circular(6),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -249,6 +231,7 @@ class SubCategoryView extends GetView<SubCategoryController> {
     }
     return InkWell(
       onTap: () => _openImageUploadModal(context, subCategory),
+      mouseCursor: SystemMouseCursors.click,
       borderRadius: BorderRadius.circular(6),
       child: Tooltip(
         message: 'Click to view / update category images',
@@ -356,30 +339,6 @@ class SubCategoryView extends GetView<SubCategoryController> {
         ),
       ),
       barrierDismissible: false,
-    );
-  }
-
-  Widget _buildStatusBadge({required bool isActive, required String activeLabel, required String inactiveLabel}) {
-    final color = isActive ? AppColors.statusGreenSuccess : AppColors.statusRedError;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(isActive ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            isActive ? activeLabel : inactiveLabel,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
-          ),
-        ],
-      ),
     );
   }
 
