@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -232,5 +234,158 @@ abstract final class DialogHelper {
       Get.back();
       _isOfflineDialogActive = false;
     }
+  }
+
+  static void showDeleteDialog({
+    String? title,
+    String? itemName,
+    String? message,
+    String actionNoun = 'delete',
+    String confirmLabel = 'Confirm Delete',
+    String cancelLabel = 'Cancel',
+    required FutureOr<void> Function() onConfirm,
+    VoidCallback? onCancel,
+  }) {
+    if (Get.overlayContext == null) return;
+
+    // Concurrency Lock: Tear down any currently open dialog before mounting
+    if (_isDialogActive || _isOfflineDialogActive) {
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+    }
+
+    _isDialogActive = true;
+
+    Get.dialog<void>(
+      PopScope(
+        canPop: false, // Strict protection against accidental backdrop clicks
+        child: Builder(
+          builder: (context) {
+            final isDark = context.isDark;
+            final double dialogWidth = context.responsiveWidth(context.screenWidth * 0.88, 440);
+
+            return Dialog(
+              backgroundColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
+              ),
+              child: Container(
+                width: dialogWidth,
+                padding: EdgeInsets.all(context.responsiveSize(22, 28)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(color: AppColors.statusRedError.withValues(alpha: 0.1), shape: BoxShape.circle),
+                      child: Icon(Icons.delete_outline_rounded, color: AppColors.statusRedError, size: context.responsiveSize(36, 42)),
+                    ),
+                    SizedBox(height: context.responsiveHeight(14, 18)),
+                    Text(
+                      title ?? 'Confirm Deletion',
+                      style: context.titleStyleActive.copyWith(fontSize: context.responsiveSize(16, 18)),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: context.responsiveHeight(8, 12)),
+                    if (message != null)
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: context.bodyTextStyle.copyWith(
+                          fontSize: context.responsiveSize(13, 14),
+                          color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
+                          height: 1.45,
+                        ),
+                      )
+                    else
+                      RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          style: context.bodyTextStyle.copyWith(
+                            fontSize: context.responsiveSize(13, 14),
+                            color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
+                            height: 1.45,
+                          ),
+                          children: [
+                            TextSpan(text: 'Are you sure you want to $actionNoun '),
+                            if (itemName != null && itemName.trim().isNotEmpty)
+                              TextSpan(
+                                text: itemName.trim(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                                ),
+                              ),
+                            const TextSpan(text: '? This action cannot be undone.'),
+                          ],
+                        ),
+                      ),
+                    SizedBox(height: context.responsiveHeight(22, 26)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              _isDialogActive = false;
+                              if (Get.isDialogOpen == true) {
+                                Get.back();
+                              }
+                              if (onCancel != null) {
+                                try {
+                                  onCancel();
+                                } catch (e, stackTrace) {
+                                  Sentry.captureException(Exception('Delete Dialog Cancel Callback Failed: $e'), stackTrace: stackTrace);
+                                }
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              enabledMouseCursor: SystemMouseCursors.click,
+                              padding: EdgeInsets.symmetric(vertical: context.responsiveHeight(12, 14)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text(cancelLabel),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              _isDialogActive = false;
+                              if (Get.isDialogOpen == true) {
+                                Get.back();
+                              }
+                              try {
+                                await onConfirm();
+                              } catch (e, stackTrace) {
+                                Sentry.captureException(Exception('Delete Dialog Confirm Callback Failed: $e'), stackTrace: stackTrace);
+                                debugPrint('--- [DIALOG EXCEPTION] Delete Callback Failed: $e ---');
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              enabledMouseCursor: SystemMouseCursors.click,
+                              backgroundColor: AppColors.statusRedError,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: EdgeInsets.symmetric(vertical: context.responsiveHeight(12, 14)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text(confirmLabel, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      barrierDismissible: false,
+    ).then((_) {
+      _isDialogActive = false;
+    });
   }
 }
