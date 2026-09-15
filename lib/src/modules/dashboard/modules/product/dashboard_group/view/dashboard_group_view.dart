@@ -30,7 +30,13 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         }
 
         if (controller.groupList.isEmpty) {
-          return _buildEmptyState(context);
+          return EmptyStateWidget(
+            title: 'No Dashboard Groups Found',
+            subtitle: 'No group listings are provisioned for this tenant store.',
+            icon: Icons.folder_off_outlined,
+            actionLabel: 'Reload Groups',
+            onActionPressed: controller.refreshAll,
+          );
         }
 
         return Column(
@@ -188,7 +194,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                           splashRadius: 12,
                           tooltip: 'Edit Group',
                           color: isSelected ? Colors.white : (isDark ? AppColors.textPrimaryWhite : AppColors.textSecondarySlate),
-                          onPressed: () {},
+                          onPressed: () => _openEditGroupDialog(context, group),
                         ),
                         const SizedBox(width: 3),
                         IconButton(
@@ -655,6 +661,202 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
     );
   }
 
+  void _openEditGroupDialog(BuildContext context, ViewDashboardGroupDatum group) {
+    controller.prepareEditGroup(group);
+    final isDark = context.isDark;
+
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: EdgeInsets.symmetric(horizontal: context.responsiveSize(16, 24), vertical: context.responsiveSize(16, 24)),
+        child: Container(
+          width: 480,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+          ),
+          child: Form(
+            key: controller.editGroupFormKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Edit Dashboard Group', style: context.titleStyleActive.copyWith(fontSize: 18)),
+                    IconButton(icon: const Icon(Icons.close_rounded, size: 20), onPressed: () => Get.back()),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Update status, images, and details for group code: ${group.groupCode}',
+                  style: context.subTitleStyle.copyWith(fontSize: 12, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
+                ),
+                const SizedBox(height: 20),
+
+                // 2. Group Name Field
+                TextFormField(
+                  controller: controller.editGroupNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Group Name',
+                    prefixIcon: const Icon(Icons.category_rounded, size: 18),
+                    filled: true,
+                    fillColor: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                  ),
+                  validator: (value) => (value == null || value.trim().isEmpty) ? 'Group name cannot be empty' : null,
+                ),
+                const SizedBox(height: 16),
+
+                // 3. Dual Images Cell (Reusing Custom TableImageCellWidget)
+                Obx(() {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Group Images',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Web Banner (16:9) & Mobile Icon (1:1)',
+                              style: TextStyle(fontSize: 11, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
+                            ),
+                          ],
+                        ),
+                        TableImageCellWidget(
+                          webImageUrl: controller.editGImgW.value,
+                          mobileImageUrl: controller.editGImgM.value,
+                          uploadType: 'dashboardgroup',
+                          entityCode: group.groupId.toString(),
+                          entityTitle: group.groupName,
+                          onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
+                            controller.editGImgW.value = webImageUrl;
+                            controller.editGImgM.value = mobileImageUrl;
+                            return true;
+                          },
+                          onSuccess: () {},
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 16),
+
+                // 4. Status Toggle (Reusing Custom StatusBadge)
+                Obx(() {
+                  final bool isActive = controller.editStatus.value == 1;
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              isActive ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                              size: 20,
+                              color: isActive ? AppColors.statusGreenSuccess : AppColors.statusRedError,
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Group Status',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                                  ),
+                                ),
+                                Text(
+                                  isActive ? 'Active (Visible in Store)' : 'Inactive (Hidden in Store)',
+                                  style: TextStyle(fontSize: 11, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        StatusBadge(
+                          isEditable: true,
+                          isActive: isActive,
+                          activeLabel: 'Active',
+                          inactiveLabel: 'Inactive',
+                          onToggle: (bool val) {
+                            controller.editStatus.value = val ? 1 : 0;
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 24),
+
+                // 5. Action Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+                    const SizedBox(width: 12),
+                    Obx(
+                      () => ElevatedButton(
+                        onPressed: controller.isLoading.value
+                            ? null
+                            : () async {
+                                final success = await controller.submitEditGroup();
+                                if (success) Get.back();
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryRed,
+                          foregroundColor: AppColors.onPrimaryWhite,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                        child: controller.isLoading.value
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                              )
+                            : const Text('Update Group'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+  }
+
   String _formatDate(DateTime? date) {
     if (date == null) return '—';
     try {
@@ -662,15 +864,5 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
     } catch (_) {
       return date.toString().split('.')[0];
     }
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return EmptyStateWidget(
-      title: 'No Dashboard Groups Found',
-      subtitle: 'No group listings are provisioned for this tenant store.',
-      icon: Icons.folder_off_outlined,
-      actionLabel: 'Reload Groups',
-      onActionPressed: controller.refreshAll,
-    );
   }
 }
