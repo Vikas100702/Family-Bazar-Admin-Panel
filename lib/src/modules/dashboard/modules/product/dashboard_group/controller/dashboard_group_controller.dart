@@ -32,6 +32,14 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
   final GlobalKey<FormState> addGroupFormKey = GlobalKey<FormState>();
   late final TextEditingController groupNameController;
 
+  // EDIT GROUP MUTATION STATE
+  final GlobalKey<FormState> editGroupFormKey = GlobalKey<FormState>();
+  late final TextEditingController editGroupNameController;
+  final RxInt editStatus = 1.obs;
+  final RxString editGImgM = ''.obs;
+  final RxString editGImgW = ''.obs;
+  final Rxn<ViewDashboardGroupDatum> editingGroup = Rxn<ViewDashboardGroupDatum>();
+
   // ADD GROUP ITEMS SELECTION & MODAL STATE
   final RxBool isMasterItemsLoading = false.obs;
   final RxBool isSubmittingItems = false.obs;
@@ -44,6 +52,7 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
   void onInit() {
     super.onInit();
     groupNameController = TextEditingController();
+    editGroupNameController = TextEditingController(); // <-- ADD THIS
     masterItemSearchController = TextEditingController();
     fetchDashboardGroups();
   }
@@ -125,6 +134,73 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
     });
 
     return isSuccess;
+  }
+
+  /// Loads the group data into the form before the modal opens
+  void prepareEditGroup(ViewDashboardGroupDatum group) {
+    editingGroup.value = group;
+    editGroupNameController.text = group.groupName;
+    editStatus.value = int.tryParse(group.status.toString()) ?? 1;
+    editGImgM.value = group.gImgM ?? '';
+    editGImgW.value = group.gImgW ?? '';
+  }
+
+  /// Atomic update method: Individual fields or combined fields can be passed
+  Future<bool> updateGroup({required int groupId, String? groupName, int? status, String? gImgM, String? gImgW}) async {
+    bool isSuccess = false;
+
+    await runWithLoading(() async {
+      try {
+        final AddGroupModel response = await _groupRepository.updateGroup(
+          groupId: groupId,
+          groupName: groupName,
+          status: status,
+          gImgM: gImgM,
+          gImgW: gImgW,
+        );
+
+        if (isClosed) return;
+
+        if (response.success) {
+          isSuccess = true;
+          successMessage(title: 'Updated', message: response.message.isNotEmpty ? response.message : 'Group updated successfully.');
+
+          // Reload master tabs to synchronize the updated state
+          refreshAll();
+          if (selectedGroupId.value == groupId) {
+            final updated = groupList.firstWhereOrNull((g) => g.groupId == groupId);
+            if (updated != null) selectGroup(updated);
+          }
+        } else {
+          throw Exception(response.message.isNotEmpty ? response.message : 'Failed to update group.');
+        }
+      } catch (e, stackTrace) {
+        _logException(e, stackTrace, 'updateGroup', {
+          'group_id': groupId,
+          'group_name': groupName,
+          'status': status,
+          'g_img_m': gImgM,
+          'g_img_w': gImgW,
+        });
+        errorMessage(message: 'Failed to update group due to a network error.');
+      }
+    });
+
+    return isSuccess;
+  }
+
+  /// Dispatches all updated values at once when the edit modal form is submitted
+  Future<bool> submitEditGroup() async {
+    final group = editingGroup.value;
+    if (group == null || group.groupId == 0) return false;
+    if (!editGroupFormKey.currentState!.validate()) return false;
+
+    return await updateGroup(
+      groupId: group.groupId,
+      status: editStatus.value,
+      gImgM: editGImgM.value.trim().isNotEmpty ? editGImgM.value.trim() : null,
+      gImgW: editGImgW.value.trim().isNotEmpty ? editGImgW.value.trim() : null,
+    );
   }
 
   Future<void> fetchGroupItems(int groupId) async {
@@ -343,8 +419,6 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
     return isSuccess;
   }
 
-  // 9. OBSERVABILITY & DISPOSAL
-
   void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {
     Sentry.captureException(
       exception,
@@ -359,6 +433,7 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
   @override
   void onClose() {
     groupNameController.dispose();
+    editGroupNameController.dispose();
     masterItemSearchController.dispose();
     groupList.clear();
     allGroupItems.clear();
@@ -366,6 +441,7 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
     filteredMasterItemList.clear();
     selectedItemIdsToAdd.clear();
     selectedGroup.value = null;
+    editingGroup.value = null;
     super.onClose();
   }
 }
