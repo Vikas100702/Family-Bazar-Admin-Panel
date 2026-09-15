@@ -15,7 +15,7 @@ class DashboardDrawerController extends BaseController {
 
   static const Set<String> _allowedDirectKeys = {'firm setup', 'pin code settings'};
 
-  static const Set<String> _allowedProductKeys = {'productcategory', 'productsubcategory', 'productitem', 'productdashboardgroup'};
+  static const Set<String> _allowedProductKeys = {'productcategory', 'productsubcategory', 'productitem', 'productdashboardgroup', 'productbrand'};
 
   @override
   void onInit() {
@@ -59,7 +59,8 @@ class DashboardDrawerController extends BaseController {
             cleanKey == 'category' ||
             cleanKey == 'subcategory' ||
             cleanKey == 'item' ||
-            cleanKey == 'dashboardgroup') {
+            cleanKey == 'dashboardgroup' ||
+            cleanKey == 'brand') {
           productSubItems.add(
             DrawerMenuModel(
               title: _formatTitle(key, prefixToRemove: 'product'),
@@ -81,7 +82,7 @@ class DashboardDrawerController extends BaseController {
       // Attach Product Management expandable group with sorting
       if (productSubItems.isNotEmpty) {
         productSubItems.sort((a, b) {
-          const sortOrder = {'category': 1, 'sub category': 2, 'item': 3, 'dashboard group': 4};
+          const sortOrder = {'category': 1, 'sub category': 2, 'item': 3, 'dashboard group': 4, 'brand': 4};
           final aOrder = sortOrder[a.title.toLowerCase()] ?? 99;
           final bOrder = sortOrder[b.title.toLowerCase()] ?? 99;
           return aOrder.compareTo(bOrder);
