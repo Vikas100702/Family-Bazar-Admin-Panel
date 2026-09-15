@@ -279,6 +279,8 @@ class DashboardView extends GetView<DashboardController> {
       case 'product':
       case 'productdashboardgroup':
         return 'Dashboard Group';
+      case 'productbrand':
+        return 'Brand Management';
       case 'order':
         return 'Orders & Fulfillments';
       case 'customer':
