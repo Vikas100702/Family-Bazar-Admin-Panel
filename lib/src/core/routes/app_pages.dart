@@ -4,6 +4,8 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/bind
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/binding/pincode_settings_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/brand/binding/brand_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/brand/view/brand_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/binding/category_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/view/category_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/binding/dashboard_group_binding.dart';
@@ -49,5 +51,6 @@ class AppPages {
       binding: DashboardGroupBinding(),
       transition: Transition.noTransition,
     ),
+    GetPage(name: AppRoutes.brands, page: () => const BrandView(), binding: BrandBinding(), transition: Transition.noTransition),
   ];
 }
