@@ -2,6 +2,7 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashbo
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/binding/drawer_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/binding/firm_setup_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/binding/pincode_settings_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/brand/binding/brand_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/binding/category_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/binding/dashboard_group_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/binding/item_binding.dart';
@@ -25,5 +26,6 @@ class DashboardBinding extends Bindings {
     SubCategoryBinding().dependencies();
     ItemBinding().dependencies();
     DashboardGroupBinding().dependencies();
+    BrandBinding().dependencies();
   }
 }
