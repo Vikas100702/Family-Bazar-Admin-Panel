@@ -746,7 +746,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                         TableImageCellWidget(
                           webImageUrl: controller.editGImgW.value,
                           mobileImageUrl: controller.editGImgM.value,
-                          uploadType: 'dashboardgroup',
+                          uploadType: 'group',
                           entityCode: group.groupId.toString(),
                           entityTitle: group.groupName,
                           onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
