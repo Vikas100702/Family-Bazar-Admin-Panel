@@ -53,4 +53,8 @@ abstract final class ApiConstants {
   static const String viewGroupItemsApiEndpoint = "$baseUrl/api/product/viewGroupItems";
   static const String addGroupItemsApiEndpoint = "$baseUrl/api/product/addGroupItems";
   static const String deleteGroupItemsApiEndpoint = "$baseUrl/api/product/deleteGroupItem";
+
+  /// BRAND APIs
+  static const String viewBrandsApiEndpoint = "$baseUrl/api/product/viewBrand";
+  static const String updateBrandApiEndpoint = "$baseUrl/api/product/updateBrand";
 }
