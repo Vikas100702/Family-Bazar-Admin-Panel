@@ -9,6 +9,7 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashbo
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/view/drawer_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/brand/view/brand_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/view/category_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/view/dashboard_group_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/view/item_view.dart';
@@ -224,6 +225,8 @@ class DashboardView extends GetView<DashboardController> {
         return const SubCategoryView();
       case 'productdashboardgroup':
         return const DashboardGroupView();
+      case 'productbrand':
+        return const BrandView();
       case 'firm setup':
         return const FirmView();
       case 'pin code settings':
