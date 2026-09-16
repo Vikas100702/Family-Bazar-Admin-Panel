@@ -2,6 +2,7 @@ import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_image_cell_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -64,13 +65,14 @@ class ItemsView extends GetView<ItemController> {
                         DataColumn(label: Text('FIRM CODE')),
                         DataColumn(label: Text('IMAGES')),
                         DataColumn(label: Text('ITEM NAME')),
-                        DataColumn(label: Text('CATEGORY')),
-                        DataColumn(label: Text('SUB-CATEGORY')),
                         DataColumn(label: Text('ITEM MRP')),
                         DataColumn(label: Text('SALES PRICE')),
                         DataColumn(label: Text('AVAILABLE STOCK')),
                         DataColumn(label: Text('EU CODE')),
                         DataColumn(label: Text('EAN / BARCODE')),
+                        DataColumn(label: Text('CATEGORY')),
+                        DataColumn(label: Text('SUB-CATEGORY')),
+                        DataColumn(label: Text('STATUS')),
                         DataColumn(label: Text('ACTIONS')),
                       ],
                       rowBuilder: (context, item) => _buildDataRow(context, item),
@@ -132,6 +134,11 @@ class ItemsView extends GetView<ItemController> {
             ),
           ),
         ),
+        DataCell(Text(_formatText(item.sbMRate.toString()))),
+        DataCell(Text(_formatText(item.sbRateA.toString()))),
+        DataCell(Text(_formatText(item.sbSaleableStock.toString()))),
+        DataCell(Text(_formatText(item.iEuCode))),
+        DataCell(SelectableText(_formatText(item.eanCode), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
         DataCell(
           SelectableText(
             _formatText(item.itemGroup),
@@ -144,11 +151,8 @@ class ItemsView extends GetView<ItemController> {
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentGoldAmber : AppColors.statusAmberWarning),
           ),
         ),
-        DataCell(Text(_formatText(item.sbMRate.toString()))),
-        DataCell(Text(_formatText(item.sbRateA.toString()))),
-        DataCell(Text(_formatText(item.sbSaleableStock.toString()))),
-        DataCell(Text(_formatText(item.iEuCode))),
-        DataCell(SelectableText(_formatText(item.eanCode), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
+
+        DataCell(StatusBadge(statusValue: item.status, activeLabel: 'Active', inactiveLabel: 'Inactive')),
         DataCell(
           IconButton(
             icon: const Icon(Icons.visibility_outlined, size: 18),
