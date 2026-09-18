@@ -11,7 +11,7 @@ import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensi
 import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/controller/dashboard_group_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/view_group_items_model.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/view_items_by_type_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -249,7 +249,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         children: [
           Expanded(
             child: RepaintBoundary(
-              child: DataTableWidget<GroupItemDatum>(
+              child: DataTableWidget<Item>(
                 items: controller.pagedGroupItems,
                 horizontalScrollController: controller.horizontalScrollController,
                 verticalScrollController: controller.verticalScrollController,
@@ -288,7 +288,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
     });
   }
 
-  DataRow _buildDataRow(BuildContext context, GroupItemDatum item) {
+  DataRow _buildDataRow(BuildContext context, Item item) {
     final isDark = context.isDark;
 
     return DataRow(
@@ -297,8 +297,8 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         DataCell(Text(item.iFirmCode.isEmpty ? 'N/A' : item.iFirmCode)),
         DataCell(
           TableImageCellWidget(
-            webImageUrl: item.wImg,
-            mobileImageUrl: item.mImg,
+            webImageUrl: item.iImgM.toString(),
+            mobileImageUrl: item.iImgW.toString(),
             uploadType: 'item',
             entityCode: item.iCode,
             entityTitle: item.iName,
@@ -617,7 +617,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
     );
   }
 
-  void _showItemDetails(BuildContext context, GroupItemDatum item) {
+  void _showItemDetails(BuildContext context, Item item) {
     EntityDetailsDialogHelper.show(
       context: context,
       title: item.iName.isNotEmpty ? item.iName.trim() : "Item Details",
