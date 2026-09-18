@@ -41,6 +41,7 @@ abstract final class ApiConstants {
 
   /// ITEM APIs
   static const String viewItemsApiEndpoint = "$baseUrl/api/product/viewItem";
+  static const String viewItemsByTypeApiEndpoint = "$baseUrl/api/product/viewItemByType";
   static const String insertItemDetailsApiEndpoint = "$baseUrl/api/product/addItem";
 
   /// DASHBOARD GROUP APIs
