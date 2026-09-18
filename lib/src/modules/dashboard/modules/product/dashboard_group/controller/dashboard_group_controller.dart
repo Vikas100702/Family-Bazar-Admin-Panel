@@ -3,7 +3,7 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/d
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/view_group_items_model.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/view_items_by_type_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/repository/dashboard_group_repository.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/model/item_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-class DashboardGroupController extends BaseTableController<GroupItemDatum> {
+class DashboardGroupController extends BaseTableController<Item> {
   final DashboardGroupRepository _groupRepository;
   final ItemRepository _itemRepository;
 
@@ -24,9 +24,9 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
 
   // GROUP ITEMS CATALOG & TABLE STATE
   final RxBool isItemsLoading = false.obs;
-  final RxList<GroupItemDatum> allGroupItems = <GroupItemDatum>[].obs;
+  final RxList<Item> allGroupItems = <Item>[].obs;
 
-  RxList<GroupItemDatum> get pagedGroupItems => pagedList;
+  RxList<Item> get pagedGroupItems => pagedList;
 
   // ADD GROUP MUTATION STATE
   final GlobalKey<FormState> addGroupFormKey = GlobalKey<FormState>();
@@ -58,7 +58,7 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
   }
 
   @override
-  String searchTokenBuilder(GroupItemDatum item) {
+  String searchTokenBuilder(Item item) {
     return '${item.iCode} ${item.iName} ${item.eanCode} ${item.iFirmCode} ${item.iItemGroup} ${item.iOtherGroup}';
   }
 
@@ -208,7 +208,7 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
 
     try {
       isItemsLoading.value = true;
-      final response = await _groupRepository.viewGroupItems(groupId: groupId);
+      final ViewItemByTypeModel response = await _groupRepository.viewGroupItems(groupId: groupId);
       if (isClosed) return;
 
       if (response.success && response.data != null) {
@@ -383,7 +383,7 @@ class DashboardGroupController extends BaseTableController<GroupItemDatum> {
     return isSuccess;
   }
 
-  Future<bool> deleteGroupItem(GroupItemDatum item) async {
+  Future<bool> deleteGroupItem(Item item) async {
     if (selectedGroupId.value == 0) {
       errorMessage(message: 'No active dashboard group selected.');
       return false;
