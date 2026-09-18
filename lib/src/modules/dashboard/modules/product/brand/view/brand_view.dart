@@ -67,7 +67,7 @@ class BrandView extends GetView<BrandController> {
                         DataColumn(label: Text('BRAND NAME')),
                         DataColumn(label: Text('FEATURED')),
                         DataColumn(label: Text('STATUS')),
-                        DataColumn(label: Text('ACTIONS')),
+                        DataColumn(label: Text('VIEW ITEMS')),
                       ],
                       rowBuilder: (context, brand) => _buildDataRow(context, brand),
                     ),
@@ -92,7 +92,6 @@ class BrandView extends GetView<BrandController> {
   }
 
   DataRow _buildDataRow(BuildContext context, ViewBrandDatum brand) {
-    bool isDark = context.isDark;
     return DataRow(
       cells: [
         DataCell(
@@ -148,10 +147,10 @@ class BrandView extends GetView<BrandController> {
         ),
         DataCell(
           IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 18),
+            icon: const Icon(Icons.visibility_outlined, size: 18),
             mouseCursor: SystemMouseCursors.click,
-            color: AppColors.statusBlueInfo,
-            tooltip: 'Edit Brand Details',
+            color: context.isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+            tooltip: 'VIEW ITEMS',
             splashRadius: 18,
             onPressed: () {},
           ),
