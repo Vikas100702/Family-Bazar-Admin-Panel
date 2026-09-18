@@ -5,7 +5,7 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/d
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/view_group_items_model.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/view_items_by_type_model.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class DashboardGroupRepository {
@@ -185,15 +185,15 @@ class DashboardGroupRepository {
     }
   }
 
-  Future<ViewGroupItemsModel> viewGroupItems({required int groupId}) async {
-    const String endpoint = ApiConstants.viewGroupItemsApiEndpoint;
+  Future<ViewItemByTypeModel> viewGroupItems({required int groupId}) async {
+    const String endpoint = ApiConstants.viewItemsByTypeApiEndpoint;
 
     try {
-      final response = await _apiClient.dio.post(endpoint, queryParameters: {'group_id': groupId}, data: '');
+      final response = await _apiClient.dio.post(endpoint, data: {'_id': groupId.toString(), 'type': 'GROUP'});
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
-        return ViewGroupItemsModel.fromJson(responseData);
+        return ViewItemByTypeModel.fromJson(responseData);
       }
 
       throw FormatException('[DashboardGroupRepository.viewGroupItems]: Invalid item data format received from endpoint: $endpoint');
