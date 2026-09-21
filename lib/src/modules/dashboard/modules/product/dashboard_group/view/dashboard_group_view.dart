@@ -11,7 +11,7 @@ import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensi
 import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/controller/dashboard_group_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/view_items_by_type_model.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/shared/models/view_items_by_type_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
