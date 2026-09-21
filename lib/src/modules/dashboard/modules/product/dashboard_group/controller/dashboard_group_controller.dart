@@ -1,12 +1,12 @@
 import 'package:family_bazar_admin_panel/src/core/base_controller/base_table_controller.dart';
+import 'package:family_bazar_admin_panel/src/core/models/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_item_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/view_items_by_type_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/repository/dashboard_group_repository.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/model/item_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/shared/models/view_items_by_type_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -211,9 +211,9 @@ class DashboardGroupController extends BaseTableController<Item> {
       final ViewItemByTypeModel response = await _groupRepository.viewGroupItems(groupId: groupId);
       if (isClosed) return;
 
-      if (response.success && response.data != null) {
-        allGroupItems.assignAll(response.data!.items);
-        setMasterData(response.data!.items);
+      if (response.success) {
+        allGroupItems.assignAll(response.data);
+        setMasterData(response.data);
       } else {
         allGroupItems.clear();
         setMasterData([]);
@@ -428,6 +428,7 @@ class DashboardGroupController extends BaseTableController<Item> {
         scope.setContexts('group_action', {'action': action, 'selected_group_id': selectedGroupId.value, ...?extra});
       },
     );
+    debugPrint("[Dashboard Group Exception]$exception\n$stackTrace");
   }
 
   @override
