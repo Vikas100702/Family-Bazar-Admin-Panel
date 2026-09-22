@@ -1,5 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/binding/dashboard_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/binding/coupon_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/view/coupon_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/binding/firm_setup_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/binding/pincode_settings_binding.dart';
@@ -52,5 +54,6 @@ class AppPages {
       transition: Transition.noTransition,
     ),
     GetPage(name: AppRoutes.brands, page: () => const BrandView(), binding: BrandBinding(), transition: Transition.noTransition),
+    GetPage(name: AppRoutes.coupons, page: () => const CouponView(), binding: CouponBinding(), transition: Transition.noTransition),
   ];
 }
