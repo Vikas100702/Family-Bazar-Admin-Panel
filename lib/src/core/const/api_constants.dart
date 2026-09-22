@@ -5,6 +5,7 @@ abstract final class ApiConstants {
   const ApiConstants._();
 
   static const String baseUrl = "https://abctest.animationmedia.org";
+
   static String resolveImageUrl(String? path) {
     if (path == null || path.trim().isEmpty) return '';
     final cleanPath = path.trim();
@@ -58,4 +59,13 @@ abstract final class ApiConstants {
   /// BRAND APIs
   static const String viewBrandsApiEndpoint = "$baseUrl/api/product/viewBrand";
   static const String updateBrandApiEndpoint = "$baseUrl/api/product/updateBrand";
+
+  /// Coupon APIs
+  static const String viewCouponTypeApiEndpoint = "$baseUrl/api/coupons/couponTypeList";
+  static const String addCouponTypeApiEndpoint = "$baseUrl/api/coupons/addCouponType";
+  static const String viewCouponListApiEndpoint = "$baseUrl/api/coupons/couponList";
+  static const String addCouponListApiEndpoint = "$baseUrl/api/coupons/addCoupon";
+
+  /// Delete API
+  static const String deleteApiEndpoint = "$baseUrl/api/common/delete";
 }
