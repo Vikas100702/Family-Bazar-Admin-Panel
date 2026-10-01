@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 @immutable
 class DrawerMenuModel {
   final String title;
-  final String identifier; // The raw key from API (e.g., 'productCategory')
+  final String identifier; // The raw key from API (e.g., 'Category')
   final String? icon; // API Image URL
   final IconData? fallbackIcon; // For static items (Dashboard) or error fallbacks
   final List<DrawerMenuModel> subItems;
