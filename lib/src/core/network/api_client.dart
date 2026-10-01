@@ -17,7 +17,7 @@ class ApiClient {
   late final Dio _externalDio;
 
   ApiClient._internal() {
-    // 1. Internal Authenticated Dio Instance
+    // Main API client for our own backend (includes auth tokens)
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
@@ -28,7 +28,7 @@ class ApiClient {
       ),
     );
 
-    // 2. Unauthenticated External Dio Instance (For third-party APIs like IPInfo)
+    // External API client for 3rd-party services (no auth tokens)
     _externalDio = Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 10),
@@ -54,7 +54,7 @@ class ApiClient {
               ),
             );
 
-            // SECURITY LOCK: Only attach Bearer token if the request is going to our internal API host
+            // Only attach Bearer token if the request is going to our internal API host
             final uriString = options.uri.toString();
             final baseUrl = _dio.options.baseUrl;
             final isInternalRequest =
@@ -137,6 +137,6 @@ class ApiClient {
   /// Use [dio] for all internal backend requests requiring authentication.
   Dio get dio => _dio;
 
-  /// Use [externalDio] for third-party external services (e.g., IPInfo, public web hooks) to avoid token leakage.
+  /// Use [externalDio] for third-party external services (e.g., IPInfo, public webhooks) to avoid token leakage.
   Dio get externalDio => _externalDio;
 }
