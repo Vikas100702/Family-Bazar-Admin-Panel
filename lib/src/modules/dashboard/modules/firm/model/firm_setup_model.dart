@@ -12,25 +12,25 @@ bool _parseBool(dynamic val) {
 class ViewFirmModel {
   final bool success;
   final String message;
-  final List<Datum> data;
+  final List<ViewFirmDatum> data;
 
-  const ViewFirmModel({this.success = false, this.message = '', this.data = const <Datum>[]});
+  const ViewFirmModel({this.success = false, this.message = '', this.data = const <ViewFirmDatum>[]});
 
-  ViewFirmModel copyWith({bool? success, String? message, List<Datum>? data}) {
+  ViewFirmModel copyWith({bool? success, String? message, List<ViewFirmDatum>? data}) {
     return ViewFirmModel(success: success ?? this.success, message: message ?? this.message, data: data ?? this.data);
   }
 
   factory ViewFirmModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
-      return const ViewFirmModel(success: false, message: 'Empty response payload received', data: <Datum>[]);
+      return const ViewFirmModel(success: false, message: 'Empty response payload received', data: <ViewFirmDatum>[]);
     }
 
     return ViewFirmModel(
       success: _parseBool(json["success"]),
       message: json["message"]?.toString().trim() ?? "",
       data: json["data"] is List
-          ? List<Datum>.from((json["data"] as List).whereType<Map<String, dynamic>>().map((x) => Datum.fromJson(x)))
-          : const <Datum>[],
+          ? List<ViewFirmDatum>.from((json["data"] as List).whereType<Map<String, dynamic>>().map((x) => ViewFirmDatum.fromJson(x)))
+          : const <ViewFirmDatum>[],
     );
   }
 
@@ -41,7 +41,7 @@ class ViewFirmModel {
 }
 
 @immutable
-class Datum {
+class ViewFirmDatum {
   final String fFirmCode;
   final String fFirmName;
   final String fFirmAdd1;
@@ -157,7 +157,7 @@ class Datum {
   final String fBFirmCode;
   final String fOFirmCode;
 
-  const Datum({
+  const ViewFirmDatum({
     this.fFirmCode = '',
     this.fFirmName = '',
     this.fFirmAdd1 = '',
@@ -274,7 +274,7 @@ class Datum {
     this.fOFirmCode = '',
   });
 
-  Datum copyWith({
+  ViewFirmDatum copyWith({
     String? fFirmCode,
     String? fFirmName,
     String? fFirmAdd1,
@@ -390,7 +390,7 @@ class Datum {
     String? fBFirmCode,
     String? fOFirmCode,
   }) {
-    return Datum(
+    return ViewFirmDatum(
       fFirmCode: fFirmCode ?? this.fFirmCode,
       fFirmName: fFirmName ?? this.fFirmName,
       fFirmAdd1: fFirmAdd1 ?? this.fFirmAdd1,
@@ -508,10 +508,10 @@ class Datum {
     );
   }
 
-  factory Datum.fromJson(Map<String, dynamic>? json) {
-    if (json == null) return const Datum();
+  factory ViewFirmDatum.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const ViewFirmDatum();
 
-    return Datum(
+    return ViewFirmDatum(
       fFirmCode: json["f_FirmCode"]?.toString().trim() ?? "",
       fFirmName: json["f_FirmName"]?.toString().trim() ?? "",
       fFirmAdd1: json["f_FirmAdd1"]?.toString().trim() ?? "",
@@ -747,5 +747,5 @@ class Datum {
   };
 
   @override
-  String toString() => 'Datum(fFirmCode: $fFirmCode, fFirmName: $fFirmName, fGstNumber: $fGstNumber, fLocationCode: $fLocationCode)';
+  String toString() => 'ViewFirmDatum(fFirmCode: $fFirmCode, fFirmName: $fFirmName, fGstNumber: $fGstNumber, fLocationCode: $fLocationCode)';
 }
