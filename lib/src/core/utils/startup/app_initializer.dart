@@ -8,7 +8,7 @@ class AppInitializer {
 
   static Future<void> init() async {
     try {
-      WidgetsFlutterBinding.ensureInitialized(); // 1. Mandatory requirement before using SystemChrome or native platform channels
+      WidgetsFlutterBinding.ensureInitialized(); // Required to interact with the platform before the app starts
       final storageService = StorageService();
       await storageService.init();
       Get.put<StorageService>(storageService, permanent: true);
