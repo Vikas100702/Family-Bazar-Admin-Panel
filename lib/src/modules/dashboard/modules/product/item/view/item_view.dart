@@ -7,8 +7,8 @@ import 'package:family_bazar_admin_panel/src/core/global_components/view/table_h
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_image_cell_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/controller/items_controller.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/model/item_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/shared/models/view_items_by_type_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -53,7 +53,7 @@ class ItemsView extends GetView<ItemController> {
               children: [
                 Expanded(
                   child: RepaintBoundary(
-                    child: DataTableWidget<ViewItemDatum>(
+                    child: DataTableWidget<ViewItemByTypeDatum>(
                       items: controller.pagedList,
                       horizontalScrollController: controller.horizontalScrollController,
                       verticalScrollController: controller.verticalScrollController,
@@ -68,7 +68,6 @@ class ItemsView extends GetView<ItemController> {
                         DataColumn(label: Text('ITEM MRP')),
                         DataColumn(label: Text('SALES PRICE')),
                         DataColumn(label: Text('AVAILABLE STOCK')),
-                        DataColumn(label: Text('EU CODE')),
                         DataColumn(label: Text('EAN / BARCODE')),
                         DataColumn(label: Text('CATEGORY')),
                         DataColumn(label: Text('SUB-CATEGORY')),
@@ -97,7 +96,7 @@ class ItemsView extends GetView<ItemController> {
     );
   }
 
-  DataRow _buildDataRow(BuildContext context, ViewItemDatum item) {
+  DataRow _buildDataRow(BuildContext context, ViewItemByTypeDatum item) {
     final isDark = context.isDark;
 
     return DataRow(
@@ -106,8 +105,8 @@ class ItemsView extends GetView<ItemController> {
         DataCell(Text(_formatText(item.iFirmCode))),
         DataCell(
           TableImageCellWidget(
-            webImageUrl: item.iImgW,
-            mobileImageUrl: item.iImgM,
+            webImageUrl: item.imageWeb,
+            mobileImageUrl: item.imageMob,
             uploadType: 'item',
             entityCode: item.iCode,
             entityTitle: item.iName,
@@ -137,22 +136,29 @@ class ItemsView extends GetView<ItemController> {
         DataCell(Text(_formatText(item.sbMRate.toString()))),
         DataCell(Text(_formatText(item.sbRateA.toString()))),
         DataCell(Text(_formatText(item.sbSaleableStock.toString()))),
-        DataCell(Text(_formatText(item.iEuCode))),
-        DataCell(SelectableText(_formatText(item.eanCode), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
+        DataCell(SelectableText(_formatText(item.iBarCode), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
         DataCell(
           SelectableText(
-            _formatText(item.itemGroup),
+            _formatText(item.itemGroupName),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
         DataCell(
           SelectableText(
-            _formatText(item.otherGroup),
+            _formatText(item.otherGroupName),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentGoldAmber : AppColors.statusAmberWarning),
           ),
         ),
 
-        DataCell(StatusBadge(statusValue: item.status, activeLabel: 'Active', inactiveLabel: 'Inactive')),
+        DataCell(
+          StatusBadge(
+            isEditable: true,
+            statusValue: item.iStatus,
+            activeLabel: 'Active',
+            inactiveLabel: 'Inactive',
+            onToggle: (bool val) => controller.toggleItemStatus(item, val),
+          ),
+        ),
         DataCell(
           IconButton(
             icon: const Icon(Icons.visibility_outlined, size: 18),
@@ -167,7 +173,7 @@ class ItemsView extends GetView<ItemController> {
     );
   }
 
-  void _showItemDetails(BuildContext context, ViewItemDatum item) {
+  void _showItemDetails(BuildContext context, ViewItemByTypeDatum item) {
     EntityDetailsDialogHelper.show(
       context: context,
       title: item.iName.isNotEmpty ? item.iName.trim() : "Item",
@@ -178,7 +184,7 @@ class ItemsView extends GetView<ItemController> {
           items: [
             DetailItem(label: 'Item Code', value: item.iCode, isCopyable: true),
             DetailItem(label: 'Item Name', value: item.iName),
-            DetailItem(label: 'EAN / Barcode', value: item.eanCode, isCopyable: true),
+            DetailItem(label: 'EAN / Barcode', value: item.iBarCode, isCopyable: true),
             DetailItem(label: 'Firm Code', value: item.iFirmCode, isCopyable: true),
           ],
         ),
@@ -188,10 +194,6 @@ class ItemsView extends GetView<ItemController> {
             DetailItem(label: 'Category Code', value: item.iItemGroup, isCopyable: true),
             DetailItem(label: 'Sub-Category Code', value: item.iOtherGroup, isCopyable: true),
           ],
-        ),
-        DetailSection(
-          title: '',
-          items: [DetailItem(label: 'EU Code', value: item.iEuCode)],
         ),
       ],
     );
