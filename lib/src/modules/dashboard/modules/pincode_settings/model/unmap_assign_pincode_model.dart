@@ -5,7 +5,6 @@ class UnmapAndAssignPincodeModel {
   final Assignment? oldAssignment;
   final Assignment? newAssignment;
 
-  // Proactive Memory Management: const constructor enables zero-allocation fallback caching
   const UnmapAndAssignPincodeModel({this.success = false, this.status = 0, this.message = '', this.oldAssignment, this.newAssignment});
 
   UnmapAndAssignPincodeModel copyWith({bool? success, int? status, String? message, Assignment? oldAssignment, Assignment? newAssignment}) {
