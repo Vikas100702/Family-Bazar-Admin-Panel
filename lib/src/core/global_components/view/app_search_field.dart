@@ -89,10 +89,20 @@ class _AppSearchFieldState extends State<AppSearchField> {
     });
   }
 
+  void _handleSubmitted(String value) {
+    if (widget.onSubmitted != null) {
+      widget.onSubmitted!(value.trim());
+    }
+  }
+
   void _handleClear() {
     _effectiveController.clear();
     _debounceTimer?.cancel();
     widget.onChanged?.call('');
+    // If server-side search is active, clear should also submit an empty query to reset API
+    if (widget.onSubmitted != null) {
+      widget.onSubmitted!('');
+    }
     widget.onClear?.call();
   }
 
@@ -118,7 +128,7 @@ class _AppSearchFieldState extends State<AppSearchField> {
         controller: _effectiveController,
         autofocus: widget.autofocus,
         onChanged: _handleChanged,
-        onSubmitted: widget.onSubmitted,
+        onSubmitted: _handleSubmitted,
         style: context.bodyTextStyle.copyWith(
           fontSize: context.responsiveSize(13, 13),
           color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
@@ -131,10 +141,16 @@ class _AppSearchFieldState extends State<AppSearchField> {
             fontSize: context.responsiveSize(13, 13),
             color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
           ),
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            size: context.responsiveSize(20, 20),
-            color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
+          prefixIcon: MouseRegion(
+            cursor: widget.onSubmitted != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+            child: GestureDetector(
+              onTap: () => _handleSubmitted(_effectiveController.text),
+              child: Icon(
+                Icons.search_rounded,
+                size: context.responsiveSize(20, 20),
+                color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
+              ),
+            ),
           ),
           suffixIcon: _hasText
               ? IconButton(
@@ -147,7 +163,7 @@ class _AppSearchFieldState extends State<AppSearchField> {
               : null,
           filled: true,
           fillColor: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-          contentPadding: .symmetric(horizontal: context.responsiveWidth(14, 14), vertical: context.responsiveHeight(10, 10)),
+          contentPadding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 14), vertical: context.responsiveHeight(10, 10)),
           border: OutlineInputBorder(
             borderRadius: context.responsiveRadius(8, 8),
             borderSide: BorderSide(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
