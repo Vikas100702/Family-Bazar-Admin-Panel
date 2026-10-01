@@ -129,7 +129,7 @@ class TableImageCellWidget extends StatelessWidget {
             ? Image.network(
                 resolvedUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(placeholderIcon, size: 12, color: Colors.grey),
+                errorBuilder: (_, _, _) => Icon(placeholderIcon, size: 12, color: Colors.grey),
                 loadingBuilder: (_, child, progress) => progress == null
                     ? child
                     : const Center(child: SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5))),
@@ -161,7 +161,6 @@ class TableImageCellWidget extends StatelessWidget {
           entityTitle: entityTitle,
           initialWebImageUrl: webImageUrl,
           initialMobileImageUrl: mobileImageUrl,
-          onLinkEntity: onLinkEntity,
           onSuccess: onSuccess,
           onDismiss: () => Get.back(),
         ),
