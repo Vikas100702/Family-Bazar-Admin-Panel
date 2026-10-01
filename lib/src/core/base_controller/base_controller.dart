@@ -21,7 +21,7 @@ abstract class BaseController extends GetxController {
     try {
       // Wait until the current UI frame is finished before starting the loader
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!isClosed) isLoading(true); // Double-check before mutating state in a new frame
+        if (!isClosed) isLoading(true); // Double-check before mutating state
       });
       await task();
     } on DioException catch (e, stackTrace) {
@@ -31,29 +31,43 @@ abstract class BaseController extends GetxController {
       hasError = true;
       _handleException(e, stackTrace, isNetworkError: false);
     } finally {
-      if (isClosed) return; // defensive check before mutating UI state after a long-running async task
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (isClosed) return;
+      // Avoid 'return' in finally blocks to prevent swallowing control flow[cite: 1].
+      // Guard state mutation using conditional block instead[cite: 1].
+      if (!isClosed) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (isClosed) return;
 
-        isLoading(false);
-        // Only close active dialogs (like loading overlays) if no error or success dialog took over
-        if (!hasError && !_isShowingSuccessMessage && Get.isDialogOpen == true) {
-          Get.back();
-        }
-      });
+          isLoading(false);
+          // Only close active dialogs (like loading overlays) if no error or success dialog took over[cite: 1]
+          if (!hasError && !_isShowingSuccessMessage && Get.isDialogOpen == true) {
+            Get.back();
+          }
+        });
+      }
     }
   }
 
   void _handleException(dynamic e, StackTrace stackTrace, {required bool isNetworkError}) {
     if (isClosed) return;
+
+    Sentry.addBreadcrumb(
+      Breadcrumb(
+        category: 'controller.exception',
+        message: 'Exception intercepted in ${runtimeType.toString()}',
+        level: SentryLevel.error,
+        data: {'isNetworkError': isNetworkError, 'exceptionType': e.runtimeType.toString()},
+      ),
+    );
+
     Sentry.captureException(
       e,
       stackTrace: stackTrace,
       withScope: (scope) {
         scope.setTag('error_type', isNetworkError ? 'network' : 'business_logic');
-        scope.setContexts('Controller Context', {'controller': runtimeType.toString()});
+        scope.setContexts('Controller Context', {'controller': runtimeType.toString(), 'isClosed': isClosed});
       },
     );
+
     debugPrint('--- [BASE CONTROLLER] EXCEPTION CAUGHT ---');
     debugPrint('Type: ${e.runtimeType}');
     debugPrint('Message: ${e.toString()}');
@@ -69,19 +83,19 @@ abstract class BaseController extends GetxController {
         cleanMessage = e.toString().replaceAll('Exception: ', '').trim();
       }
 
-      // Delegating to our centralized DialogHelper
+      // Delegating to centralize DialogHelper
       DialogHelper.showError(message: cleanMessage);
     });
   }
 
   void successMessage({required String title, required String message, VoidCallback? onPressed}) {
-    if(isClosed) return;
+    if (isClosed) return;
     _isShowingSuccessMessage = true;
     DialogHelper.showSuccess(title: title, message: message, onPressed: onPressed);
   }
 
   void errorMessage({String? title, required String message, VoidCallback? onPressed}) {
-    if(isClosed) return;
+    if (isClosed) return;
     DialogHelper.showError(title: title, message: message, onPressed: onPressed);
   }
 }
