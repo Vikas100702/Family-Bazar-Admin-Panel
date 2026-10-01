@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/component/image_upload/model/add_image_model.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/component/image_upload/model/image_upload_model.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:flutter/foundation.dart';
@@ -17,14 +18,6 @@ class ImageUploadRepository {
     required String type, // 'category', 'subcategory', 'item', etc.
   }) async {
     try {
-      Sentry.addBreadcrumb(
-        Breadcrumb(
-          message: 'Initiating multipart image binary upload for type: $type',
-          category: 'media.upload',
-          level: SentryLevel.info,
-          data: {'has_mobile_bytes': mImgBytes != null && mImgBytes.isNotEmpty, 'has_web_bytes': wImgBytes != null && wImgBytes.isNotEmpty},
-        ),
-      );
       if ((mImgBytes == null || mImgBytes.isEmpty) && (wImgBytes == null || wImgBytes.isEmpty)) {
         throw ArgumentError('At least one image (mobile or web) is required.');
       }
@@ -69,6 +62,44 @@ class ImageUploadRepository {
         },
       );
       debugPrint('--- [IMAGE UPLOAD REPOSITORY] Upload failed: $e ---');
+      rethrow;
+    }
+  }
+
+  Future<AddImageModel> addImage({required String imgCode, required String imgType, required String imgM, required String imgW}) async {
+    final String trimmedImgCode = imgCode.trim();
+    final String trimmedImgType = imgType.trim().toUpperCase();
+    final String trimmedImgM = imgM.trim();
+    final String trimmedImgW = imgW.trim();
+
+    if (trimmedImgCode.isEmpty) {
+      throw ArgumentError('ImageCode cannot be empty.');
+    } else if (trimmedImgType.isEmpty) {
+      throw ArgumentError('ImageType cannot be empty.');
+    }
+
+    final Map<String, dynamic> payload = {'ItemCode': trimmedImgCode, 'ItemType': trimmedImgType, 'ImageMob': trimmedImgM, 'ImageWeb': trimmedImgW};
+
+    try {
+      final response = await _apiClient.dio.post(ApiConstants.addImgApiEndpoint, data: payload);
+
+      if (response.data != null && response.data is Map<String, dynamic>) {
+        return AddImageModel.fromJson(response.data as Map<String, dynamic>);
+      }
+
+      throw const FormatException('Invalid response format received from /addImage. Expected JSON Map.');
+    } catch (e, stackTrace) {
+      Sentry.captureException(
+        e,
+        stackTrace: stackTrace,
+        withScope: (scope) {
+          scope.setTag('layer', 'image_upload_repository');
+          scope.setTag('endpoint', ApiConstants.addImgApiEndpoint);
+          scope.setTag('item_type', trimmedImgType);
+          scope.setContexts('add_image_payload', payload);
+        },
+      );
+      debugPrint('--- [IMAGE UPLOAD REPOSITORY] Link Image failed: $e ---');
       rethrow;
     }
   }
