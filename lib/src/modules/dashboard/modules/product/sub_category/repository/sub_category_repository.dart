@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/model/insert_sub_cat_details_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/model/view_sub_category_model.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -10,9 +9,11 @@ class SubCategoryRepository {
 
   const SubCategoryRepository({required this._apiClient});
 
-  Future<ViewSubCategoryModel> viewSubCategories() async {
+  Future<ViewSubCategoryModel> viewSubCategories({int page = 1, int limit = 20, String? searchValue}) async {
+    final String cleanSearch = searchValue?.trim() ?? '';
+    final Map<String, dynamic> payload = {"searchvalue": cleanSearch, "isAdmin": 1, "page": page, "limit": limit};
     try {
-      final response = await _apiClient.dio.post(ApiConstants.viewSubCategoryApiEndpoint);
+      final response = await _apiClient.dio.post(ApiConstants.viewSubCategoryApiEndpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
@@ -45,33 +46,36 @@ class SubCategoryRepository {
     }
   }
 
-  Future<InsertSubCatDetailsModel> addSubCategoryDetails({required String subCatCode, required String mImg, required String wImg}) async {
-    final String trimmedCode = subCatCode.trim();
-    final String trimmedMImg = mImg.trim();
-    final String trimmedWImg = wImg.trim();
+  Future<ViewSubCategoryDatum> updateSubCategoryDetails({required String ogCode, int? status}) async {
+    final String trimmedSubCatCode = ogCode.trim();
 
-    if (trimmedCode.isEmpty) {
-      throw ArgumentError('SubCategory code cannot be empty.');
+    if (trimmedSubCatCode.isEmpty) {
+      throw ArgumentError('Sub category code cannot be empty.');
     }
+    final Map<String, dynamic> payload = {'OG_Code': trimmedSubCatCode, 'status': status};
 
-    final Map<String, dynamic> payload = {'subcat_code': trimmedCode, 'w_img': trimmedWImg, 'm_img': trimmedMImg};
     try {
-      final response = await _apiClient.dio.post(ApiConstants.insertSubCatDetailsApiEndpoint, data: payload);
+      final response = await _apiClient.dio.post(ApiConstants.updateSubCatApiEndpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return InsertSubCatDetailsModel.fromJson(response.data as Map<String, dynamic>);
+        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
+        // Handle both flat JSON or nested 'data' object response
+        final Map<String, dynamic> targetJson = responseData['data'] is Map<String, dynamic>
+            ? responseData['data'] as Map<String, dynamic>
+            : responseData;
+        return ViewSubCategoryDatum.fromJson(targetJson);
       }
 
       throw FormatException(
-        '[SubCategoryRepository.addSubCategoryDetails]: Invalid response format received from endpoint: ${ApiConstants.insertSubCatDetailsApiEndpoint}',
+        '[SubCategoryRepository.updateSubCategoryDetails]: Invalid response format received from endpoint: ${ApiConstants.updateSubCatApiEndpoint}',
       );
     } catch (e, stackTrace) {
       Sentry.addBreadcrumb(
         Breadcrumb(
-          message: 'Failed executing addSubCategoryDetails image association',
+          message: 'Failed executing updateSubCategoryDetails',
           category: 'sub_category.repository',
           level: SentryLevel.error,
-          data: {'subcat_code': trimmedCode, 'has_w_img': trimmedWImg.isNotEmpty, 'has_m_img': trimmedMImg.isNotEmpty, 'error': e.toString()},
+          data: {'OG_Code': trimmedSubCatCode, 'status': status, 'error': e.toString()},
         ),
       );
 
@@ -81,8 +85,8 @@ class SubCategoryRepository {
           stackTrace: stackTrace,
           withScope: (scope) {
             scope.setTag('repository', 'SubCategoryRepository');
-            scope.setTag('action', 'addSubCategoryDetails');
-            scope.setContexts('sub_category_association', {'subcat_code': trimmedCode});
+            scope.setTag('action', 'updateSubCategoryDetails');
+            scope.setContexts('sub_category_association', {'OG_Code': trimmedSubCatCode});
           },
         );
       }
