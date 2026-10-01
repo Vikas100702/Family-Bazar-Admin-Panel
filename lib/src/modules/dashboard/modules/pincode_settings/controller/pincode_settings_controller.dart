@@ -1,6 +1,6 @@
-import 'package:family_bazar_admin_panel/src/core/base_controller/base_table_controller.dart';
+import 'package:family_bazar_admin_panel/src/core/base_controller/base_server_table_controller.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/model/firm_setup_model.dart' as firm_model;
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/model/firm_setup_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/repository/firm_setup_repository.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/model/pincode_settings_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/repository/pincode_settings_repository.dart';
@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-class PincodeSettingsController extends BaseTableController<Datum> {
+class PincodeSettingsController extends BaseServerTableController<Datum> {
   final PincodeSettingsRepository _repository;
   final FirmRepository _firmRepository;
   final StorageService _storageService;
@@ -16,8 +16,8 @@ class PincodeSettingsController extends BaseTableController<Datum> {
   PincodeSettingsController({required this._repository, required this._firmRepository, required this._storageService});
 
   // Firm selection & drop-down reactive state
-  final RxList<firm_model.Datum> firmDropdownList = <firm_model.Datum>[].obs;
-  final Rxn<firm_model.Datum> selectedFirm = Rxn<firm_model.Datum>();
+  final RxList<ViewFirmDatum> firmDropdownList = <ViewFirmDatum>[].obs;
+  final Rxn<ViewFirmDatum> selectedFirm = Rxn<ViewFirmDatum>();
   final RxBool isLoadingFirms = false.obs;
 
   // Form Management
@@ -37,23 +37,19 @@ class PincodeSettingsController extends BaseTableController<Datum> {
     firmCodeController = TextEditingController();
     firmNameController = TextEditingController();
     pinCodeController = TextEditingController();
-    fetchPincodes();
+    fetchServerData();
     fetchFirmsForDropdown();
   }
 
   @override
-  String searchTokenBuilder(Datum item) {
-    return '${item.pPinCode} ${item.pFirmName} ${item.pFirmCode} ${item.userName}';
-  }
-
-  Future<void> fetchPincodes() async {
+  Future<void> fetchServerData() async {
     await runWithLoading(() async {
       try {
-        final response = await _repository.getPincodes();
+        final response = await _repository.getPincodes(page: currentPage.value, limit: itemsPerPage.value, searchValue: searchQuery.value);
         if (isClosed) return;
 
         if (response.status) {
-          setMasterData(response.data);
+          setServerData(data: response.data, totalCount: response.pagination?.totalRecords ?? 0, pageCount: response.pagination?.totalPages);
         } else {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch the pincode list.');
         }
@@ -89,7 +85,7 @@ class PincodeSettingsController extends BaseTableController<Datum> {
     }
   }
 
-  void onFirmSelected(firm_model.Datum? firm) {
+  void onFirmSelected(ViewFirmDatum? firm) {
     selectedFirm.value = firm;
     if (firm != null) {
       firmCodeController.text = firm.fFirmCode;
@@ -102,7 +98,7 @@ class PincodeSettingsController extends BaseTableController<Datum> {
 
   Future<void> refreshPincodes() async {
     await fetchFirmsForDropdown();
-    await fetchPincodes();
+    await fetchServerData();
   }
 
   /// Submits pincode assignment with conflict verification
@@ -116,7 +112,7 @@ class PincodeSettingsController extends BaseTableController<Datum> {
         "P_FirmCode": firmCodeController.text.trim(),
         "P_FirmName": firmNameController.text.trim(),
         "P_PinCode": pinCodeController.text.trim(),
-        if (id != null) "id": id,
+        "id": ?id,
       };
 
       final response = await _repository.addPincode(payload);
@@ -130,7 +126,7 @@ class PincodeSettingsController extends BaseTableController<Datum> {
         addPincodeStatus.value = 0;
         successMessage(title: "Success", message: response.message);
         Get.back();
-        fetchPincodes();
+        fetchServerData();
       } else {
         errorMessage(message: response.message);
       }
@@ -142,7 +138,7 @@ class PincodeSettingsController extends BaseTableController<Datum> {
     }
   }
 
-  /// Unmaps and reassigns an existing pincode mapping
+  /// Unmaps and reassigns existing pincode mapping
   Future<void> confirmAndUnmapPincode() async {
     isSubmitting.value = true;
     try {
@@ -159,7 +155,7 @@ class PincodeSettingsController extends BaseTableController<Datum> {
       if (response.status == 1 || response.success) {
         addPincodeStatus.value = 0;
         successMessage(title: "Success", message: response.message);
-        fetchPincodes();
+        fetchServerData();
       } else {
         errorMessage(message: response.message);
       }
