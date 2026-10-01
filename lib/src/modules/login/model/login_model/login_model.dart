@@ -1,50 +1,37 @@
-class LoginModel {
-  LoginModel({required this.status, required this.message, required this.token, required this.data});
+import 'package:flutter/foundation.dart';
 
+@immutable
+class LoginModel {
   final bool status;
   final String message;
   final String token;
   final Data? data;
 
+  const LoginModel({this.status = false, this.message = '', this.token = '', this.data});
+
+  factory LoginModel.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const LoginModel();
+
+    return LoginModel(
+      status: json['status'] == true || json['status'] == 1 || json['status'] == 'true',
+      message: json['message']?.toString() ?? '',
+      token: json['token']?.toString() ?? '',
+      data: json['data'] != null && json['data'] is Map<String, dynamic> ? Data.fromJson(json['data'] as Map<String, dynamic>) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'status': status, 'message': message, 'token': token, 'data': data?.toJson()};
+
   LoginModel copyWith({bool? status, String? message, String? token, Data? data}) {
     return LoginModel(status: status ?? this.status, message: message ?? this.message, token: token ?? this.token, data: data ?? this.data);
   }
 
-  factory LoginModel.fromJson(Map<String, dynamic> json) {
-    return LoginModel(
-      status: json["status"] ?? false,
-      message: json["message"] ?? "",
-      token: json["token"] ?? "",
-      data: json["data"] == null ? null : Data.fromJson(json["data"]),
-    );
-  }
-
-  Map<String, dynamic> toJson() => {"status": status, "message": message, "token": token, "data": data?.toJson()};
-
   @override
-  String toString() {
-    return "$status, $message, $token, $data, ";
-  }
+  String toString() => 'LoginModel(status: $status, message: $message, token: $token, data: $data)';
 }
 
+@immutable
 class Data {
-  Data({
-    required this.id,
-    required this.roleId,
-    required this.username,
-    required this.firebaseToken,
-    required this.ipAddress,
-    required this.networkLocation,
-    required this.gpsLocation,
-    required this.loginDate,
-    required this.loginTime,
-    required this.timezone,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.roleName,
-    required this.permissions,
-  });
-
   final int id;
   final int roleId;
   final String username;
@@ -58,7 +45,81 @@ class Data {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final String roleName;
-  final Map<String, Permission> permissions;
+
+  /// Pure permissions_new contract: Group Key -> List of Module Permission Items
+  final Map<String, List<PermissionModuleItem>> permissionsNew;
+
+  const Data({
+    this.id = 0,
+    this.roleId = 0,
+    this.username = '',
+    this.firebaseToken = '',
+    this.ipAddress = '',
+    this.networkLocation = '',
+    this.gpsLocation = '',
+    this.loginDate,
+    this.loginTime = '',
+    this.timezone = '',
+    this.createdAt,
+    this.updatedAt,
+    this.roleName = '',
+    this.permissionsNew = const <String, List<PermissionModuleItem>>{},
+  });
+
+  factory Data.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const Data();
+
+    // Defensive parsing for permissions_new schema
+    final Map<String, List<PermissionModuleItem>> parsedPermissions = {};
+    final dynamic rawPermissionsNew = json['permissions_new'];
+
+    if (rawPermissionsNew != null && rawPermissionsNew is Map<String, dynamic>) {
+      rawPermissionsNew.forEach((groupKey, groupList) {
+        if (groupList is List) {
+          final List<PermissionModuleItem> items = groupList
+              .whereType<Map<String, dynamic>>()
+              .map((item) => PermissionModuleItem.fromJson(item))
+              .toList();
+
+          parsedPermissions[groupKey] = items;
+        }
+      });
+    }
+
+    return Data(
+      id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      roleId: json['role_id'] is int ? json['role_id'] as int : int.tryParse(json['role_id']?.toString() ?? '') ?? 0,
+      username: json['username']?.toString() ?? '',
+      firebaseToken: json['firebase_token']?.toString() ?? '',
+      ipAddress: json['ip_address']?.toString() ?? '',
+      networkLocation: json['network_location']?.toString() ?? '',
+      gpsLocation: json['gps_location']?.toString() ?? '',
+      loginDate: DateTime.tryParse(json['login_date']?.toString() ?? ''),
+      loginTime: json['login_time']?.toString() ?? '',
+      timezone: json['timezone']?.toString() ?? '',
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
+      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
+      roleName: json['role_name']?.toString() ?? '',
+      permissionsNew: parsedPermissions,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'role_id': roleId,
+    'username': username,
+    'firebase_token': firebaseToken,
+    'ip_address': ipAddress,
+    'network_location': networkLocation,
+    'gps_location': gpsLocation,
+    'login_date': loginDate?.toIso8601String(),
+    'login_time': loginTime,
+    'timezone': timezone,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+    'role_name': roleName,
+    'permissions_new': permissionsNew.map((key, list) => MapEntry(key, list.map((item) => item.toJson()).toList())),
+  };
 
   Data copyWith({
     int? id,
@@ -74,7 +135,7 @@ class Data {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? roleName,
-    Map<String, Permission>? permissions,
+    Map<String, List<PermissionModuleItem>>? permissionsNew,
   }) {
     return Data(
       id: id ?? this.id,
@@ -90,100 +151,55 @@ class Data {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       roleName: roleName ?? this.roleName,
-      permissions: permissions ?? this.permissions,
+      permissionsNew: permissionsNew ?? this.permissionsNew,
     );
-  }
-
-  factory Data.fromJson(Map<String, dynamic> json) {
-    return Data(
-      id: json["id"] ?? 0,
-      roleId: json["role_id"] ?? 0,
-      username: json["username"] ?? "",
-      firebaseToken: json["firebase_token"] ?? "",
-      ipAddress: json["ip_address"] ?? "",
-      networkLocation: json["network_location"] ?? "",
-      gpsLocation: json["gps_location"] ?? "",
-      loginDate: DateTime.tryParse(json["login_date"] ?? ""),
-      loginTime: json["login_time"] ?? "",
-      timezone: json["timezone"] ?? "",
-      createdAt: DateTime.tryParse(json["created_at"] ?? ""),
-      updatedAt: DateTime.tryParse(json["updated_at"] ?? ""),
-      roleName: json["role_name"] ?? "",
-      permissions: Map.from(json["permissions"]).map((k, v) => MapEntry<String, Permission>(k, Permission.fromJson(v))),
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    "id": id,
-    "role_id": roleId,
-    "username": username,
-    "firebase_token": firebaseToken,
-    "ip_address": ipAddress,
-    "network_location": networkLocation,
-    "gps_location": gpsLocation,
-    "login_date":
-        "${loginDate?.year.toString().padLeft(4, '0')}-${loginDate?.month.toString().padLeft(2, '0')}-${loginDate?.day.toString().padLeft(2, '0')}",
-    "login_time": loginTime,
-    "timezone": timezone,
-    "created_at": createdAt?.toIso8601String(),
-    "updated_at": updatedAt?.toIso8601String(),
-    "role_name": roleName,
-    "permissions": Map.from(permissions).map((k, v) => MapEntry<String, dynamic>(k, v?.toJson())),
-  };
-
-  @override
-  String toString() {
-    return "$id, $roleId, $username, $firebaseToken, $ipAddress, $networkLocation, $gpsLocation, $loginDate, $loginTime, $timezone, $createdAt, $updatedAt, $roleName, $permissions, ";
   }
 }
 
-class Permission {
-  Permission({required this.name, required this.icon, required this.permissions});
-
+@immutable
+class PermissionModuleItem {
   final String name;
-  final dynamic icon;
-  final Permissions? permissions;
+  final String? icon;
+  final ActionPermissions permissions;
 
-  Permission copyWith({String? name, dynamic? icon, Permissions? permissions}) {
-    return Permission(name: name ?? this.name, icon: icon ?? this.icon, permissions: permissions ?? this.permissions);
-  }
+  const PermissionModuleItem({this.name = '', this.icon, this.permissions = const ActionPermissions()});
 
-  factory Permission.fromJson(Map<String, dynamic> json) {
-    return Permission(
-      name: json["name"] ?? "",
-      icon: json["icon"],
-      permissions: json["permissions"] == null ? null : Permissions.fromJson(json["permissions"]),
+  factory PermissionModuleItem.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const PermissionModuleItem();
+
+    return PermissionModuleItem(
+      name: json['name']?.toString().trim() ?? '',
+      icon: json['icon']?.toString(),
+      permissions: json['permissions'] != null && json['permissions'] is Map<String, dynamic>
+          ? ActionPermissions.fromJson(json['permissions'] as Map<String, dynamic>)
+          : const ActionPermissions(),
     );
   }
 
-  Map<String, dynamic> toJson() => {"name": name, "icon": icon, "permissions": permissions?.toJson()};
-
-  @override
-  String toString() {
-    return "$name, $icon, $permissions, ";
-  }
+  Map<String, dynamic> toJson() => {'name': name, 'icon': icon, 'permissions': permissions.toJson()};
 }
 
-class Permissions {
-  Permissions({required this.add, required this.edit, required this.delete, required this.view});
-
+@immutable
+class ActionPermissions {
   final bool add;
   final bool edit;
   final bool delete;
   final bool view;
 
-  Permissions copyWith({bool? add, bool? edit, bool? delete, bool? view}) {
-    return Permissions(add: add ?? this.add, edit: edit ?? this.edit, delete: delete ?? this.delete, view: view ?? this.view);
+  const ActionPermissions({this.add = false, this.edit = false, this.delete = false, this.view = false});
+
+  factory ActionPermissions.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const ActionPermissions();
+
+    bool parseBool(dynamic val) => val == true || val == 1 || val == 'true';
+
+    return ActionPermissions(
+      add: parseBool(json['add']),
+      edit: parseBool(json['edit']),
+      delete: parseBool(json['delete']),
+      view: parseBool(json['view']),
+    );
   }
 
-  factory Permissions.fromJson(Map<String, dynamic> json) {
-    return Permissions(add: json["add"] ?? false, edit: json["edit"] ?? false, delete: json["delete"] ?? false, view: json["view"] ?? false);
-  }
-
-  Map<String, dynamic> toJson() => {"add": add, "edit": edit, "delete": delete, "view": view};
-
-  @override
-  String toString() {
-    return "$add, $edit, $delete, $view, ";
-  }
+  Map<String, dynamic> toJson() => {'add': add, 'edit': edit, 'delete': delete, 'view': view};
 }
