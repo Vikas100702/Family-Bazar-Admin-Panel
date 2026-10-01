@@ -20,11 +20,7 @@ void main() {
       /// Global UI Error Handling
       FlutterError.onError = (FlutterErrorDetails details) {
         FlutterError.presentError(details);
-        Sentry.captureException(
-          details.exception,
-          stackTrace: details.stack,
-          withScope: (scope) => scope.setTag('error_type', 'flutter_ui_error'),
-        );
+        Sentry.captureException(details.exception, stackTrace: details.stack, withScope: (scope) => scope.setTag('error_type', 'flutter_ui_error'));
         debugPrint('==================================================');
         debugPrint('--- [CRITICAL FATAL] FLUTTER UI EXCEPTION ---');
         debugPrint(details.exceptionAsString());
@@ -33,11 +29,7 @@ void main() {
       };
 
       PlatformDispatcher.instance.onError = (error, stackTrace) {
-        Sentry.captureException(
-          error,
-          stackTrace: stackTrace,
-          withScope: (scope) => scope.setTag('error_type', 'platform_dispatcher'),
-        );
+        Sentry.captureException(error, stackTrace: stackTrace, withScope: (scope) => scope.setTag('error_type', 'platform_dispatcher'));
         return true;
       };
 
@@ -48,11 +40,7 @@ void main() {
       }, appRunner: () => runApp(const FamilyBazarAdminApp()));
     },
     (error, stackTrace) async {
-      await Sentry.captureException(
-        error,
-        stackTrace: stackTrace,
-        withScope: (scope) => scope.setTag('error_type', 'unhandled_async_error'),
-      );
+      await Sentry.captureException(error, stackTrace: stackTrace, withScope: (scope) => scope.setTag('error_type', 'unhandled_async_error'));
       debugPrint('==================================================');
       debugPrint('--- [CRITICAL FATAL] UNHANDLED ASYNC EXCEPTION ---');
       debugPrint(error.toString());
@@ -88,9 +76,7 @@ class FamilyBazarAdminApp extends StatelessWidget {
           getPages: AppPages.routes,
           unknownRoute: GetPage(
             name: '/not-found',
-            page: () => const Scaffold(
-              body: Center(child: Text('404 - Route Not Found')),
-            ),
+            page: () => const Scaffold(body: Center(child: Text('404 - Route Not Found'))),
           ),
           defaultTransition: Transition.fadeIn,
           builder: (context, widget) {
