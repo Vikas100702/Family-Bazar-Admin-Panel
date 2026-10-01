@@ -4,15 +4,10 @@ import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services
 import 'package:family_bazar_admin_panel/src/modules/login/controller/login_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/login/repository/login_repository.dart';
 import 'package:get/get.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 class LoginBinding extends Bindings {
   @override
   void dependencies() {
-    // Track dependency injection pipeline
-    Sentry.addBreadcrumb(Breadcrumb(message: 'Initializing LoginBinding dependencies', category: 'binding.init', level: SentryLevel.info));
-
-    //  Memory Management: Lazy Controller Instantiation
     Get.lazyPut<LoginRepository>(() => LoginRepository(apiClient: Get.find<ApiClient>()));
     Get.lazyPut<LoginController>(
       () => LoginController(
