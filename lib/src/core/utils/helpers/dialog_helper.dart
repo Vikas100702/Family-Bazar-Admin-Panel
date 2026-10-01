@@ -13,8 +13,6 @@ abstract final class DialogHelper {
   static bool _isDialogActive = false;
   static bool _isOfflineDialogActive = false;
 
-  /// PUBLIC DIALOG TRIGGERS
-  /// Displays an error dialog
   static void showError({String? title, required String message, VoidCallback? onPressed}) {
     if (Get.overlayContext == null) return;
     _showGlobalDialog(
@@ -27,7 +25,6 @@ abstract final class DialogHelper {
     );
   }
 
-  /// Displays a success dialog
   static void showSuccess({String? title, required String message, VoidCallback? onPressed}) {
     if (Get.overlayContext == null) return;
     _showGlobalDialog(
@@ -40,7 +37,6 @@ abstract final class DialogHelper {
     );
   }
 
-  /// Displays a warning dialog safely
   static void showWarning({String? title, required String message, VoidCallback? onPressed}) {
     if (Get.overlayContext == null) return;
     _showGlobalDialog(
@@ -53,8 +49,6 @@ abstract final class DialogHelper {
     );
   }
 
-  /// Displays an informational notice dialog
-  /// Displays an informational notice dialog safely
   static void showInfo({String? title, required String message, VoidCallback? onPressed}) {
     if (Get.overlayContext == null) return;
     _showGlobalDialog(
@@ -67,7 +61,6 @@ abstract final class DialogHelper {
     );
   }
 
-  // CORE DIALOG GENERATOR WITH CONCURRENCY LOCK
   static void _showGlobalDialog({
     required String title,
     required String message,
@@ -84,7 +77,7 @@ abstract final class DialogHelper {
     _isDialogActive = true;
     Get.dialog<void>(
       PopScope(
-        canPop: false,
+        canPop: false, // Prevents closing the dialog via the system back button
         child: Builder(
           builder: (context) {
             final isDark = context.isDark;
@@ -163,7 +156,6 @@ abstract final class DialogHelper {
     });
   }
 
-  // OFFLINE CONNECTION RESILIENCE DIALOG
   static void showOfflineDialog() {
     if (Get.overlayContext == null || _isOfflineDialogActive) return;
 
@@ -176,7 +168,7 @@ abstract final class DialogHelper {
 
     Get.dialog<void>(
       PopScope(
-        canPop: false,
+        canPop: false, // Prevents closing the dialog via the system back button
         child: Builder(
           builder: (context) {
             final isDark = context.isDark;
@@ -228,7 +220,6 @@ abstract final class DialogHelper {
     });
   }
 
-  /// Utility to safely dismiss the offline dialog once connectivity restores
   static void dismissOfflineDialog() {
     if (_isOfflineDialogActive && Get.isDialogOpen == true) {
       Get.back();
@@ -248,7 +239,7 @@ abstract final class DialogHelper {
   }) {
     if (Get.overlayContext == null) return;
 
-    // Concurrency Lock: Tear down any currently open dialog before mounting
+    // Close any existing dialog before showing the new one
     if (_isDialogActive || _isOfflineDialogActive) {
       if (Get.isDialogOpen == true) {
         Get.back();
@@ -259,7 +250,7 @@ abstract final class DialogHelper {
 
     Get.dialog<void>(
       PopScope(
-        canPop: false, // Strict protection against accidental backdrop clicks
+        canPop: false, // Prevents closing the dialog via the system back button
         child: Builder(
           builder: (context) {
             final isDark = context.isDark;
