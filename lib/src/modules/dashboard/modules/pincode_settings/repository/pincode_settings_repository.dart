@@ -11,15 +11,23 @@ class PincodeSettingsRepository {
 
   const PincodeSettingsRepository({required this._apiClient});
 
-  Future<PincodeModel> getPincodes() async {
+  Future<PincodeModel> getPincodes({int page = 1, int limit = 20, String? searchValue}) async {
+    final String cleanSearch = searchValue?.trim() ?? '';
+    final Map<String, dynamic> payload = {"searchvalue": cleanSearch, "isAdmin": 1, "page": page, "limit": limit};
+
     try {
-      final response = await _apiClient.dio.post(ApiConstants.getPincodeApiEndpoint);
+      final response = await _apiClient.dio.post(ApiConstants.getPincodeApiEndpoint, data: payload);
       if (response.data != null && response.data is Map<String, dynamic>) {
         final data = response.data as Map<String, dynamic>;
         if (data['status'] == true) {
           return PincodeModel.fromJson(data);
         } else {
-          return PincodeModel(status: false, message: data['message']?.toString() ?? 'Failed to fetch pincode data.', data: const []);
+          return PincodeModel(
+            status: false,
+            message: data['message']?.toString() ?? 'Failed to fetch pincode data.',
+            data: const [],
+            pagination: data['pagination'],
+          );
         }
       }
       throw FormatException(
