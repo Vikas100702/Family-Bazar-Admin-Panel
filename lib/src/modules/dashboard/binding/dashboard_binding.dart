@@ -1,4 +1,5 @@
 import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_controller.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/binding/coupon_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/binding/drawer_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/binding/firm_setup_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/binding/pincode_settings_binding.dart';
@@ -16,7 +17,7 @@ class DashboardBinding extends Bindings {
     Sentry.addBreadcrumb(
       Breadcrumb(message: 'Initializing DashboardBinding SPA shell dependencies', category: 'binding.init', level: SentryLevel.info),
     );
-    // 1. Proactive Memory Management: Lazy load the parent SPA Router
+    // Load the main Dashboard controller only when it is actually needed
     Get.lazyPut<DashboardController>(() => DashboardController());
 
     DrawerBinding().dependencies();
@@ -27,5 +28,6 @@ class DashboardBinding extends Bindings {
     ItemBinding().dependencies();
     DashboardGroupBinding().dependencies();
     BrandBinding().dependencies();
+    CouponBinding().dependencies();
   }
 }
