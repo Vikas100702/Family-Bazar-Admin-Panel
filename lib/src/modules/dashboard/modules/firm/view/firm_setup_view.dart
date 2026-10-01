@@ -50,7 +50,7 @@ class FirmView extends GetView<FirmController> {
               children: [
                 Expanded(
                   child: RepaintBoundary(
-                    child: DataTableWidget<Datum>(
+                    child: DataTableWidget<ViewFirmDatum>(
                       items: controller.pagedList.toList(),
                       horizontalScrollController: controller.horizontalScrollController,
                       verticalScrollController: controller.verticalScrollController,
@@ -88,7 +88,7 @@ class FirmView extends GetView<FirmController> {
     );
   }
 
-  DataRow _buildDataRow(BuildContext context, Datum firm) {
+  DataRow _buildDataRow(BuildContext context, ViewFirmDatum firm) {
     final isDark = context.isDark;
     final address = [firm.fFirmAdd1, firm.fFirmAdd2, firm.fFirmAdd3].where((part) => part.trim().isNotEmpty).join(', ');
 
@@ -124,7 +124,7 @@ class FirmView extends GetView<FirmController> {
             child: Tooltip(
               message: address.isEmpty ? 'N/A' : address,
               waitDuration: const Duration(milliseconds: 400),
-              child: Text(address.isEmpty ? 'N/A' : address, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.captionStyle),
+              child: Text(address.isEmpty ? 'N/A' : address, maxLines: 3, overflow: TextOverflow.ellipsis, style: context.captionStyle),
             ),
           ),
         ),
@@ -147,7 +147,7 @@ class FirmView extends GetView<FirmController> {
     );
   }
 
-  void _inspectFirmDetails(BuildContext context, Datum firm) {
+  void _inspectFirmDetails(BuildContext context, ViewFirmDatum firm) {
     EntityDetailsDialogHelper.show(
       context: context,
       title: firm.fFirmName.isNotEmpty ? firm.fFirmName.trim() : 'Firm Details',
