@@ -3,7 +3,7 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/mode
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/repository/firm_setup_repository.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-class FirmController extends BaseTableController<Datum> {
+class FirmController extends BaseTableController<ViewFirmDatum> {
   final FirmRepository _firmRepository;
 
   FirmController({required this._firmRepository});
@@ -15,7 +15,7 @@ class FirmController extends BaseTableController<Datum> {
   }
 
   @override
-  String searchTokenBuilder(Datum item) {
+  String searchTokenBuilder(ViewFirmDatum item) {
     return '${item.fFirmCode} ${item.fFirmName} ${item.fGstNumber} ${item.fLocationCode} ${item.fPinCode}';
   }
 
