@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/model/category_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/model/insert_cat_details_model.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class CategoryRepository {
@@ -10,9 +9,12 @@ class CategoryRepository {
 
   const CategoryRepository({required this._apiClient});
 
-  Future<ViewCategoryModel> viewCategories() async {
+  Future<ViewCategoryModel> viewCategories({int page = 1, int limit = 20, String? searchValue}) async {
+    final String cleanSearch = searchValue?.trim() ?? '';
+    final Map<String, dynamic> payload = {"searchvalue": cleanSearch, "isAdmin": 1, "page": page, "limit": limit};
+
     try {
-      final response = await _apiClient.dio.post(ApiConstants.viewCategoryApiEndpoint);
+      final response = await _apiClient.dio.post(ApiConstants.viewCategoryApiEndpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
@@ -39,33 +41,36 @@ class CategoryRepository {
     }
   }
 
-  Future<AddCatDetailsModel> addCategoryDetails({required String catCode, required String mImg, required String wImg}) async {
+  Future<ViewCategoryDatum> updateCategoryDetails({required String catCode, int? status}) async {
     final String trimmedCatCode = catCode.trim();
-    final String trimmedMImg = mImg.trim();
-    final String trimmedWImg = wImg.trim();
 
     if (trimmedCatCode.isEmpty) {
       throw ArgumentError('Category code cannot be empty.');
     }
-    final Map<String, dynamic> payload = {'cat_code': trimmedCatCode, 'w_img': trimmedWImg, 'm_img': trimmedMImg};
+    final Map<String, dynamic> payload = {'IG_Code': trimmedCatCode, 'status': status};
 
     try {
-      final response = await _apiClient.dio.post(ApiConstants.insertCategoryDetailsApiEndpoint, data: payload);
+      final response = await _apiClient.dio.post(ApiConstants.updateCategoryApiEndpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return AddCatDetailsModel.fromJson(response.data as Map<String, dynamic>);
+        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
+        // Handle both flat JSON or nested 'data' object response
+        final Map<String, dynamic> targetJson = responseData['data'] is Map<String, dynamic>
+            ? responseData['data'] as Map<String, dynamic>
+            : responseData;
+        return ViewCategoryDatum.fromJson(targetJson);
       }
 
       throw FormatException(
-        '[CategoryRepository.addCategoryDetails]: Invalid response format received from endpoint: ${ApiConstants.insertCategoryDetailsApiEndpoint}',
+        '[CategoryRepository.updateCategoryDetails]: Invalid response format received from endpoint: ${ApiConstants.updateCategoryApiEndpoint}',
       );
     } catch (e, stackTrace) {
       Sentry.addBreadcrumb(
         Breadcrumb(
-          message: 'Failed executing addCategoryDetails image association',
+          message: 'Failed executing updateCategoryDetails',
           category: 'category.repository',
           level: SentryLevel.error,
-          data: {'cat_code': trimmedCatCode, 'has_w_img': trimmedWImg.isNotEmpty, 'has_m_img': trimmedMImg.isNotEmpty, 'error': e.toString()},
+          data: {'IG_Code': trimmedCatCode, 'status': status, 'error': e.toString()},
         ),
       );
 
@@ -75,8 +80,8 @@ class CategoryRepository {
           stackTrace: stackTrace,
           withScope: (scope) {
             scope.setTag('repository', 'CategoryRepository');
-            scope.setTag('action', 'addCategoryDetails');
-            scope.setContexts('category_association', {'cat_code': trimmedCatCode});
+            scope.setTag('action', 'updateCategoryDetails');
+            scope.setContexts('category_association', {'IG_Code': trimmedCatCode});
           },
         );
       }
