@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// 1. CONTEXT EXTENSIONS (Layout, Responsive Sizing & Theme Typography)
+/// CONTEXT EXTENSIONS (Layout, Responsive Sizing & Theme Typography)
 extension UIContextExt on BuildContext {
-  // --- Screen Information ---
+  // Screen Information
   bool get isMobile => ResponsiveLayout.isMobile(this);
   bool get isTablet => ResponsiveLayout.isTablet(this);
   bool get isDesktop => ResponsiveLayout.isDesktop(this);
@@ -21,7 +21,7 @@ extension UIContextExt on BuildContext {
   double responsiveHeight(double mobileHeight, double desktopHeight) => isMobile ? mobileHeight.h : desktopHeight;
   BorderRadius responsiveRadius(double mobileRadius, double desktopRadius) => BorderRadius.circular(isMobile ? mobileRadius.r : desktopRadius);
 
-  // --- Semantic Typography Hierarchy (Enterprise Web & Mobile Scaled) ---
+  // Responsive Typography (Auto-scales for Mobile & Desktop)
   TextStyle get mainHeadingTextStyle => GoogleFonts.poppins(
     fontSize: isMobile ? 22.sp : 28,
     color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
@@ -59,7 +59,7 @@ extension UIContextExt on BuildContext {
     fontWeight: FontWeight.w400,
   );
 
-  // --- Structural Surface Decorations ---
+  // Structural Surface Decorations
   BoxDecoration get defaultDecoration => BoxDecoration(
     color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
     borderRadius: BorderRadius.circular(isMobile ? 8.r : 10),
@@ -81,9 +81,9 @@ extension UIContextExt on BuildContext {
   );
 }
 
-/// 2. DATA TYPE EXTENSIONS (Int, String)
+/// DATA TYPE EXTENSIONS (Int, String)
 extension IntExt on int {
-  /// Converts numerical metrics to standard abbreviated strings (e.g., 1.5K, 2.4M)
+  // Converts numerical metrics to standard abbreviated strings (e.g., 1.5K, 2.4M)
   String formatAsK() {
     if (this >= 1000000) {
       return this % 1000000 == 0 ? '${(this / 1000000).toStringAsFixed(0)}M' : '${(this / 1000000).toStringAsFixed(1)}M';
@@ -109,7 +109,7 @@ extension StringExtensions on String {
     return parsedDouble.toStringAsFixed(fractionDigits);
   }
 
-  /// Strips raw HTML tags from API payloads to prevent XSS and layout breakage
+  /// Removes HTML tags to prevent malicious scripts (XSS) and formatting issues.
   String removeHtmlTags() {
     if (trim().isEmpty) return "";
     return replaceAll(
