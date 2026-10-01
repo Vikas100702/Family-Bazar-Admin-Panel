@@ -37,8 +37,6 @@ class ComingSoonView extends StatelessWidget {
                   child: Icon(icon, size: context.responsiveSize(36, 48), color: AppColors.primaryRed),
                 ),
                 SizedBox(height: context.responsiveHeight(20, 28)),
-
-                // Module Title
                 Text(
                   title,
                   style: context.titleStyleActive.copyWith(fontSize: context.responsiveSize(18, 22), letterSpacing: -0.3),
@@ -56,8 +54,6 @@ class ComingSoonView extends StatelessWidget {
                   textAlign: .center,
                 ),
                 SizedBox(height: context.responsiveHeight(20, 28)),
-
-                // Status Indicator
                 Container(
                   padding: const .symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
