@@ -12,8 +12,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
   final VoidCallback? onDismiss;
   final String entityCode;
   final String? entityTitle;
-  final String uploadType; // e.g. 'category', 'subcategory', 'item'
-  final EntityLinkCallback? onLinkEntity;
+  final String uploadType; // e.g. 'CATEGORY', 'ITEM', 'BRAND'
   final VoidCallback? onSuccess;
   final String? initialWebImageUrl;
   final String? initialMobileImageUrl;
@@ -23,7 +22,6 @@ class ImageUploadView extends GetView<ImageUploadController> {
     required this.entityCode,
     this.entityTitle,
     this.uploadType = '',
-    this.onLinkEntity,
     this.onSuccess,
     this.onDismiss,
     this.initialWebImageUrl,
@@ -32,13 +30,11 @@ class ImageUploadView extends GetView<ImageUploadController> {
 
   @override
   Widget build(BuildContext context) {
-    // Post-frame dispatch avoids "markNeedsBuild() called during build" errors
+    // Wait for the frame to finish to avoid "build phase" errors when updating the controller
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Synchronize the entity data and callback into the controller
       controller.configureEntity(
         entityCode: entityCode,
         type: uploadType,
-        onLinkEntity: onLinkEntity,
         onSuccess: onSuccess,
         initialWebImageUrl: initialWebImageUrl,
         initialMobileImageUrl: initialMobileImageUrl,
@@ -46,15 +42,14 @@ class ImageUploadView extends GetView<ImageUploadController> {
     });
 
     final isDark = context.isDark;
-    // final mediaQuery = MediaQuery.sizeOf(context);
 
     return Container(
-      width: .infinity,
+      width: double.infinity,
       constraints: BoxConstraints(maxWidth: 840, maxHeight: context.screenHeight * 0.92),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
         borderRadius: context.responsiveRadius(12, 16),
-        border: .all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
+        border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
@@ -63,10 +58,10 @@ class ImageUploadView extends GetView<ImageUploadController> {
           ),
         ],
       ),
-      padding: .all(context.responsiveSize(20, 28)),
+      padding: EdgeInsets.all(context.responsiveSize(20, 28)),
       child: Column(
-        mainAxisSize: .min,
-        crossAxisAlignment: .stretch,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(context),
           SizedBox(height: context.responsiveHeight(16, 20)),
@@ -74,8 +69,8 @@ class ImageUploadView extends GetView<ImageUploadController> {
             child: SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
               child: Column(
-                mainAxisSize: .min,
-                crossAxisAlignment: .stretch,
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildUploadGrid(context),
                   SizedBox(height: context.responsiveHeight(14, 18)),
@@ -91,7 +86,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
     );
   }
 
-  /// DIALOG HEADER
+  // DIALOG HEADER
   Widget _buildHeader(BuildContext context) {
     final isDark = context.isDark;
     final String resolvedTitle = entityTitle != null && entityTitle!.trim().isNotEmpty
@@ -99,20 +94,20 @@ class ImageUploadView extends GetView<ImageUploadController> {
         : (uploadType.isNotEmpty ? '${uploadType[0].toUpperCase()}${uploadType.substring(1)}' : 'Asset');
 
     return Row(
-      mainAxisAlignment: .spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
           child: Row(
             children: [
               Container(
-                padding: .all(context.responsiveSize(8, 10)),
+                padding: EdgeInsets.all(context.responsiveSize(8, 10)),
                 decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: context.responsiveRadius(8, 10)),
                 child: Icon(Icons.cloud_upload_outlined, color: AppColors.primaryRed, size: context.responsiveSize(20, 24)),
               ),
               SizedBox(width: context.responsiveWidth(12, 14)),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: .start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Upload Media: $resolvedTitle',
@@ -151,7 +146,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
     );
   }
 
-  // 2. RESPONSIVE DUAL-DROP ZONE GRID
+  // RESPONSIVE DUAL-DROPZONE GRID
   Widget _buildUploadGrid(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -184,7 +179,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
           );
         }
         return Row(
-          crossAxisAlignment: .start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: _buildDropzone(
@@ -217,6 +212,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
     );
   }
 
+  // INDIVIDUAL ASSET DROPZONE
   Widget _buildDropzone({
     required BuildContext context,
     required String title,
@@ -257,10 +253,10 @@ class ImageUploadView extends GetView<ImageUploadController> {
         ),
         padding: EdgeInsets.all(context.responsiveSize(14, 16)),
         child: Column(
-          crossAxisAlignment: .stretch,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
-              mainAxisAlignment: .spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   title,
@@ -268,14 +264,14 @@ class ImageUploadView extends GetView<ImageUploadController> {
                 ),
                 if (isUploaded)
                   Container(
-                    padding: const .symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: AppColors.statusGreenSuccess.withValues(alpha: 0.12),
-                      borderRadius: .circular(20),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AppColors.statusGreenSuccess.withValues(alpha: 0.3)),
                     ),
                     child: const Row(
-                      mainAxisSize: .min,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.check_circle, size: 12, color: AppColors.statusGreenSuccess),
                         SizedBox(width: 4),
@@ -320,21 +316,21 @@ class ImageUploadView extends GetView<ImageUploadController> {
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
                     borderRadius: context.responsiveRadius(8, 10),
-                    border: .all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+                    border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: hasSelection
                       ? Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.memory(bytes, fit: isMobile ? .contain : .cover),
+                            Image.memory(bytes, fit: isMobile ? BoxFit.contain : BoxFit.cover),
                             Positioned(
                               bottom: 0,
                               left: 0,
                               right: 0,
                               child: Container(
                                 color: Colors.black.withValues(alpha: 0.65),
-                                padding: const .symmetric(horizontal: 8, vertical: 5),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                                 child: Text(
                                   fileName ?? 'Selected Media Asset',
                                   maxLines: 1,
@@ -350,9 +346,11 @@ class ImageUploadView extends GetView<ImageUploadController> {
                                 fit: StackFit.expand,
                                 children: [
                                   CachedNetworkImage(
-                                    imageUrl: uploadedUrl.startsWith('http') ? uploadedUrl : '${ApiConstants.baseUrl}$uploadedUrl',
+                                    imageUrl: _resolveImageUrl(uploadedUrl),
                                     fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                                    errorWidget: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+                                    errorWidget: (_, _, _) {
+                                      return const Center(child: Icon(Icons.broken_image, color: Colors.grey));
+                                    },
                                   ),
                                   Positioned(
                                     bottom: 0,
@@ -396,10 +394,10 @@ class ImageUploadView extends GetView<ImageUploadController> {
             if (hasError) ...[
               SizedBox(height: context.responsiveHeight(8, 10)),
               Container(
-                padding: const .symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.statusRedError.withValues(alpha: 0.08),
-                  borderRadius: .circular(6),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: AppColors.statusRedError.withValues(alpha: 0.25)),
                 ),
                 child: Row(
@@ -428,11 +426,11 @@ class ImageUploadView extends GetView<ImageUploadController> {
       final String msg = controller.uploadStatusMessage.value;
       if (msg.isEmpty) return const SizedBox.shrink();
       return Container(
-        padding: .symmetric(horizontal: context.responsiveWidth(12, 14), vertical: context.responsiveHeight(8, 10)),
+        padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(12, 14), vertical: context.responsiveHeight(8, 10)),
         decoration: BoxDecoration(
           color: AppColors.statusGreenSuccess.withValues(alpha: 0.08),
           borderRadius: context.responsiveRadius(6, 8),
-          border: .all(color: AppColors.statusGreenSuccess.withValues(alpha: 0.3)),
+          border: Border.all(color: AppColors.statusGreenSuccess.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -455,7 +453,7 @@ class ImageUploadView extends GetView<ImageUploadController> {
     final isDark = context.isDark;
 
     return Row(
-      mainAxisAlignment: .end,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         TextButton(
           onPressed: () {
@@ -493,13 +491,22 @@ class ImageUploadView extends GetView<ImageUploadController> {
               foregroundColor: AppColors.onPrimaryWhite,
               disabledBackgroundColor: AppColors.primaryRed.withValues(alpha: 0.5),
               disabledForegroundColor: Colors.white70,
-              padding: .symmetric(horizontal: context.responsiveWidth(18, 24), vertical: context.responsiveHeight(12, 16)),
+              padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(18, 24), vertical: context.responsiveHeight(12, 16)),
               shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(8, 10)),
             ),
           );
         }),
       ],
     );
+  }
+
+  static String _resolveImageUrl(String path) {
+    if (path.isEmpty) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    const String baseDomain = ApiConstants.baseUrl;
+    final String cleanBase = baseDomain.endsWith('/') ? baseDomain.substring(0, baseDomain.length - 1) : baseDomain;
+    final String cleanPath = path.startsWith('/') ? path : '/$path';
+    return '$cleanBase$cleanPath';
   }
 }
 
