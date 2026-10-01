@@ -11,11 +11,10 @@ import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensi
 import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/controller/dashboard_group_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/shared/models/view_items_by_type_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/shared/models/view_items_by_type_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 class DashboardGroupView extends GetView<DashboardGroupController> {
   const DashboardGroupView({super.key});
@@ -50,7 +49,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
               rxIsRefreshing: controller.isLoading,
               refreshTooltip: 'Refresh Group & Items',
               extraActions: [
-                // 1. Add Group Button
+                // Add Group Button
                 ElevatedButton.icon(
                   onPressed: () => _openAddGroupDialog(context),
                   icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
@@ -62,7 +61,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   ),
                 ),
 
-                // 2. Add Items Button
+                // Add Items Button
                 ElevatedButton.icon(
                   onPressed: () => _openAddGroupItemsModal(context),
                   icon: const Icon(Icons.playlist_add_rounded, size: 18),
@@ -90,7 +89,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
     final isDark = context.isDark;
 
     return Container(
-      width: .infinity,
+      width: double.infinity,
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(10),
@@ -102,10 +101,12 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: controller.groupList.map((group) {
-              return _buildTabItem(context, group, isDark);
-            }).toList(),
+          child: Obx(
+            () => Row(
+              children: controller.groupList.map((group) {
+                return _buildTabItem(context, group, isDark);
+              }).toList(),
+            ),
           ),
         ),
       ),
@@ -114,7 +115,8 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
 
   Widget _buildTabItem(BuildContext context, ViewDashboardGroupDatum group, bool isDark) {
     return Obx(() {
-      final isSelected = controller.selectedGroupId.value == group.groupId;
+      final isSelected = controller.selectedGroupId.value == group.id;
+      final String mobImg = (group.imImageMob).trim();
 
       return Padding(
         padding: const EdgeInsets.only(right: 8.0),
@@ -143,16 +145,14 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (group.gImgM != null && group.gImgM!.trim().isNotEmpty)
+                  if (mobImg.isNotEmpty)
                     ClipOval(
                       child: Image.network(
-                        group.gImgM!.startsWith('http')
-                            ? group.gImgM!
-                            : '${ApiConstants.baseUrl}${group.gImgM!.startsWith('/') ? '' : '/'}${group.gImgM}',
+                        mobImg.startsWith('http') ? mobImg : '${ApiConstants.baseUrl}${mobImg.startsWith('/') ? '' : '/'}$mobImg',
                         width: 18,
                         height: 18,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(
+                        errorBuilder: (_, _, _) => Icon(
                           Icons.category_rounded,
                           size: 15,
                           color: isSelected ? Colors.white : (isDark ? AppColors.textSecondaryMuted : AppColors.textSecondarySlate),
@@ -167,7 +167,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                     ),
                   const SizedBox(width: 8),
                   Text(
-                    group.groupName,
+                    group.dgName,
                     style: TextStyle(
                       fontSize: context.responsiveSize(12, 13),
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
@@ -207,9 +207,9 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                           color: isSelected ? Colors.white : (isDark ? AppColors.primaryRedLight : AppColors.primaryRedDark),
                           onPressed: () => DialogHelper.showDeleteDialog(
                             title: 'Delete Dashboard Group',
-                            itemName: group.groupName,
+                            itemName: group.dgName,
                             message:
-                                'Are you sure you want to delete group "${group.groupName.trim()}"? Items associated with this group will be unlinked.',
+                                'Are you sure you want to delete group "${group.dgName.trim()}"? Items associated with this group will be unlinked.',
                             onConfirm: () => controller.deleteGroup(group),
                           ),
                         ),
@@ -249,8 +249,8 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         children: [
           Expanded(
             child: RepaintBoundary(
-              child: DataTableWidget<Item>(
-                items: controller.pagedGroupItems,
+              child: DataTableWidget<ViewItemByTypeDatum>(
+                items: controller.pagedGroupItems.toList(),
                 horizontalScrollController: controller.horizontalScrollController,
                 verticalScrollController: controller.verticalScrollController,
                 emptyTitle: 'No Items Assigned to This Group',
@@ -288,8 +288,9 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
     });
   }
 
-  DataRow _buildDataRow(BuildContext context, Item item) {
+  DataRow _buildDataRow(BuildContext context, ViewItemByTypeDatum item) {
     final isDark = context.isDark;
+    final int stock = int.tryParse(item.sbSaleableStock?.toString().trim() ?? '') ?? 0;
 
     return DataRow(
       cells: [
@@ -297,8 +298,8 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         DataCell(Text(item.iFirmCode.isEmpty ? 'N/A' : item.iFirmCode)),
         DataCell(
           TableImageCellWidget(
-            webImageUrl: item.iImgM.toString(),
-            mobileImageUrl: item.iImgW.toString(),
+            webImageUrl: (item.imageWeb).toString().trim(),
+            mobileImageUrl: (item.imageMob).toString().trim(),
             uploadType: 'item',
             entityCode: item.iCode,
             entityTitle: item.iName,
@@ -326,27 +327,27 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         ),
         DataCell(Text(item.iItemGroup.trim().isEmpty ? '—' : item.iItemGroup)),
         DataCell(Text(item.iOtherGroup.trim().isEmpty ? '—' : item.iOtherGroup)),
-        DataCell(Text('₹${item.sbMRate.toStringAsFixed(0)}', style: context.titleStyleRegular)),
+        DataCell(Text('₹${_formatPrice(item.sbMRate)}', style: context.titleStyleRegular)),
         DataCell(
           Text(
-            '₹${item.sbRateA.toStringAsFixed(0)}',
-            style: context.titleStyleRegular.copyWith(color: context.isDarkMode ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
+            '₹${_formatPrice(item.sbRateA)}',
+            style: context.titleStyleRegular.copyWith(color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
         DataCell(
           Text(
-            '${item.sbSaleableStock}',
+            '$stock',
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: item.sbSaleableStock > 0 ? (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate) : AppColors.statusRedError,
+              color: stock > 0 ? (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate) : AppColors.statusRedError,
             ),
           ),
         ),
-        DataCell(StatusBadge(statusValue: item.status, activeLabel: 'Active', inactiveLabel: 'Inactive')),
+        DataCell(StatusBadge(statusValue: item.iStatus, activeLabel: 'Active', inactiveLabel: 'Inactive')),
         DataCell(
           Row(
-            mainAxisAlignment: .spaceEvenly,
-            crossAxisAlignment: .center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               IconButton(
                 icon: const Icon(Icons.visibility_outlined, size: 18),
@@ -431,7 +432,10 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   },
                   onFieldSubmitted: (_) async {
                     final success = await controller.createGroup();
-                    if (success) Get.back();
+                    if (success) {
+                      Get.back();
+                      controller.successMessage(title: 'Success', message: 'Group added successfully.');
+                    }
                   },
                 ),
                 const SizedBox(height: 24),
@@ -440,17 +444,30 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   children: [
                     TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
                     const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final success = await controller.createGroup();
-                        if (success) Get.back();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryRed,
-                        foregroundColor: AppColors.onPrimaryWhite,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    Obx(
+                      () => ElevatedButton(
+                        onPressed: controller.isLoading.value
+                            ? null
+                            : () async {
+                                final success = await controller.createGroup();
+                                if (success) {
+                                  Get.back();
+                                  controller.successMessage(title: 'Success', message: 'Group added successfully.');
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryRed,
+                          foregroundColor: AppColors.onPrimaryWhite,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                        child: controller.isLoading.value
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                              )
+                            : const Text('Save Group'),
                       ),
-                      child: const Text('Save Group'),
                     ),
                   ],
                 ),
@@ -473,8 +490,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         elevation: 0,
         insetPadding: EdgeInsets.symmetric(horizontal: context.responsiveSize(16, 32), vertical: context.responsiveSize(16, 24)),
         child: Container(
-          width: 720,
-          height: 650,
+          constraints: BoxConstraints(maxWidth: 720, maxHeight: MediaQuery.sizeOf(context).height * 0.85),
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(14),
@@ -493,20 +509,31 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                       children: [
                         Obx(
                           () => Text(
-                            'Add Items to ${controller.selectedGroup.value?.groupName ?? "Group"}',
-                            style: context.titleStyleActive.copyWith(fontSize: 18),
+                            'Add Items to ${controller.selectedGroup.value?.dgName ?? "Group"}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 4),
                         Obx(
                           () => Text(
-                            'Selected: ${controller.selectedItemIdsToAdd.length} items',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryRed),
+                            'Selected: ${controller.selectedItemCodeToAdd.length} items',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryRed),
                           ),
                         ),
                       ],
                     ),
-                    IconButton(icon: const Icon(Icons.close_rounded, size: 20), onPressed: () => Get.back()),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildFirmDropdown(context),
+                        const SizedBox(width: 8),
+                        IconButton(icon: const Icon(Icons.close_rounded, size: 20), onPressed: () => Get.back()),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -539,37 +566,58 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   }
 
                   if (controller.filteredMasterItemList.isEmpty) {
-                    return const Center(child: Text('No catalog items match your search.'));
+                    final bool isSearchActive = controller.masterItemSearchController.text.trim().isNotEmpty;
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isSearchActive ? Icons.search_off_rounded : Icons.inventory_2_outlined,
+                              size: 40,
+                              color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              isSearchActive ? 'No items match your search query.' : 'No items found for the selected firm.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   }
 
                   return ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     itemCount: controller.filteredMasterItemList.length,
-                    separatorBuilder: (_, __) => Divider(
+                    separatorBuilder: (_, _) => Divider(
                       height: 1,
                       color: isDark ? AppColors.borderSubtleDark.withValues(alpha: 0.4) : AppColors.borderSubtleSlate.withValues(alpha: 0.4),
                     ),
                     itemBuilder: (context, index) {
                       final item = controller.filteredMasterItemList[index];
-                      final int itemCodeNumber = controller.extractCode(item.iCode, item.id);
+                      final String itemCode = item.iCode.trim();
                       return Obx(() {
-                        final isSelected = controller.selectedItemIdsToAdd.contains(itemCodeNumber);
+                        final isSelected = controller.selectedItemCodeToAdd.contains(itemCode);
 
                         return CheckboxListTile(
                           value: isSelected,
                           activeColor: AppColors.primaryRed,
                           controlAffinity: ListTileControlAffinity.leading,
                           contentPadding: EdgeInsets.zero,
-                          onChanged: (_) => controller.toggleItemSelection(itemCodeNumber),
+                          onChanged: (_) => controller.toggleItemSelection(itemCode),
                           title: Text(item.iName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                           subtitle: Text(
-                            'Code: ${item.iCode} | Firm: ${item.iFirmCode} | EAN: ${item.eanCode ?? "—"}',
+                            'Code: ${item.iCode} | Firm: ${item.iFirmCode} | EAN: ${item.iBarCode}',
                             style: TextStyle(fontSize: 11, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
                           ),
-                          secondary: Text(
-                            '₹${(item.sbMRate ?? 0).toStringAsFixed(0)}',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                          ),
+                          secondary: Text('₹${_formatPrice(item.sbRateA)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         );
                       });
                     },
@@ -617,7 +665,9 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
     );
   }
 
-  void _showItemDetails(BuildContext context, Item item) {
+  void _showItemDetails(BuildContext context, ViewItemByTypeDatum item) {
+    final int stock = int.tryParse(item.sbSaleableStock?.toString().trim() ?? '') ?? 0;
+
     EntityDetailsDialogHelper.show(
       context: context,
       title: item.iName.isNotEmpty ? item.iName.trim() : "Item Details",
@@ -630,8 +680,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
             DetailItem(label: 'Item Code', value: item.iCode, isCopyable: true),
             DetailItem(label: 'Item Name', value: item.iName),
             DetailItem(label: 'Firm Code', value: item.iFirmCode, isCopyable: true),
-            DetailItem(label: 'EAN / Barcode', value: item.eanCode, isCopyable: true),
-            DetailItem(label: 'EU Code', value: item.iEuCode),
+            DetailItem(label: 'EAN / Barcode', value: item.iBarCode, isCopyable: true),
           ],
         ),
         DetailSection(
@@ -644,17 +693,9 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         DetailSection(
           title: '3. Pricing & Stock Quantities',
           items: [
-            DetailItem(label: 'MRP Rate', value: '₹${item.sbMRate.toStringAsFixed(2)}'),
-            DetailItem(label: 'Sale Rate (Rate A)', value: '₹${item.sbRateA.toStringAsFixed(2)}'),
-            DetailItem(label: 'Saleable Stock Units', value: '${item.sbSaleableStock}'),
-          ],
-        ),
-        DetailSection(
-          title: '4. Audit Logs & Timestamps',
-          items: [
-            DetailItem(label: 'Inserted Timestamp', value: _formatDate(item.insertedOn)),
-            DetailItem(label: 'Created Timestamp', value: _formatDate(item.createdAt)),
-            DetailItem(label: 'Updated Timestamp', value: _formatDate(item.updatedAt)),
+            DetailItem(label: 'MRP Rate', value: '₹${_formatPrice(item.sbMRate, 2)}'),
+            DetailItem(label: 'Sale Rate (Rate A)', value: '₹${_formatPrice(item.sbRateA, 2)}'),
+            DetailItem(label: 'Saleable Stock Units', value: '$stock'),
           ],
         ),
       ],
@@ -684,7 +725,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Header
+                // Header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -694,12 +735,12 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Update status, images, and details for group code: ${group.groupCode}',
+                  'Update status, images, and details for group code: ${group.dgCode}',
                   style: context.subTitleStyle.copyWith(fontSize: 12, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
                 ),
                 const SizedBox(height: 20),
 
-                // 2. Group Name Field
+                // Group Name Field
                 TextFormField(
                   controller: controller.editGroupNameController,
                   decoration: InputDecoration(
@@ -712,8 +753,6 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Group name cannot be empty' : null,
                 ),
                 const SizedBox(height: 16),
-
-                // 3. Dual Images Cell (Reusing Custom TableImageCellWidget)
                 Obx(() {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -747,8 +786,8 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                           webImageUrl: controller.editGImgW.value,
                           mobileImageUrl: controller.editGImgM.value,
                           uploadType: 'group',
-                          entityCode: group.groupId.toString(),
-                          entityTitle: group.groupName,
+                          entityCode: group.dgCode.toString(),
+                          entityTitle: group.dgName,
                           onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
                             controller.editGImgW.value = webImageUrl;
                             controller.editGImgM.value = mobileImageUrl;
@@ -762,7 +801,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                 }),
                 const SizedBox(height: 16),
 
-                // 4. Status Toggle (Reusing Custom StatusBadge)
+                // Status Toggle
                 Obx(() {
                   final bool isActive = controller.editStatus.value == 1;
 
@@ -818,7 +857,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                 }),
                 const SizedBox(height: 24),
 
-                // 5. Action Buttons
+                // Action Buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -857,12 +896,71 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
     );
   }
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return '—';
-    try {
-      return DateFormat('dd MMM yyyy, HH:mm').format(date.toLocal());
-    } catch (_) {
-      return date.toString().split('.')[0];
+  Widget _buildFirmDropdown(BuildContext context) {
+    final isDark = context.isDark;
+
+    return Obx(() {
+      if (controller.isFirmLoading.value && controller.firmList.isEmpty) {
+        return const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryRed));
+      }
+
+      // Remove duplicate or empty firm codes
+      final seenCodes = <String>{'ALL'};
+      final uniqueFirms = controller.firmList.where((firm) {
+        final code = firm.fFirmCode.trim();
+        if (code.isEmpty || seenCodes.contains(code)) return false;
+        seenCodes.add(code);
+        return true;
+      }).toList();
+
+      final String currentValue = controller.selectedFirmCode.value.trim();
+      final bool valueExists = currentValue == 'ALL' || uniqueFirms.any((f) => f.fFirmCode.trim().toLowerCase() == currentValue.toLowerCase());
+
+      return Container(
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: valueExists ? currentValue : 'ALL',
+            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+            dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(8),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate),
+            onChanged: controller.isMasterItemsLoading.value ? null : controller.onFirmFilterChanged,
+            items: [
+              const DropdownMenuItem<String>(
+                value: 'ALL',
+                child: Text('All Firms', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+              ...uniqueFirms.map((firm) {
+                final code = firm.fFirmCode.trim();
+                final name = firm.fFirmName.trim();
+                return DropdownMenuItem<String>(
+                  value: code,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: Text(name.isNotEmpty ? '$name ($code)' : code, overflow: TextOverflow.ellipsis),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  String _formatPrice(dynamic price, [int fractionDigits = 0]) {
+    if (price == null) {
+      return fractionDigits > 0 ? (0.0).toStringAsFixed(fractionDigits) : '0';
     }
+    final double? parsed = double.tryParse(price.toString().trim());
+    if (parsed == null) return '0';
+    return parsed.toStringAsFixed(fractionDigits);
   }
 }
