@@ -2,15 +2,14 @@ import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_image_cell_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/controller/sub_cat_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/model/view_sub_category_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/repository/sub_category_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 class SubCategoryView extends GetView<SubCategoryController> {
   const SubCategoryView({super.key});
@@ -64,9 +63,8 @@ class SubCategoryView extends GetView<SubCategoryController> {
                         DataColumn(label: Text('CODE')),
                         DataColumn(label: Text('IMAGES')),
                         DataColumn(label: Text('SUB CATEGORY NAME')),
-                        DataColumn(label: Text('SC CODE')),
                         DataColumn(label: Text('EU CODE')),
-                        DataColumn(label: Text('ENTRY DATE')),
+                        DataColumn(label: Text('STATUS')),
                         DataColumn(label: Text('ACTIONS')),
                       ],
                       rowBuilder: (context, subCategory) => _buildDataRow(context, subCategory),
@@ -101,15 +99,13 @@ class SubCategoryView extends GetView<SubCategoryController> {
         ),
         DataCell(
           TableImageCellWidget(
-            webImageUrl: subCategory.subCatWImg,
-            mobileImageUrl: subCategory.subCatMImg,
+            webImageUrl: subCategory.imImageWeb,
+            mobileImageUrl: subCategory.imImageMob,
             uploadType: 'subcategory',
             entityCode: subCategory.ogCode,
             entityTitle: subCategory.ogName,
             onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
-              final repo = Get.find<SubCategoryRepository>();
-              final res = await repo.addSubCategoryDetails(subCatCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
-              return res.success;
+              return await controller.updateSubCategory(ogCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
             },
             onSuccess: controller.refreshSubCategories,
           ),
@@ -128,14 +124,17 @@ class SubCategoryView extends GetView<SubCategoryController> {
             ),
           ),
         ),
+        DataCell(Text(_formatText(subCategory.ogEucode))),
         DataCell(
-          SelectableText(
-            _formatText(subCategory.ogScCode),
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
+          StatusBadge(
+            isEditable: true,
+            isActive: subCategory.isStatusActive,
+            statusValue: subCategory.ogStatus,
+            activeLabel: 'Active',
+            inactiveLabel: 'Inactive',
+            onToggle: (bool val) => controller.toggleSubCategoryStatus(subCategory, val),
           ),
         ),
-        DataCell(Text(_formatText(subCategory.ogEucode))),
-        DataCell(Text(_formatDate(subCategory.ogEdate))),
         DataCell(
           IconButton(
             icon: const Icon(Icons.visibility_outlined, size: 18),
@@ -158,35 +157,18 @@ class SubCategoryView extends GetView<SubCategoryController> {
       headerIcon: Icons.account_tree_rounded,
       sections: [
         DetailSection(
-          title: '1. Basic & Identification Information',
+          title: '',
           items: [
             DetailItem(label: 'Sub Category Code', value: subCategory.ogCode, isCopyable: true),
             DetailItem(label: 'Sub Category Name', value: subCategory.ogName),
             DetailItem(label: 'Parent / SC Code', value: subCategory.ogScCode, isCopyable: true),
-            DetailItem(label: 'Old Code', value: subCategory.ogOldCode),
-            DetailItem(label: 'New Code', value: subCategory.ogNewCode),
           ],
         ),
         DetailSection(
-          title: '2. Operational Flags & POS Settings',
-          flags: [
-            DetailFlag(label: 'On POS', value: subCategory.ogOnPos == true),
-            DetailFlag(label: 'Negative Stock Billing', value: subCategory.ogNegativeStockBilling == true),
-            DetailFlag(label: 'Locked', value: subCategory.ogLock == true),
-          ],
-          items: [
-            DetailItem(label: 'POS Index', value: subCategory.ogPosIndex),
-            DetailItem(label: 'POS Name', value: subCategory.ogPosName),
-            DetailItem(label: 'Print SrNo', value: subCategory.ogPrintSrNo),
-          ],
-        ),
-        DetailSection(
-          title: '3. Audit & Timestamps',
+          title: '',
           items: [
             DetailItem(label: 'EU Code (Created By)', value: subCategory.ogEucode),
             DetailItem(label: 'MU Code (Modified By)', value: subCategory.ogMucode),
-            DetailItem(label: 'Entry Date', value: EntityDetailsDialogHelper.formatDate(subCategory.ogEdate)),
-            DetailItem(label: 'Modified Date', value: EntityDetailsDialogHelper.formatDate(subCategory.ogMdate)),
           ],
         ),
       ],
@@ -196,15 +178,5 @@ class SubCategoryView extends GetView<SubCategoryController> {
   String _formatText(String? value) {
     if (value == null || value.trim().isEmpty) return '—';
     return value.trim();
-  }
-
-  String _formatDate(dynamic date) {
-    if (date == null || date.toString().isEmpty) return '—';
-    try {
-      final DateTime parsed = date is DateTime ? date : DateTime.parse(date.toString());
-      return DateFormat('dd MMM yyyy').format(parsed);
-    } catch (_) {
-      return date.toString().split(' ').first;
-    }
   }
 }
