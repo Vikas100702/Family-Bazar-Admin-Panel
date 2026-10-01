@@ -5,7 +5,7 @@ import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/model/firm_setup_model.dart' as firm_model;
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/model/firm_setup_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/controller/pincode_settings_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/model/pincode_settings_model.dart';
 import 'package:flutter/material.dart';
@@ -108,7 +108,6 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
 
   DataRow _buildDataRow(BuildContext context, Datum pincode) {
     final isDark = context.isDark;
-    final bool isActive = pincode.status == 1;
 
     return DataRow(
       cells: [
@@ -207,9 +206,8 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
           padding: EdgeInsets.all(context.responsiveSize(20, 24)),
           child: SingleChildScrollView(
             child: Obx(() {
-              final firm_model.Datum? currentFirm = controller.selectedFirm.value;
-              final firm_model.Datum? matchedFirm =
-                  currentFirm != null && controller.firmDropdownList.any((f) => f.fFirmCode == currentFirm.fFirmCode)
+              final ViewFirmDatum? currentFirm = controller.selectedFirm.value;
+              final ViewFirmDatum? matchedFirm = currentFirm != null && controller.firmDropdownList.any((f) => f.fFirmCode == currentFirm.fFirmCode)
                   ? controller.firmDropdownList.firstWhere((f) => f.fFirmCode == currentFirm.fFirmCode)
                   : null;
 
@@ -246,21 +244,21 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                         ),
                       )
                     else
-                      DropdownButtonFormField<firm_model.Datum>(
-                        value: matchedFirm,
+                      DropdownButtonFormField<ViewFirmDatum>(
+                        initialValue: matchedFirm,
                         isExpanded: true,
                         dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
                         decoration: const InputDecoration(
                           hintText: 'Select Firm to assign',
                           contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                         ),
-                        items: controller.firmDropdownList.map((firm_model.Datum firm) {
-                          return DropdownMenuItem<firm_model.Datum>(
+                        items: controller.firmDropdownList.map((ViewFirmDatum firm) {
+                          return DropdownMenuItem<ViewFirmDatum>(
                             value: firm,
                             child: Text(firm.fFirmName, overflow: TextOverflow.ellipsis, style: context.bodyTextStyle.copyWith(fontSize: 13)),
                           );
                         }).toList(),
-                        onChanged: (firm_model.Datum? newValue) => controller.onFirmSelected(newValue),
+                        onChanged: (ViewFirmDatum? newValue) => controller.onFirmSelected(newValue),
                         validator: (value) {
                           if (value == null && controller.firmNameController.text.trim().isEmpty) {
                             return 'Please select an enterprise firm';
