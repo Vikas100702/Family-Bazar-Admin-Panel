@@ -227,11 +227,55 @@ class DashboardGroupRepository {
     }
   }
 
-  Future<AddGroupItemsModel> addGroupItems({required int groupId, required List<int> itemIds}) async {
+  Future<ViewItemByTypeModel> viewFirmItems(String? firmCode) async {
+    const String endpoint = ApiConstants.viewItemsByTypeApiEndpoint;
+
+    final Map<String, dynamic> payload = {'type': 'FIRM'};
+    final cleanCode = firmCode?.trim();
+    if (cleanCode != null && cleanCode.isNotEmpty && cleanCode.toUpperCase() != 'ALL') {
+      payload['_id'] = cleanCode;
+    }
+
+    try {
+      final response = await _apiClient.dio.post(endpoint, data: payload);
+
+      if (response.data != null && response.data is Map<String, dynamic>) {
+        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
+        return ViewItemByTypeModel.fromJson(responseData);
+      }
+
+      throw FormatException('[DashboardGroupRepository.viewFirmItems]: Invalid item data format received from endpoint: $endpoint');
+    } catch (e, stackTrace) {
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          message: 'Failed to fetch items for firm code: $firmCode',
+          category: 'dashboard_group.repository',
+          level: SentryLevel.error,
+          data: {'endpoint': endpoint, 'payload': payload, 'error': e.toString()},
+        ),
+      );
+
+      if (e is! DioException) {
+        Sentry.captureException(
+          e,
+          stackTrace: stackTrace,
+          withScope: (scope) {
+            scope.setTag('repository', 'DashboardGroupRepository');
+            scope.setTag('firm_code', firmCode ?? 'ALL');
+            scope.setContexts('network_action', {'endpoint': endpoint, 'method': 'POST', 'payload': payload});
+          },
+        );
+      }
+
+      rethrow;
+    }
+  }
+
+  Future<AddGroupItemsModel> addGroupItems({required int groupId, required List<String> itemCode}) async {
     const String endpoint = ApiConstants.addGroupItemsApiEndpoint;
 
     try {
-      final response = await _apiClient.dio.post(endpoint, data: {'group_id': groupId, 'item_ids': itemIds});
+      final response = await _apiClient.dio.post(endpoint, data: {'group_id': groupId, 'item_ids': itemCode});
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
@@ -245,7 +289,7 @@ class DashboardGroupRepository {
           message: 'Failed executing addGroupItems mutation',
           category: 'DashboardGroupRepository.addGroupItems',
           level: SentryLevel.error,
-          data: {'endpoint': endpoint, 'group_id': groupId, 'item_ids_count': itemIds.length},
+          data: {'endpoint': endpoint, 'group_id': groupId, 'item_ids_count': itemCode.length},
         ),
       );
 
@@ -256,7 +300,7 @@ class DashboardGroupRepository {
           withScope: (scope) {
             scope.setTag('repository', 'DashboardGroupRepository');
             scope.setTag('group_id', groupId.toString());
-            scope.setContexts('add_group_items_action', {'endpoint': endpoint, 'group_id': groupId, 'item_ids': itemIds});
+            scope.setContexts('add_group_items_action', {'endpoint': endpoint, 'group_id': groupId, 'item_ids': itemCode});
           },
         );
       }
