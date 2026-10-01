@@ -1,4 +1,5 @@
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/repository/firm_setup_repository.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/controller/dashboard_group_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/repository/dashboard_group_repository.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
@@ -12,7 +13,11 @@ class DashboardGroupBinding extends Bindings {
     }
     Get.lazyPut<DashboardGroupRepository>(() => DashboardGroupRepository(apiClient: Get.find<ApiClient>()), fenix: true);
     Get.lazyPut<DashboardGroupController>(
-      () => DashboardGroupController(groupRepository: Get.find<DashboardGroupRepository>(), itemRepository: Get.find<ItemRepository>()),
+      () => DashboardGroupController(
+        groupRepository: Get.find<DashboardGroupRepository>(),
+        itemRepository: Get.find<ItemRepository>(),
+        firmRepository: Get.find<FirmRepository>(),
+      ),
       fenix: true,
     );
   }
