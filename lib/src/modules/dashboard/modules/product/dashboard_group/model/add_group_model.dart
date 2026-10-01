@@ -3,9 +3,9 @@ class AddGroupModel {
 
   final bool success;
   final String message;
-  final AddGroupData? data;
+  final AddGroupModelData? data;
 
-  AddGroupModel copyWith({bool? success, String? message, AddGroupData? data}) {
+  AddGroupModel copyWith({bool? success, String? message, AddGroupModelData? data}) {
     return AddGroupModel(success: success ?? this.success, message: message ?? this.message, data: data ?? this.data);
   }
 
@@ -13,7 +13,7 @@ class AddGroupModel {
     return AddGroupModel(
       success: json["success"] ?? false,
       message: json["message"] ?? "",
-      data: json["data"] == null ? null : AddGroupData.fromJson(json["data"]),
+      data: json["data"] == null ? null : AddGroupModelData.fromJson(json["data"]),
     );
   }
 
@@ -25,69 +25,83 @@ class AddGroupModel {
   }
 }
 
-class AddGroupData {
-  AddGroupData({
-    required this.groupId,
-    required this.groupName,
-    required this.groupCode,
-    required this.status,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.action,
-  });
+class AddGroupModelData {
+  AddGroupModelData({required this.status, required this.data, required this.action});
 
-  final int groupId;
-  final String groupName;
-  final String groupCode;
-  final String status;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final bool status;
+  final DataData? data;
   final String action;
 
-  AddGroupData copyWith({
-    int? groupId,
-    String? groupName,
-    String? groupCode,
-    String? status,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    String? action,
-  }) {
-    return AddGroupData(
-      groupId: groupId ?? this.groupId,
-      groupName: groupName ?? this.groupName,
-      groupCode: groupCode ?? this.groupCode,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      action: action ?? this.action,
-    );
+  AddGroupModelData copyWith({bool? status, DataData? data, String? action}) {
+    return AddGroupModelData(status: status ?? this.status, data: data ?? this.data, action: action ?? this.action);
   }
 
-  factory AddGroupData.fromJson(Map<String, dynamic> json) {
-    return AddGroupData(
-      groupId: json["group_id"] ?? 0,
-      groupName: json["group_name"] ?? "",
-      groupCode: json["group_code"] ?? "",
-      status: json["status"] ?? "",
-      createdAt: DateTime.tryParse(json["created_at"] ?? ""),
-      updatedAt: DateTime.tryParse(json["updated_at"] ?? ""),
+  factory AddGroupModelData.fromJson(Map<String, dynamic> json) {
+    return AddGroupModelData(
+      status: json["status"] ?? false,
+      data: json["data"] == null ? null : DataData.fromJson(json["data"]),
       action: json["action"] ?? "",
     );
   }
 
+  Map<String, dynamic> toJson() => {"status": status, "data": data?.toJson(), "action": action};
+
+  @override
+  String toString() {
+    return "$status, $data, $action, ";
+  }
+}
+
+class DataData {
+  DataData({
+    required this.id,
+    required this.dgName,
+    required this.dgCode,
+    required this.dgStatus,
+    required this.dgCreatedAt,
+    required this.dgUpdatedAt,
+  });
+
+  final int id;
+  final String dgName;
+  final String dgCode;
+  final int dgStatus;
+  final DateTime? dgCreatedAt;
+  final DateTime? dgUpdatedAt;
+
+  DataData copyWith({int? id, String? dgName, String? dgCode, int? dgStatus, DateTime? dgCreatedAt, DateTime? dgUpdatedAt}) {
+    return DataData(
+      id: id ?? this.id,
+      dgName: dgName ?? this.dgName,
+      dgCode: dgCode ?? this.dgCode,
+      dgStatus: dgStatus ?? this.dgStatus,
+      dgCreatedAt: dgCreatedAt ?? this.dgCreatedAt,
+      dgUpdatedAt: dgUpdatedAt ?? this.dgUpdatedAt,
+    );
+  }
+
+  factory DataData.fromJson(Map<String, dynamic> json) {
+    return DataData(
+      id: json["id"] ?? 0,
+      dgName: json["DG_Name"] ?? "",
+      dgCode: json["DG_Code"] ?? "",
+      dgStatus: json["DG_Status"] ?? 0,
+      dgCreatedAt: DateTime.tryParse(json["DG_CreatedAt"] ?? ""),
+      dgUpdatedAt: DateTime.tryParse(json["DG_UpdatedAt"] ?? ""),
+    );
+  }
+
   Map<String, dynamic> toJson() => {
-    "group_id": groupId,
-    "group_name": groupName,
-    "group_code": groupCode,
-    "status": status,
-    "created_at": createdAt?.toIso8601String(),
-    "updated_at": updatedAt?.toIso8601String(),
-    "action": action,
+    "id": id,
+    "DG_Name": dgName,
+    "DG_Code": dgCode,
+    "DG_Status": dgStatus,
+    "DG_CreatedAt": dgCreatedAt?.toIso8601String(),
+    "DG_UpdatedAt": dgUpdatedAt?.toIso8601String(),
   };
 
   @override
   String toString() {
-    return "$groupId, $groupName, $groupCode, $status, $createdAt, $updatedAt, $action, ";
+    return "$id, $dgName, $dgCode, $dgStatus, $dgCreatedAt, $dgUpdatedAt, ";
   }
 }
