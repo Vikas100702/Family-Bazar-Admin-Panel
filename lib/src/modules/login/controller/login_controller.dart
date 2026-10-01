@@ -18,12 +18,12 @@ class LoginController extends BaseController {
 
   LoginController({required this._loginRepository, required this._storageService, required this._deviceMetaService});
 
-  // --- UI CONTROLLERS & KEYS ---
+  // UI CONTROLLERS & KEYS
   final GlobalKey<FormState> loginFormKey = GlobalKey<FormState>();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  // --- REACTIVE STATE VARIABLES ---
+  // REACTIVE STATE VARIABLES
   final RxList<RoleDatum> availableRoles = <RoleDatum>[].obs;
   final Rx<RoleDatum?> selectedRole = Rx<RoleDatum?>(null);
   final RxBool isPasswordVisible = false.obs;
