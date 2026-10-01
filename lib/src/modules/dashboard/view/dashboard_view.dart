@@ -6,6 +6,7 @@ import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_controller.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/view/coupon_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/view/drawer_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
@@ -22,8 +23,8 @@ class DashboardView extends GetView<DashboardController> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = ResponsiveLayout.isDesktop(context);
-    final isDark = context.isDark;
+    final bool isDesktop = ResponsiveLayout.isDesktop(context);
+    final bool isDark = context.isDark;
 
     return ResponsiveLayout(
       useSafeArea: true,
@@ -37,11 +38,12 @@ class DashboardView extends GetView<DashboardController> {
   }
 
   Widget _buildDesktopLayout(BuildContext context) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Collapsible Desktop Sidebar
         Obx(() {
           final bool isCollapsed = controller.isDrawerCollapsed.value;
           return AnimatedContainer(
@@ -65,6 +67,8 @@ class DashboardView extends GetView<DashboardController> {
             ),
           );
         }),
+
+        // Main Desktop Content Body
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -85,7 +89,7 @@ class DashboardView extends GetView<DashboardController> {
   }
 
   Widget _buildMobileTabletLayout(BuildContext context) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Container(
       color: isDark ? AppColors.canvasDarkSlate : AppColors.canvasLightGray,
@@ -95,7 +99,7 @@ class DashboardView extends GetView<DashboardController> {
   }
 
   PreferredSizeWidget _buildMobileAppBar(BuildContext context) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return AppBar(
       elevation: 0,
@@ -130,7 +134,7 @@ class DashboardView extends GetView<DashboardController> {
   }
 
   Widget _buildDesktopTopBar(BuildContext context) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Container(
       height: 68,
@@ -142,6 +146,7 @@ class DashboardView extends GetView<DashboardController> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Left: Drawer Collapse Toggle + Breadcrumb Module Title
           Row(
             children: [
               IconButton(
@@ -157,14 +162,11 @@ class DashboardView extends GetView<DashboardController> {
                 ),
               ),
               const SizedBox(width: 12),
-              Obx(
-                () => Text(
-                  _formatMenuTitle(controller.selectedMenuKey.value),
-                  style: context.titleStyleActive.copyWith(fontSize: 18, letterSpacing: -0.2),
-                ),
-              ),
+              Obx(() => Text(controller.selectedMenuKey.value, style: context.titleStyleActive.copyWith(fontSize: 18, letterSpacing: -0.2))),
             ],
           ),
+
+          // Right: Theme Mode Switcher, Notifications & Log out Button
           Row(
             children: [
               IconButton(
@@ -193,12 +195,6 @@ class DashboardView extends GetView<DashboardController> {
                   shape: BoxShape.circle,
                   border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.3), width: 1.5),
                 ),
-                /*child: const Center(
-                  child: Text(
-                    'SA',
-                    style: TextStyle(color: AppColors.primaryRed, fontSize: 13, fontWeight: FontWeight.w700),
-                  ),
-                ),*/
                 child: IconButton(
                   tooltip: 'Logout Session',
                   mouseCursor: SystemMouseCursors.click,
@@ -214,30 +210,66 @@ class DashboardView extends GetView<DashboardController> {
   }
 
   Widget _buildDynamicContent(BuildContext context, String menuKey) {
-    switch (menuKey.toLowerCase()) {
+    final String cleanKey = menuKey.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '').trim();
+
+    switch (cleanKey) {
+      // Static Root
       case 'dashboard':
         return _buildDashboardOverviewPlaceholder(context);
+
+      // Firm Setup Module (Single array item)
+      case 'firm':
+      case 'firmsetup':
+        return const FirmView();
+
+      // Pin Code Settings Module (Single array item)
+      case 'pincode':
+      case 'pincodesetting':
+      case 'pincodesettings':
+        return const PincodeSettingsView();
+
+      // Category Module (Array child name: "Category")
+      case 'category':
       case 'productcategory':
+      case 'mastercategory':
         return const CategoryView();
-      case 'productitem':
-        return const ItemsView();
+
+      // Sub Category Module (Array child name: "Sub Category")
+      case 'subcategory':
       case 'productsubcategory':
+      case 'mastersubcategory':
         return const SubCategoryView();
+
+      // Brand Module (Array child name: "Brand")
+      case 'brand':
+      case 'productbrand':
+      case 'masterbrandname':
+        return const BrandView();
+
+      // Dashboard Group Module (Array child name: "Dashboard Group")
+      case 'dashboardgroup':
       case 'productdashboardgroup':
         return const DashboardGroupView();
-      case 'productbrand':
-        return const BrandView();
-      case 'firm setup':
-        return const FirmView();
-      case 'pin code settings':
-        return const PincodeSettingsView();
+
+      // Item Module (Array child name: "Item")
+      case 'item':
+      case 'productitem':
+      case 'masteritem':
+        return const ItemsView();
+
+      // Coupon Management Module (Single array item)
+      case 'coupon':
+      case 'couponmanagement':
+      case 'couponmgmt':
+        return const CouponView();
       default:
-        return ComingSoonView(title: _formatMenuTitle(menuKey));
+        return ComingSoonView(title: menuKey);
     }
   }
 
+  // DASHBOARD OVERVIEW PLACEHOLDER CARD
   Widget _buildDashboardOverviewPlaceholder(BuildContext context) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Container(
       width: double.infinity,
@@ -264,50 +296,7 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  String _formatMenuTitle(String key) {
-    switch (key.toLowerCase()) {
-      case 'dashboard':
-        return 'Dashboard Overview';
-      case 'firm':
-        return 'Firm Management';
-      case 'store':
-        return 'Store Operations';
-      case 'category':
-      case 'productcategory':
-        return 'Category Management';
-      case 'productsubcategory':
-        return 'Sub-Category Management';
-      case 'productitem':
-        return 'Item Management';
-      case 'product':
-      case 'productdashboardgroup':
-        return 'Dashboard Group';
-      case 'productbrand':
-        return 'Brand Management';
-      case 'order':
-        return 'Orders & Fulfillments';
-      case 'customer':
-        return 'Customer Accounts';
-      case 'payment':
-        return 'Payments & Settlement';
-      case 'settings':
-        return 'Global System Settings';
-      case 'reports':
-        return 'Reports & Auditing';
-      case 'delivery boy':
-        return 'Delivery Logistics';
-      case 'policy':
-        return 'Company Policies';
-      case 'master_group':
-        return 'Master Configurations';
-      default:
-        if (key.toLowerCase().startsWith('master')) {
-          return '${key.substring(6)} (Master)';
-        }
-        return key.toUpperCase();
-    }
-  }
-
+  // SECURE SESSION TERMINATION DIALOG
   void _confirmLogout(BuildContext context) {
     Get.dialog(
       AlertDialog(
@@ -316,13 +305,13 @@ class DashboardView extends GetView<DashboardController> {
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryRed),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryRed, foregroundColor: Colors.white),
             onPressed: () {
               Get.back();
               Get.find<StorageService>().clearAll();
               Get.offAllNamed(AppRoutes.login);
             },
-            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+            child: const Text('Logout'),
           ),
         ],
       ),
