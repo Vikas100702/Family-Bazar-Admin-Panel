@@ -2,22 +2,22 @@ import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/model/insert_item_details_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/model/item_model.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/shared/models/view_items_by_type_model.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class ItemRepository {
   final ApiClient _apiClient;
   const ItemRepository({required this._apiClient});
 
-  Future<ViewItemModel> viewItems() async {
+  Future<ViewItemByTypeModel> viewItems() async {
     try {
-      final response = await _apiClient.dio.post(ApiConstants.viewItemsApiEndpoint);
+      final response = await _apiClient.dio.post(ApiConstants.viewItemsByTypeApiEndpoint, data: {"type": "ITEM"});
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
-        return ViewItemModel.fromJson(responseData);
+        return ViewItemByTypeModel.fromJson(responseData);
       }
-      throw FormatException('[ItemRepository.viewItems]: Invalid data format received from endpoint: ${ApiConstants.viewItemsApiEndpoint}');
+      throw FormatException('[ItemRepository.viewItems]: Invalid data format received from endpoint: ${ApiConstants.viewItemsByTypeApiEndpoint}');
     } catch (e, stackTrace) {
       Sentry.addBreadcrumb(
         Breadcrumb(
@@ -81,5 +81,14 @@ class ItemRepository {
 
       rethrow;
     }
+  }
+
+  Future<ViewItemByTypeDatum> updateItem({required String itemCode, int? status}) async {
+    final String endpoint = ApiConstants.updateItemApiEndpoint;
+    final Map<String, dynamic> payload = {'itemCode': itemCode.trim()};
+    if (status != null) payload['status'] = status;
+
+    final response = await _apiClient.dio.post(endpoint, data: payload);
+    return ViewItemByTypeDatum.fromJson(response.data['data']);
   }
 }
