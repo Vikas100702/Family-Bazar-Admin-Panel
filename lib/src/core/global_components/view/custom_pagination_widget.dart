@@ -29,7 +29,7 @@ class CustomPaginationWidget extends StatelessWidget {
     final isDark = context.isDark;
     final isMobile = context.isMobile;
 
-    // mathematical calculations
+    // Mathematical calculations
     final safeItemsPerPage = max(1, itemsPerPage);
     final totalPages = max(1, (totalItems / safeItemsPerPage).ceil());
     final safeCurrentPage = currentPage.clamp(1, totalPages);
@@ -50,7 +50,7 @@ class CustomPaginationWidget extends StatelessWidget {
     );
   }
 
-  // DESKTOP VIEWPORT LAYOUT
+  /// DESKTOP VIEWPORT LAYOUT
   Widget _buildDesktopLayout(BuildContext context, int startItem, int endItem, int totalPages, int safeCurrentPage) {
     return Row(
       mainAxisAlignment: .spaceBetween,
@@ -70,7 +70,7 @@ class CustomPaginationWidget extends StatelessWidget {
     );
   }
 
-  // MOBILE VIEWPORT LAYOUT (Wrapped Stacking)
+  /// MOBILE VIEWPORT LAYOUT (Wrapped Stacking)
   Widget _buildMobileLayout(BuildContext context, int startItem, int endItem, int totalPages, int safeCurrentPage) {
     return Column(
       mainAxisSize: .min,
@@ -91,7 +91,7 @@ class CustomPaginationWidget extends StatelessWidget {
     );
   }
 
-  // ROWS PER PAGE DROPDOWN SELECTOR
+  /// ROWS PER PAGE DROPDOWN SELECTOR
   Widget _buildRowsPerPageDropdown(BuildContext context) {
     final isDark = context.isDark;
 
@@ -124,8 +124,7 @@ class CustomPaginationWidget extends StatelessWidget {
     );
   }
 
-  // 4. ACTION CONTROLS & PAGE BUTTONS
-
+  /// ACTION CONTROLS & PAGE BUTTONS
   Widget _buildNavigationControls(BuildContext context, int totalPages, int safeCurrentPage) {
     final canGoPrev = safeCurrentPage > 1 && !isLoading;
     final canGoNext = safeCurrentPage < totalPages && !isLoading;
