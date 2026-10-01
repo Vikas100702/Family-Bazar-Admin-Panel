@@ -5,13 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class TableHeaderWidget extends StatelessWidget {
-  final String? title; // Optional module title.
+  final String? title; // Optional
 
   /// Search field configuration
   final bool showSearch;
   final String searchHintText;
   final double searchFieldWidth;
   final ValueChanged<String>? onSearchChanged;
+  final ValueChanged<String>? onSearchSubmitted;
   final VoidCallback? onSearchClear;
 
   /// Refresh button configuration
@@ -31,6 +32,7 @@ class TableHeaderWidget extends StatelessWidget {
     this.searchHintText = 'Search...',
     this.searchFieldWidth = 260,
     this.onSearchChanged,
+    this.onSearchSubmitted,
     this.onSearchClear,
     this.showRefresh = true,
     this.onRefresh,
@@ -75,7 +77,10 @@ class TableHeaderWidget extends StatelessWidget {
             if (showRefresh && onRefresh != null) _buildMobileRefreshIcon(context, isDark),
           ],
         ),
-        if (showSearch) ...[const SizedBox(height: 10), AppSearchField(hintText: searchHintText, onChanged: onSearchChanged, onClear: onSearchClear)],
+        if (showSearch) ...[
+          const SizedBox(height: 10),
+          AppSearchField(hintText: searchHintText, onChanged: onSearchChanged, onSubmitted: onSearchSubmitted, onClear: onSearchClear),
+        ],
         if (extraActions != null && extraActions!.isNotEmpty) ...[
           const SizedBox(height: 10),
           if (extraActions!.length == 1)
@@ -92,8 +97,6 @@ class TableHeaderWidget extends StatelessWidget {
   }
 
   Widget _buildDesktopLayout(BuildContext context) {
-    final isDark = context.isDark;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool isConstrained = constraints.maxWidth < 980;
