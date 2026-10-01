@@ -13,10 +13,6 @@ class DashboardDrawerController extends BaseController {
 
   final RxList<DrawerMenuModel> menuItems = <DrawerMenuModel>[].obs;
 
-  static const Set<String> _allowedDirectKeys = {'firm setup', 'pin code settings'};
-
-  static const Set<String> _allowedProductKeys = {'productcategory', 'productsubcategory', 'productitem', 'productdashboardgroup', 'productbrand'};
-
   @override
   void onInit() {
     super.onInit();
@@ -25,81 +21,88 @@ class DashboardDrawerController extends BaseController {
 
   void _parseAndBuildMenu() {
     try {
-      // Proactive Memory & Architecture: Use centralized storage token key
       final String? userDataJson = _storageService.getString('user_data');
       if (userDataJson == null || userDataJson.trim().isEmpty) {
-        throw Exception("User data string is null or empty in storage.");
+        throw Exception("User data string found null or empty in storage.");
       }
 
       final Map<String, dynamic> userDataMap = jsonDecode(userDataJson);
-      final dynamic rawPermissions = userDataMap['permissions'];
 
-      if (rawPermissions == null || rawPermissions is! Map<String, dynamic> || rawPermissions.isEmpty) {
-        throw Exception("Permissions map is missing, malformed, or empty in user data.");
+      final dynamic rawPermissionsNew = userDataMap['permissions_new'];
+
+      if (rawPermissionsNew == null || rawPermissionsNew is! Map<String, dynamic> || rawPermissionsNew.isEmpty) {
+        throw Exception("permissions_new payload missing, malformed, or empty.");
       }
 
-      final Map<String, dynamic> apiPermissions = rawPermissions;
+      final Map<String, dynamic> permissionsNewMap = rawPermissionsNew;
 
-      // Dashboard is always anchored at the top
+      // Dashboard will always remain anchored at the top
       final List<DrawerMenuModel> builtMenu = [
         const DrawerMenuModel(title: 'Dashboard', identifier: 'dashboard', fallbackIcon: Icons.dashboard_rounded),
       ];
 
-      final List<DrawerMenuModel> productSubItems = [];
+      permissionsNewMap.forEach((groupKey, groupValue) {
+        if (groupValue is! List) return;
 
-      apiPermissions.forEach((key, value) {
-        // Prevents runtime Type Error on Flutter Web
-        if (value is! Map<String, dynamic>) return;
+        final List<dynamic> rawList = groupValue;
+        if (rawList.isEmpty) return;
 
-        final String? apiIconUrl = value['icon']?.toString();
-        final String cleanKey = key.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
+        // RBAC View Safety Filter: Only include modules where view == true
+        final List<Map<String, dynamic>> authorizedItems = rawList.whereType<Map<String, dynamic>>().where((item) {
+          final perms = item['permissions'];
+          if (perms is Map<String, dynamic>) {
+            final viewVal = perms['view'];
+            return viewVal == true || viewVal == 'true' || viewVal == 1;
+          }
+          return true;
+        }).toList();
 
-        // Filter Product sub-items
-        if (_allowedProductKeys.contains(cleanKey) ||
-            cleanKey == 'category' ||
-            cleanKey == 'subcategory' ||
-            cleanKey == 'item' ||
-            cleanKey == 'dashboardgroup' ||
-            cleanKey == 'brand') {
-          productSubItems.add(
+        if (authorizedItems.isEmpty) return;
+
+        // If Array Length > 1 -> Create a Dropdown Group
+        if (authorizedItems.length > 1) {
+          final List<DrawerMenuModel> subItems = authorizedItems.map((childObj) {
+            final String name = (childObj['name'] ?? '').toString().trim();
+            final String? iconUrl = childObj['icon']?.toString();
+
+            return DrawerMenuModel(
+              title: name,
+              identifier: name, // The exact name of the object in the array will become the identifier for taps
+              icon: iconUrl,
+              fallbackIcon: _getFallbackIcon(name),
+            );
+          }).toList();
+
+          final String groupTitle = _formatTitle(groupKey);
+          builtMenu.add(
             DrawerMenuModel(
-              title: _formatTitle(key, prefixToRemove: 'product'),
-              identifier: key,
-              icon: apiIconUrl,
-              fallbackIcon: Icons.subdirectory_arrow_right_rounded,
+              title: groupTitle,
+              identifier: '${groupKey.toLowerCase().replaceAll(' ', '_')}_group',
+              fallbackIcon: _getFallbackIcon(groupKey),
+              isExpansion: true,
+              subItems: subItems,
             ),
           );
         }
-        // Filter Direct root items
-        else if (_allowedDirectKeys.any((allowed) {
-          final cleanAllowed = allowed.replaceAll(RegExp(r'[\s_\-]+'), '');
-          return cleanKey.contains(cleanAllowed);
-        })) {
-          builtMenu.add(DrawerMenuModel(title: _formatTitle(key), identifier: key, icon: apiIconUrl, fallbackIcon: _getFallbackIcon(key)));
+        // If Array Length == 1 -> Create a direct single menu item
+        else {
+          final singleItem = authorizedItems.first;
+          final String name = (singleItem['name'] ?? groupKey).toString().trim();
+          final String? iconUrl = singleItem['icon']?.toString();
+
+          builtMenu.add(
+            DrawerMenuModel(
+              title: name,
+              identifier: name, // The exact name will be passed even for a single item tap
+              icon: iconUrl,
+              fallbackIcon: _getFallbackIcon(name),
+              isExpansion: false,
+            ),
+          );
         }
       });
 
-      // Attach Product Management expandable group with sorting
-      if (productSubItems.isNotEmpty) {
-        productSubItems.sort((a, b) {
-          const sortOrder = {'category': 1, 'sub category': 2, 'item': 3, 'dashboard group': 4, 'brand': 4};
-          final aOrder = sortOrder[a.title.toLowerCase()] ?? 99;
-          final bOrder = sortOrder[b.title.toLowerCase()] ?? 99;
-          return aOrder.compareTo(bOrder);
-        });
-
-        builtMenu.add(
-          DrawerMenuModel(
-            title: 'Product Management',
-            identifier: 'product_group',
-            fallbackIcon: Icons.inventory_2_rounded,
-            isExpansion: true,
-            subItems: productSubItems,
-          ),
-        );
-      }
-
-      // Protect state mutation if disposed during execution
+      // Only update reactive state if the controller is active
       if (!isClosed) {
         menuItems.assignAll(builtMenu);
       }
@@ -109,7 +112,7 @@ class DashboardDrawerController extends BaseController {
         stackTrace: stackTrace,
         withScope: (scope) {
           scope.setTag('controller', 'DashboardDrawerController');
-          scope.setContexts('DashboardDrawerController', {'action': '_parseAndBuildMenu', 'error': 'Failed to parse RBAC permissions'});
+          scope.setContexts('DashboardDrawerController', {'action': '_parseAndBuildMenu', 'error': 'Failed to parse pure permissions_new structure'});
         },
       );
 
@@ -119,29 +122,45 @@ class DashboardDrawerController extends BaseController {
     }
   }
 
-  String _formatTitle(String key, {String? prefixToRemove}) {
-    String text = key;
+  /// Title formatting helper: Converts snake_case or lowercase strings to Title Case
+  String _formatTitle(String key) {
+    final String clean = key.replaceAll(RegExp(r'[_\-]+'), ' ').trim();
+    if (clean.isEmpty) return key;
 
-    if (prefixToRemove != null && text.toLowerCase().startsWith(prefixToRemove.toLowerCase())) {
-      text = text.substring(prefixToRemove.length);
-    }
-
-    text = text.replaceAll(RegExp(r'^[_\-\s]+'), '');
-    if (text.isEmpty) return key;
-
-    final String formatted = text.replaceAll(RegExp(r'(?<!^)(?=[A-Z])'), ' ');
-    return formatted[0].toUpperCase() + formatted.substring(1).trim();
+    final String spaced = clean.replaceAll(RegExp(r'(?<!^)(?=[A-Z])'), ' ');
+    return spaced.split(' ').where((word) => word.isNotEmpty).map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase()).join(' ');
   }
 
-  IconData _getFallbackIcon(String key) {
-    final String cleanKey = key.toLowerCase().replaceAll(RegExp(r'[_\-\s]+'), '');
+  /// Platform safe Material Icons mapping according to module names
+  IconData _getFallbackIcon(String identifier) {
+    final String clean = identifier.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
 
-    if (cleanKey.contains('firm')) {
+    if (clean.contains('firm')) {
       return Icons.domain_rounded;
-    } else if (cleanKey.contains('pin')) {
+    } else if (clean.contains('pincode') || clean.contains('pin')) {
       return Icons.pin_drop_rounded;
-    } else if (cleanKey.contains('product')) {
+    } else if (clean.contains('coupon')) {
+      return Icons.discount_rounded;
+    } else if (clean.contains('category')) {
+      return Icons.category_rounded;
+    } else if (clean.contains('subcategory')) {
+      return Icons.account_tree_rounded;
+    } else if (clean.contains('brand')) {
+      return Icons.branding_watermark_rounded;
+    } else if (clean.contains('item') || clean.contains('product')) {
       return Icons.inventory_2_rounded;
+    } else if (clean.contains('dashboardgroup') || clean.contains('group')) {
+      return Icons.grid_view_rounded;
+    } else if (clean.contains('order')) {
+      return Icons.shopping_cart_rounded;
+    } else if (clean.contains('customer')) {
+      return Icons.people_rounded;
+    } else if (clean.contains('payment')) {
+      return Icons.payment_rounded;
+    } else if (clean.contains('report')) {
+      return Icons.analytics_rounded;
+    } else if (clean.contains('setting')) {
+      return Icons.settings_rounded;
     }
     return Icons.widgets_rounded;
   }
