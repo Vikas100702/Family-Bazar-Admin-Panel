@@ -180,31 +180,36 @@ class BrandView extends GetView<BrandController> {
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 24, offset: const Offset(0, 8))],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: .stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(22, 18, 18, 16),
+                padding: const .fromLTRB(22, 18, 18, 16),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: .spaceBetween,
                   children: [
                     Row(
+                      crossAxisAlignment: .center,
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                           child: const Icon(Icons.branding_watermark_rounded, size: 22, color: AppColors.primaryRed),
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 12),
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: .start,
+                          mainAxisSize: .min,
                           children: [
                             Text(
                               brand.mcCompName.trim().isNotEmpty ? brand.mcCompName.trim() : 'Brand Catalog',
-                              style: context.titleStyleActive.copyWith(fontSize: 18),
+                              style: context.titleStyleActive.copyWith(fontSize: context.responsiveSize(14, 16)),
+                              maxLines: 2,
+                              softWrap: true,
+                              overflow: .ellipsis,
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Code: ${brand.mcCompCode} • Catalog inventory associated with this brand',
+                              'Code: ${brand.mcCompCode}',
                               style: context.subTitleStyle.copyWith(
                                 fontSize: 12,
                                 color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
@@ -292,11 +297,6 @@ class BrandView extends GetView<BrandController> {
                           Icon(Icons.inventory_2_outlined, size: 48, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
                           const SizedBox(height: 12),
                           const Text('No Items Found for This Brand', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 4),
-                          Text(
-                            'No catalog items are mapped with brand code: ${brand.mcCompCode}',
-                            style: TextStyle(fontSize: 12, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
-                          ),
                         ],
                       ),
                     );
@@ -352,7 +352,7 @@ class BrandView extends GetView<BrandController> {
                               ),
                             ],
                             rows: controller.filteredBrandItems.map((item) {
-                              return _buildModalDataRow(context, item, brand);
+                              return _buildModalDataRow(context, item, brand, isDark);
                             }).toList(),
                           ),
                         ),
@@ -394,8 +394,7 @@ class BrandView extends GetView<BrandController> {
     );
   }
 
-  DataRow _buildModalDataRow(BuildContext context, ViewItemByTypeDatum item, ViewBrandDatum brand) {
-    final isDark = context.isDark;
+  DataRow _buildModalDataRow(BuildContext context, ViewItemByTypeDatum item, ViewBrandDatum brand, bool isDark) {
     final String imgUrl = item.imageMob.isNotEmpty ? item.imageMob : item.imageWeb;
 
     return DataRow(
