@@ -189,7 +189,7 @@ class DashboardGroupRepository {
     const String endpoint = ApiConstants.viewItemsByTypeApiEndpoint;
 
     try {
-      final response = await _apiClient.dio.post(endpoint, data: {'_id': groupId.toString(), 'type': 'GROUP'});
+      final response = await _apiClient.dio.post(endpoint, data: {'_id': groupId.toString(), 'type': 'GROUP', 'isAdmin': '1'});
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
@@ -230,7 +230,7 @@ class DashboardGroupRepository {
   Future<ViewItemByTypeModel> viewFirmItems(String? firmCode) async {
     const String endpoint = ApiConstants.viewItemsByTypeApiEndpoint;
 
-    final Map<String, dynamic> payload = {'type': 'FIRM'};
+    final Map<String, dynamic> payload = {'type': 'FIRM', 'isAdmin': '1'};
     final cleanCode = firmCode?.trim();
     if (cleanCode != null && cleanCode.isNotEmpty && cleanCode.toUpperCase() != 'ALL') {
       payload['_id'] = cleanCode;
