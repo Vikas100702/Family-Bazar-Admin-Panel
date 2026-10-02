@@ -58,7 +58,7 @@ class BrandRepository {
       '_id': trimmedCode,
       'type': 'BRAND',
       "searchvalue": cleanSearch,
-      "isAdmin": 1,
+      "isAdmin": '1',
       "page": page,
       "limit": limit,
     };
