@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 abstract final class ApiConstants {
   const ApiConstants._();
 
-  // static const String baseUrl = "https://abctest.animationmedia.org";
-  static const String baseUrl = "http://192.168.1.18:8087";
+  static const String baseUrl = "https://abctest.animationmedia.org";
+  // static const String baseUrl = "http://192.168.1.18:8087";
 
   static String resolveImageUrl(String? path) {
     if (path == null || path.trim().isEmpty) return '';
