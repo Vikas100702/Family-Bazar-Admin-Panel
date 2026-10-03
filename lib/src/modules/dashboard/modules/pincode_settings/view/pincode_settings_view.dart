@@ -76,7 +76,6 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                       emptySubtitle: 'Map a new delivery pincode or refresh from server.',
                       emptyIcon: Icons.location_off_outlined,
                       columns: const [
-                        DataColumn(label: Text('ID')),
                         DataColumn(label: Text('FIRM CODE')),
                         DataColumn(label: Text('FIRM NAME')),
                         DataColumn(label: Text('PINCODE')),
@@ -111,7 +110,6 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
 
     return DataRow(
       cells: [
-        DataCell(SelectableText(pincode.id.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
         DataCell(SelectableText(_formatText(pincode.pFirmCode), style: const TextStyle(fontWeight: FontWeight.w500))),
         DataCell(
           ConstrainedBox(
