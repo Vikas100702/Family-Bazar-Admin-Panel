@@ -53,6 +53,7 @@ class ResponsiveLayout extends StatelessWidget {
     if (useSafeArea) bodyContent = SafeArea(child: bodyContent);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: backgroundColor,
       appBar: appBar,
       drawer: drawer,
