@@ -11,7 +11,7 @@ class ItemRepository {
 
   Future<ViewItemByTypeModel> viewItems() async {
     try {
-      final response = await _apiClient.dio.post(ApiConstants.viewItemsByTypeApiEndpoint, data: {"type": "ITEM"});
+      final response = await _apiClient.dio.post(ApiConstants.viewItemsByTypeApiEndpoint, data: {"type": "ITEM", 'isAdmin': '1'});
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
