@@ -8,6 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class LoginView extends GetView<LoginController> {
+  static const double _kCardMaxWidth = 1120.0;
+  static const double _kCardMinHeight = 560.0;
+
   const LoginView({super.key});
 
   @override
@@ -17,7 +20,7 @@ class LoginView extends GetView<LoginController> {
       useSafeArea: true,
       backgroundColor: context.isDark ? AppColors.canvasDarkSlate : AppColors.canvasLightGray,
       desktop: isDesktop ? _buildDesktopLayout(context) : const SizedBox.shrink(),
-      tablet: !isDesktop ? _buildMobileLayout(context) : null,
+      tablet: !isDesktop ? _buildDesktopLayout(context) : null,
       mobile: !isDesktop ? _buildMobileLayout(context) : const SizedBox.shrink(),
     );
   }
@@ -29,22 +32,23 @@ class LoginView extends GetView<LoginController> {
         padding: const .symmetric(vertical: 24),
         child: Container(
           width: context.screenWidth * 0.85,
-          height: context.screenHeight * 0.85,
-          constraints: const BoxConstraints(maxWidth: 1120, maxHeight: 740, minHeight: 580),
-          decoration: context.defaultDecoration.copyWith(borderRadius: BorderRadius.circular(16)),
+          constraints: const BoxConstraints(maxWidth: _kCardMaxWidth, minHeight: _kCardMinHeight),
+          decoration: context.defaultDecoration.copyWith(borderRadius: .circular(16)),
           clipBehavior: Clip.antiAlias,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(flex: 5, child: _buildBrandHeroSection(context)),
-              VerticalDivider(width: 1, thickness: 1, color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-              Expanded(
-                flex: 5,
-                child: Center(
-                  child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 36), child: _buildLoginForm(context)),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: .stretch,
+              children: [
+                Expanded(flex: 5, child: _buildBrandHeroSection(context)),
+                VerticalDivider(width: 1, thickness: 1, color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+                Expanded(
+                  flex: 5,
+                  child: Center(
+                    child: SingleChildScrollView(padding: const .symmetric(horizontal: 48, vertical: 36), child: _buildLoginForm(context)),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -54,7 +58,7 @@ class LoginView extends GetView<LoginController> {
   Widget _buildMobileLayout(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(16, 24), vertical: context.responsiveHeight(20, 32)),
+        padding: .symmetric(horizontal: 24, vertical: 20),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
           child: Container(
@@ -157,19 +161,22 @@ class LoginView extends GetView<LoginController> {
       child: Form(
         key: controller.loginFormKey,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: .min,
+          crossAxisAlignment: .stretch,
           children: [
             Text(
               'Sign In to Family Bazar',
-              style: context.mainHeadingTextStyle.copyWith(fontSize: context.responsiveSize(20, 24)),
-              textAlign: TextAlign.center,
+              style: context.mainHeadingTextStyle.copyWith(fontSize: context.responsiveSize(18, 24)),
+              textAlign: .center,
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: context.responsiveHeight(6, 6)),
             Text('Enter your credentials to access the panel', style: context.subTitleStyle, textAlign: TextAlign.center),
             SizedBox(height: context.responsiveHeight(24, 32)),
-            Text('Username', style: context.titleStyleRegular.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
+            Text(
+              'Username',
+              style: context.titleStyleRegular.copyWith(fontSize: context.responsiveSize(13, 13), fontWeight: .w600),
+            ),
+            SizedBox(height: context.responsiveHeight(8, 8)),
             TextFormField(
               controller: controller.usernameController,
               autofillHints: const [AutofillHints.username, AutofillHints.telephoneNumber],
@@ -177,7 +184,10 @@ class LoginView extends GetView<LoginController> {
               onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
               keyboardType: TextInputType.text,
               style: context.bodyTextStyle,
-              decoration: const InputDecoration(hintText: 'Enter username', prefixIcon: Icon(Icons.person_outline_rounded, size: 20)),
+              decoration: InputDecoration(
+                hintText: 'Enter username',
+                prefixIcon: Icon(Icons.person_outline_rounded, size: context.responsiveSize(20, 20)),
+              ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Please enter your username';
@@ -186,8 +196,11 @@ class LoginView extends GetView<LoginController> {
               },
             ),
             SizedBox(height: context.responsiveHeight(16, 20)),
-            Text('Password', style: context.titleStyleRegular.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
+            Text(
+              'Password',
+              style: context.titleStyleRegular.copyWith(fontSize: context.responsiveSize(13, 13), fontWeight: .w600),
+            ),
+            SizedBox(height: context.responsiveHeight(8, 8)),
             Obx(
               () => TextFormField(
                 controller: controller.passwordController,
@@ -198,11 +211,11 @@ class LoginView extends GetView<LoginController> {
                 style: context.bodyTextStyle,
                 decoration: InputDecoration(
                   hintText: 'Enter your password',
-                  prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                  prefixIcon: Icon(Icons.lock_outline_rounded, size: context.responsiveSize(20, 20)),
                   suffixIcon: IconButton(
                     icon: Icon(
                       controller.isPasswordVisible.value ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                      size: 20,
+                      size: context.responsiveSize(20, 20),
                       color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
                     ),
                     onPressed: controller.togglePasswordVisibility,
@@ -226,19 +239,24 @@ class LoginView extends GetView<LoginController> {
               () => ElevatedButton(
                 onPressed: controller.isLoading.value ? null : controller.login,
                 style: ElevatedButton.styleFrom(
+                  enabledMouseCursor: SystemMouseCursors.click,
+                  disabledMouseCursor: SystemMouseCursors.click,
                   backgroundColor: AppColors.primaryRed,
                   foregroundColor: AppColors.onPrimaryWhite,
                   disabledBackgroundColor: AppColors.primaryRed.withValues(alpha: 0.6),
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(8, 8)),
                 ),
                 child: controller.isLoading.value
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
+                    ? SizedBox(
+                        height: context.responsiveSize(20, 20),
+                        width: context.responsiveSize(20, 20),
                         child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
                       )
-                    : const Text('Sign In', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.3)),
+                    : Text(
+                        'Sign In',
+                        style: TextStyle(fontSize: context.responsiveSize(15, 15), fontWeight: .w600, letterSpacing: 0.3),
+                      ),
               ),
             ),
             SizedBox(height: context.responsiveHeight(18, 22)),
