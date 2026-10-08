@@ -9,9 +9,8 @@ class CommonDeleteModel {
       return const CommonDeleteModel(success: false, message: 'Empty response received from server');
     }
     return CommonDeleteModel(
-      success: json['success'] == true || json['success'] == 1 || json['success']?.toString() == 'true',
+      success: json['success'] == true || json['success'] == 1 || json['success']?.toString() == 'true' || json['status'] == true,
       message: json['message']?.toString() ?? '',
     );
   }
 }
-
