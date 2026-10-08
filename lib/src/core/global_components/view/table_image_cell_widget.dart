@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/component/image_upload/binding/image_upload_binding.dart';
@@ -11,20 +13,24 @@ typedef LinkEntityCallback = Future<bool> Function({required String entityCode, 
 class TableImageCellWidget extends StatelessWidget {
   final String webImageUrl;
   final String mobileImageUrl;
+  final dynamic secondaryImageUrl;
+  final dynamic informationImageUrl;
   final String uploadType;
   final String entityCode;
   final String entityTitle;
-  final LinkEntityCallback onLinkEntity;
+  final LinkEntityCallback? onLinkEntity;
   final VoidCallback? onSuccess;
 
   const TableImageCellWidget({
     super.key,
     required this.webImageUrl,
     required this.mobileImageUrl,
+    this.secondaryImageUrl,
+    this.informationImageUrl,
     required this.uploadType,
     required this.entityCode,
     required this.entityTitle,
-    required this.onLinkEntity,
+    this.onLinkEntity,
     this.onSuccess,
   });
 
@@ -143,11 +149,39 @@ class TableImageCellWidget extends StatelessWidget {
     if (path.isEmpty) return '';
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
     const String baseDomain = ApiConstants.baseUrl;
-    return '$baseDomain${path.startsWith('/') ? '' : '/'}$path';
+    final String cleanBase = baseDomain.endsWith('/') ? baseDomain.substring(0, baseDomain.length - 1) : baseDomain;
+    final String cleanPath = path.startsWith('/') ? path : '/$path';
+    return '$cleanBase$cleanPath';
+  }
+
+  List<String> _parseUrlList(dynamic raw) {
+    if (raw == null) return [];
+    if (raw is List) {
+      return raw.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+    }
+    if (raw is String) {
+      final String str = raw.trim();
+      if (str.isEmpty || str == '[]') return [];
+      try {
+        final decoded = jsonDecode(str);
+        if (decoded is List) {
+          return decoded.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+        }
+      } catch (_) {
+        if (str.contains(',')) {
+          return str.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        }
+        return [str];
+      }
+    }
+    return [];
   }
 
   void _openImageUploadModal(BuildContext context) {
     ImageUploadBinding().dependencies();
+
+    final List<String> parsedSecondary = _parseUrlList(secondaryImageUrl);
+    final List<String> parsedInfo = _parseUrlList(informationImageUrl);
 
     Get.dialog(
       barrierDismissible: false,
@@ -161,6 +195,8 @@ class TableImageCellWidget extends StatelessWidget {
           entityTitle: entityTitle,
           initialWebImageUrl: webImageUrl,
           initialMobileImageUrl: mobileImageUrl,
+          initialSecondaryUrls: parsedSecondary,
+          initialInformationUrls: parsedInfo,
           onSuccess: onSuccess,
           onDismiss: () => Get.back(),
         ),
