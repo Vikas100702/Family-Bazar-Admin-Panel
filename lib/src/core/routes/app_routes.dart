@@ -12,4 +12,7 @@ abstract class AppRoutes {
   static const String dashboardGroup = '/dashboard-group';
   static const String brands = '/brands';
   static const String coupons = '/coupons';
+  static const String delivery = '/delivery';
+  static const String timeSlot = '/time-slot';
+  static const String miscCharges = '/misc-charges';
 }
