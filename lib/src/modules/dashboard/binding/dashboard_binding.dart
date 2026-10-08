@@ -1,4 +1,7 @@
 import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_controller.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/binding/delivery_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/misc_charges/binding/misc_charges_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/time_slot/binding/time_slot_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/binding/coupon_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/binding/drawer_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/binding/firm_setup_binding.dart';
@@ -17,8 +20,7 @@ class DashboardBinding extends Bindings {
     Sentry.addBreadcrumb(
       Breadcrumb(message: 'Initializing DashboardBinding SPA shell dependencies', category: 'binding.init', level: SentryLevel.info),
     );
-    // Load the main Dashboard controller only when it is actually needed
-    Get.lazyPut<DashboardController>(() => DashboardController());
+    Get.lazyPut<DashboardController>(() => DashboardController()); // Load the main Dashboard controller only when it is actually needed
 
     DrawerBinding().dependencies();
     FirmBinding().dependencies();
@@ -29,5 +31,8 @@ class DashboardBinding extends Bindings {
     DashboardGroupBinding().dependencies();
     BrandBinding().dependencies();
     CouponBinding().dependencies();
+    DeliveryBinding().dependencies();
+    TimeSlotBinding().dependencies();
+    MiscChargesBinding().dependencies();
   }
 }
