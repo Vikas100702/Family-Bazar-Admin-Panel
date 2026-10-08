@@ -1,5 +1,12 @@
 import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
+import 'package:family_bazar_admin_panel/src/core/routes/auth_middleware.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/binding/dashboard_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/binding/delivery_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/view/delivery_rule_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/misc_charges/binding/misc_charges_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/misc_charges/view/misc_charges_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/time_slot/binding/time_slot_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/time_slot/view/time_slot_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/binding/coupon_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/view/coupon_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/binding/firm_setup_binding.dart';
@@ -35,25 +42,96 @@ class AppPages {
       transition: Transition.fadeIn,
       transitionDuration: const Duration(milliseconds: 300),
     ),
-    GetPage(name: AppRoutes.login, page: () => const LoginView(), binding: LoginBinding(), transition: Transition.noTransition),
-    GetPage(name: AppRoutes.dashboard, binding: DashboardBinding(), page: () => const DashboardView(), transition: Transition.fadeIn),
-    GetPage(name: AppRoutes.firmSetup, page: () => const FirmView(), binding: FirmBinding(), transition: Transition.noTransition),
+    GetPage(
+      name: AppRoutes.login,
+      page: () => const LoginView(),
+      binding: LoginBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.dashboard,
+      binding: DashboardBinding(),
+      page: () => const DashboardView(),
+      transition: Transition.fadeIn,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.firmSetup,
+      page: () => const FirmView(),
+      binding: FirmBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
     GetPage(
       name: AppRoutes.pincodeSettings,
       page: () => const PincodeSettingsView(),
       binding: PincodeSettingsBinding(),
       transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
     ),
-    GetPage(name: AppRoutes.category, page: () => const CategoryView(), binding: CategoryBinding(), transition: Transition.noTransition),
-    GetPage(name: AppRoutes.subCategory, page: () => const SubCategoryView(), binding: SubCategoryBinding(), transition: Transition.noTransition),
-    GetPage(name: AppRoutes.item, page: () => const ItemsView(), binding: ItemBinding(), transition: Transition.noTransition),
+    GetPage(
+      name: AppRoutes.category,
+      page: () => const CategoryView(),
+      binding: CategoryBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.subCategory,
+      page: () => const SubCategoryView(),
+      binding: SubCategoryBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.item,
+      page: () => const ItemsView(),
+      binding: ItemBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
     GetPage(
       name: AppRoutes.dashboardGroup,
       page: () => const DashboardGroupView(),
       binding: DashboardGroupBinding(),
       transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
     ),
-    GetPage(name: AppRoutes.brands, page: () => const BrandView(), binding: BrandBinding(), transition: Transition.noTransition),
-    GetPage(name: AppRoutes.coupons, page: () => const CouponView(), binding: CouponBinding(), transition: Transition.noTransition),
+    GetPage(
+      name: AppRoutes.brands,
+      page: () => const BrandView(),
+      binding: BrandBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.coupons,
+      page: () => const CouponView(),
+      binding: CouponBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.delivery,
+      page: () => const DeliveryView(),
+      binding: DeliveryBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.timeSlot,
+      page: () => const TimeSlotView(),
+      binding: TimeSlotBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.miscCharges,
+      page: () => const MiscChargesView(),
+      binding: MiscChargesBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
   ];
 }
