@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-/// Immutable model representing the response from `/api/product/addImage`.
 @immutable
 class AddImageModel {
   final bool success;
@@ -17,9 +16,8 @@ class AddImageModel {
     if (json == null) {
       return const AddImageModel(success: false, message: 'Empty response payload received from server.', data: null);
     }
-
     return AddImageModel(
-      success: _parseBool(json['success']),
+      success: _parseBool(json['success'] ?? json['status']),
       message: json['message']?.toString().trim() ?? '',
       data: json['data'] is Map<String, dynamic> ? AddImageData.fromJson(json['data'] as Map<String, dynamic>) : null,
     );
@@ -30,7 +28,6 @@ class AddImageModel {
   @override
   String toString() => 'AddImageModel(success: $success, message: $message, data:$data)';
 
-  // Defensive Web-Safe Helper
   static bool _parseBool(dynamic val) {
     if (val == null) return false;
     if (val is bool) return val;
@@ -47,6 +44,8 @@ class AddImageData {
   final String itemType;
   final String imageMob;
   final String imageWeb;
+  final List<String> secondaryImages;
+  final List<String> informationImages;
   final String action;
 
   const AddImageData({
@@ -55,23 +54,74 @@ class AddImageData {
     required this.itemType,
     required this.imageMob,
     required this.imageWeb,
+    required this.secondaryImages,
+    required this.informationImages,
     required this.action,
   });
 
-  AddImageData copyWith({int? id, String? itemCode, String? itemType, String? imageMob, String? imageWeb, String? action}) {
+  AddImageData copyWith({
+    int? id,
+    String? itemCode,
+    String? itemType,
+    String? imageMob,
+    String? imageWeb,
+    List<String>? secondaryImages,
+    List<String>? informationImages,
+    String? action,
+  }) {
     return AddImageData(
       id: id ?? this.id,
       itemCode: itemCode ?? this.itemCode,
       itemType: itemType ?? this.itemType,
       imageMob: imageMob ?? this.imageMob,
       imageWeb: imageWeb ?? this.imageWeb,
+      secondaryImages: secondaryImages ?? this.secondaryImages,
+      informationImages: informationImages ?? this.informationImages,
       action: action ?? this.action,
     );
   }
 
   factory AddImageData.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
-      return const AddImageData(id: 0, itemCode: '', itemType: '', imageMob: '', imageWeb: '', action: '');
+      return const AddImageData(
+        id: 0,
+        itemCode: '',
+        itemType: '',
+        imageMob: '',
+        imageWeb: '',
+        secondaryImages: [],
+        informationImages: [],
+        action: '',
+      );
+    }
+
+    // Defensive parsing for secondary images with spelling fallbacks
+    final List<String> parsedSecondary = [];
+    final dynamic rawSecondary =
+        json['SecondryImage'] ??
+        json['SeondaryImage'] ??
+        json['secondaryImages'] ??
+        json['secondary_img'] ??
+        json['SecondaryImage'] ??
+        json['SecondaryImages'];
+    if (rawSecondary is List) {
+      for (final item in rawSecondary) {
+        if (item != null && item.toString().trim().isNotEmpty) {
+          parsedSecondary.add(item.toString().trim());
+        }
+      }
+    }
+
+    // Defensive parsing for information images with spelling fallbacks
+    final List<String> parsedInfo = [];
+    final dynamic rawInfo =
+        json['Imformation'] ?? json['Information'] ?? json['InformationImage'] ?? json['informationImages'] ?? json['InformationImages'];
+    if (rawInfo is List) {
+      for (final item in rawInfo) {
+        if (item != null && item.toString().trim().isNotEmpty) {
+          parsedInfo.add(item.toString().trim());
+        }
+      }
     }
 
     return AddImageData(
@@ -80,6 +130,8 @@ class AddImageData {
       itemType: json['ItemType']?.toString().trim() ?? '',
       imageMob: json['ImageMob']?.toString().trim() ?? '',
       imageWeb: json['ImageWeb']?.toString().trim() ?? '',
+      secondaryImages: List.unmodifiable(parsedSecondary),
+      informationImages: List.unmodifiable(parsedInfo),
       action: json['action']?.toString().trim() ?? '',
     );
   }
@@ -90,13 +142,15 @@ class AddImageData {
     'ItemType': itemType,
     'ImageMob': imageMob,
     'ImageWeb': imageWeb,
+    'SecondryImage': secondaryImages,
+    'Imformation': informationImages,
     'action': action,
   };
 
   @override
-  String toString() => 'AddImageData(id: $id, itemCode:$itemCode, itemType: $itemType, action:$action)';
+  String toString() =>
+      'AddImageData(id: $id, itemCode:$itemCode, itemType: $itemType, secondary:${secondaryImages.length}, info: ${informationImages.length}, action:$action)';
 
-  // Defensive Web-Safe Helper
   static int _parseInt(dynamic val) {
     if (val == null) return 0;
     if (val is int) return val;
