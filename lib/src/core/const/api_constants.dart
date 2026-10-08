@@ -70,6 +70,23 @@ abstract final class ApiConstants {
   static const String viewCouponListApiEndpoint = "$baseUrl/api/coupons/couponList";
   static const String addCouponListApiEndpoint = "$baseUrl/api/coupons/addCoupon";
 
+  /// Delivery APIs
+  static const String viewDeliveryRulesApiEndpoint = "$baseUrl/api/delivery-rule/list";
+  static const String addDeliveryRulesApiEndpoint = "$baseUrl/api/delivery-rule/saveRule";
+  static const String saveDistanceSlabApiEndpoint = "$baseUrl/api/delivery-rule/distanceRuleSave";
+
+  /// Time Slot APIs
+  static const String addUpdateTimeSlotApiEndpoint = "$baseUrl/api/delivery-rule/addUpdateSlot";
+  static const String getTimeSlotsApiEndpoint = "$baseUrl/api/delivery-rule/getSlots";
+  static const String softDeleteTimeSlotsApiEndpoint = "$baseUrl/api/delivery-rule/deleteSlot";
+
+  /// Misc Charges APIs
+  static const String viewChargesApiEndpoint = "$baseUrl/api/cart/getAllCartCharges";
+  static const String addChargesApiEndpoint = "$baseUrl/api/cart/addCartCharges";
+  static const String updateChargesApiEndpoint = "$baseUrl/api/cart/updateCartCharges";
+
+  /// Misc Charges APIs
+
   /// Delete API
   static const String deleteApiEndpoint = "$baseUrl/api/common/delete";
 }
