@@ -12,10 +12,12 @@ class ImageUploadView extends GetView<ImageUploadController> {
   final VoidCallback? onDismiss;
   final String entityCode;
   final String? entityTitle;
-  final String uploadType; // e.g. 'CATEGORY', 'ITEM', 'BRAND'
+  final String uploadType;
   final VoidCallback? onSuccess;
   final String? initialWebImageUrl;
   final String? initialMobileImageUrl;
+  final List<String>? initialSecondaryUrls;
+  final List<String>? initialInformationUrls;
 
   const ImageUploadView({
     super.key,
@@ -26,11 +28,12 @@ class ImageUploadView extends GetView<ImageUploadController> {
     this.onDismiss,
     this.initialWebImageUrl,
     this.initialMobileImageUrl,
+    this.initialSecondaryUrls,
+    this.initialInformationUrls,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Wait for the frame to finish to avoid "build phase" errors when updating the controller
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.configureEntity(
         entityCode: entityCode,
@@ -38,6 +41,8 @@ class ImageUploadView extends GetView<ImageUploadController> {
         onSuccess: onSuccess,
         initialWebImageUrl: initialWebImageUrl,
         initialMobileImageUrl: initialMobileImageUrl,
+        initialSecondaryUrls: initialSecondaryUrls,
+        initialInformationUrls: initialInformationUrls,
       );
     });
 
@@ -50,89 +55,64 @@ class ImageUploadView extends GetView<ImageUploadController> {
         color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
         borderRadius: context.responsiveRadius(12, 16),
         border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
-      padding: EdgeInsets.all(context.responsiveSize(20, 28)),
+      padding: EdgeInsets.all(context.responsiveSize(16, 22)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(context),
-          SizedBox(height: context.responsiveHeight(16, 20)),
+          const SizedBox(height: 14),
           Flexible(
             child: SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildUploadGrid(context),
-                  SizedBox(height: context.responsiveHeight(14, 18)),
-                  _buildServerResponseStatus(context),
+                  _buildMainUploadGrid(context),
+                  const SizedBox(height: 16),
+                  _buildCompactMultiImageSection(
+                    context: context,
+                    title: 'Secondary Images (Max 5)',
+                    isSecondary: true,
+                    bytesListRx: controller.secondaryBytesList,
+                    urlsListRx: controller.uploadedSecondaryUrls,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildCompactMultiImageSection(
+                    context: context,
+                    title: 'Informational Images (Max 5)',
+                    isSecondary: false,
+                    bytesListRx: controller.informationBytesList,
+                    urlsListRx: controller.uploadedInformationUrls,
+                  ),
                 ],
               ),
             ),
           ),
-          SizedBox(height: context.responsiveHeight(16, 20)),
+          const SizedBox(height: 16),
           _buildFooterActions(context),
         ],
       ),
     );
   }
 
-  // DIALOG HEADER
   Widget _buildHeader(BuildContext context) {
-    final isDark = context.isDark;
-    final String resolvedTitle = entityTitle != null && entityTitle!.trim().isNotEmpty
-        ? entityTitle!.trim()
-        : (uploadType.isNotEmpty ? '${uploadType[0].toUpperCase()}${uploadType.substring(1)}' : 'Asset');
+    final String resolvedTitle = entityTitle?.trim().isNotEmpty == true ? entityTitle!.trim() : 'Asset';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(context.responsiveSize(8, 10)),
-                decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: context.responsiveRadius(8, 10)),
-                child: Icon(Icons.cloud_upload_outlined, color: AppColors.primaryRed, size: context.responsiveSize(20, 24)),
-              ),
-              SizedBox(width: context.responsiveWidth(12, 14)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Upload Media: $resolvedTitle',
-                      style: context.titleStyleActive.copyWith(fontSize: context.responsiveSize(16, 18), fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Code: ${entityCode.trim()}',
-                      style: context.captionStyle.copyWith(color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          child: Text(
+            'Upload Media: $resolvedTitle ($entityCode)',
+            style: context.titleStyleActive.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         IconButton(
           icon: const Icon(Icons.close_rounded, size: 20),
-          splashRadius: 20,
-          tooltip: 'Close',
-          color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
           onPressed: () {
             controller.clearImageBuffers();
             if (onDismiss != null) {
@@ -146,312 +126,258 @@ class ImageUploadView extends GetView<ImageUploadController> {
     );
   }
 
-  // RESPONSIVE DUAL-DROPZONE GRID
-  Widget _buildUploadGrid(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isStacked = constraints.maxWidth < 650;
-        if (isStacked) {
-          return Column(
-            children: [
-              _buildDropzone(
-                context: context,
-                title: 'App Image',
-                specLabel: '1:1 Square (Min 300x300 px, Max 1MB)',
-                isMobile: true,
-                bytesRx: controller.mobileImageBytes,
-                fileNameRx: controller.mobileImageFileName,
-                errorRx: controller.mobileImageError,
-                uploadedUrlRx: controller.uploadedMobileImageUrl,
-              ),
-              SizedBox(height: context.responsiveHeight(16, 16)),
-              _buildDropzone(
-                context: context,
-                title: 'Web Image',
-                specLabel: '16:9 Banner (Min 800x450 px, Max 2MB)',
-                isMobile: false,
-                bytesRx: controller.webImageBytes,
-                fileNameRx: controller.webImageFileName,
-                errorRx: controller.webImageError,
-                uploadedUrlRx: controller.uploadedWebImageUrl,
-              ),
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildDropzone(
-                context: context,
-                title: 'App Image',
-                specLabel: '1:1 Square (Min 300x300 px, Max 1MB)',
-                isMobile: true,
-                bytesRx: controller.mobileImageBytes,
-                fileNameRx: controller.mobileImageFileName,
-                errorRx: controller.mobileImageError,
-                uploadedUrlRx: controller.uploadedMobileImageUrl,
-              ),
-            ),
-            SizedBox(width: context.responsiveWidth(16, 20)),
-            Expanded(
-              child: _buildDropzone(
-                context: context,
-                title: 'Web Image',
-                specLabel: '16:9 Banner (Min 800x450 px, Max 2MB)',
-                isMobile: false,
-                bytesRx: controller.webImageBytes,
-                fileNameRx: controller.webImageFileName,
-                errorRx: controller.webImageError,
-                uploadedUrlRx: controller.uploadedWebImageUrl,
-              ),
-            ),
-          ],
-        );
-      },
+  Widget _buildMainUploadGrid(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildMainTile(
+            context,
+            title: 'App Image (1:1)',
+            isMobile: true,
+            bytesRx: controller.mobileImageBytes,
+            uploadedUrlRx: controller.uploadedMobileImageUrl,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildMainTile(
+            context,
+            title: 'Web Image (16:9)',
+            isMobile: false,
+            bytesRx: controller.webImageBytes,
+            uploadedUrlRx: controller.uploadedWebImageUrl,
+          ),
+        ),
+      ],
     );
   }
 
-  // INDIVIDUAL ASSET DROPZONE
-  Widget _buildDropzone({
-    required BuildContext context,
+  Widget _buildMainTile(
+    BuildContext context, {
     required String title,
-    required String specLabel,
     required bool isMobile,
     required Rxn<Uint8List> bytesRx,
-    required Rxn<String> fileNameRx,
-    required RxString errorRx,
     required RxString uploadedUrlRx,
   }) {
     final isDark = context.isDark;
 
     return Obx(() {
-      final Uint8List? bytes = bytesRx.value;
-      final String? fileName = fileNameRx.value;
-      final String uploadedUrl = uploadedUrlRx.value;
-      final String validationError = errorRx.value;
-      final bool hasSelection = bytes != null && bytes.isNotEmpty;
-      final bool isUploaded = uploadedUrl.isNotEmpty;
-      final bool hasError = validationError.isNotEmpty;
+      final bytes = bytesRx.value;
+      final String uploadedUrl = uploadedUrlRx.value.trim();
+      final bool hasPickedImage = bytes != null && bytes.isNotEmpty;
+      final bool hasUploadedImage = uploadedUrl.isNotEmpty;
 
-      Color borderColor;
-      if (hasError) {
-        borderColor = AppColors.statusRedError;
-      } else if (isUploaded) {
-        borderColor = AppColors.statusGreenSuccess;
-      } else if (hasSelection) {
-        borderColor = AppColors.primaryRed;
-      } else {
-        borderColor = isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate;
-      }
-
-      return Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceWhite,
-          borderRadius: context.responsiveRadius(10, 12),
-          border: Border.all(color: borderColor, width: hasSelection || isUploaded || hasError ? 1.5 : 1.0),
-        ),
-        padding: EdgeInsets.all(context.responsiveSize(14, 16)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: context.titleStyleRegular.copyWith(fontSize: context.responsiveSize(13, 14), fontWeight: FontWeight.w600),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              if (hasPickedImage)
+                InkWell(
+                  onTap: () => bytesRx.value = null,
+                  child: const Text(
+                    'Clear',
+                    style: TextStyle(fontSize: 11, color: AppColors.statusRedError, fontWeight: FontWeight.w600),
+                  ),
                 ),
-                if (isUploaded)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.statusGreenSuccess.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.statusGreenSuccess.withValues(alpha: 0.3)),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
+            ],
+          ),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: () => controller.pickMainImage(isMobile: isMobile),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              height: 110,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: hasPickedImage ? AppColors.primaryRed : (hasUploadedImage ? AppColors.statusGreenSuccess : AppColors.borderSubtleSlate),
+                  width: hasPickedImage || hasUploadedImage ? 1.5 : 1.0,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: hasPickedImage
+                  ? Stack(
+                      fit: StackFit.expand,
                       children: [
-                        Icon(Icons.check_circle, size: 12, color: AppColors.statusGreenSuccess),
-                        SizedBox(width: 4),
-                        Text(
-                          'Linked',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.statusGreenSuccess),
+                        Image.memory(bytes, fit: isMobile ? BoxFit.contain : BoxFit.cover),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            color: Colors.black54,
+                            padding: const EdgeInsets.symmetric(vertical: 3),
+                            child: const Text(
+                              'Selected (Click to change)',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white, fontSize: 10),
+                            ),
+                          ),
                         ),
                       ],
-                    ),
-                  )
-                else if (hasSelection)
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: InkWell(
-                      onTap: () {
-                        bytesRx.value = null;
-                        fileNameRx.value = null;
-                        errorRx.value = '';
-                      },
-                      borderRadius: BorderRadius.circular(4),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        child: Text(
-                          'Remove',
-                          style: TextStyle(fontSize: context.responsiveSize(11, 12), color: AppColors.statusRedError, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+                    )
+                  : (hasUploadedImage
+                        ? Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              CachedNetworkImage(
+                                imageUrl: _resolveImageUrl(uploadedUrl),
+                                fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                                placeholder: (_, _) => const Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryRed),
+                                  ),
+                                ),
+                                errorWidget: (_, _, _) => const Center(child: Icon(Icons.broken_image_outlined, color: Colors.grey, size: 24)),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  color: Colors.black54,
+                                  padding: const EdgeInsets.symmetric(vertical: 3),
+                                  child: const Text(
+                                    'Current Image (Click to replace)',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.white, fontSize: 10),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_a_photo_outlined, color: Colors.grey, size: 26),
+                                SizedBox(height: 4),
+                                Text('Click to upload', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                              ],
+                            ),
+                          )),
             ),
-            SizedBox(height: context.responsiveHeight(4, 6)),
-            Text(specLabel, style: context.captionStyle.copyWith(color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate)),
-            SizedBox(height: context.responsiveHeight(12, 14)),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: InkWell(
-                borderRadius: context.responsiveRadius(8, 10),
-                onTap: () => controller.pickImage(isMobile: isMobile),
-                child: Container(
-                  height: context.responsiveHeight(140, 160),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
-                    borderRadius: context.responsiveRadius(8, 10),
-                    border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildCompactMultiImageSection({
+    required BuildContext context,
+    required String title,
+    required bool isSecondary,
+    required RxList<Uint8List> bytesListRx,
+    required RxList<String> urlsListRx,
+  }) {
+    return Obx(() {
+      final List<Uint8List> pickedList = bytesListRx.toList();
+      final List<String> serverUrls = urlsListRx.toList();
+
+      // Total existing slots = uploaded URLs + newly picked local files
+      final int totalCount = serverUrls.length + pickedList.length;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('$title ($totalCount/5)', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              if (totalCount > 0)
+                InkWell(
+                  onTap: () {
+                    bytesListRx.clear();
+                    urlsListRx.clear();
+                  },
+                  child: const Text(
+                    'Clear All',
+                    style: TextStyle(fontSize: 11, color: AppColors.statusRedError, fontWeight: FontWeight.w600),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: hasSelection
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(5, (index) {
+              final bool hasServerUrl = index < serverUrls.length;
+              final int pickedIndex = index - serverUrls.length;
+              final bool hasPickedBytes = !hasServerUrl && pickedIndex >= 0 && pickedIndex < pickedList.length;
+              final bool hasItem = hasServerUrl || hasPickedBytes;
+
+              return Expanded(
+                child: Container(
+                  height: 70,
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: BoxDecoration(
+                    color: context.isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: hasItem ? AppColors.statusGreenSuccess : AppColors.borderSubtleSlate, width: hasItem ? 1.2 : 1.0),
+                  ),
+                  child: hasItem
                       ? Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.memory(bytes, fit: isMobile ? BoxFit.contain : BoxFit.cover),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(5),
+                              child: hasPickedBytes
+                                  ? Image.memory(pickedList[pickedIndex], fit: BoxFit.cover)
+                                  : CachedNetworkImage(
+                                      imageUrl: _resolveImageUrl(serverUrls[index]),
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, _) => const Center(
+                                        child: SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.primaryRed),
+                                        ),
+                                      ),
+                                      errorWidget: (_, _, _) => const Center(child: Icon(Icons.broken_image_outlined, size: 16, color: Colors.grey)),
+                                    ),
+                            ),
                             Positioned(
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              child: Container(
-                                color: Colors.black.withValues(alpha: 0.65),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                                child: Text(
-                                  fileName ?? 'Selected Media Asset',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                              top: 2,
+                              right: 2,
+                              child: InkWell(
+                                onTap: () {
+                                  if (hasServerUrl) {
+                                    urlsListRx.removeAt(index);
+                                  } else {
+                                    controller.removeImageAtIndex(pickedIndex, isSecondary: isSecondary);
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                  child: const Icon(Icons.close, size: 12, color: Colors.white),
                                 ),
                               ),
                             ),
                           ],
                         )
-                      : (uploadedUrl.isNotEmpty
-                            ? Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  CachedNetworkImage(
-                                    imageUrl: _resolveImageUrl(uploadedUrl),
-                                    fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                                    errorWidget: (_, _, _) {
-                                      return const Center(child: Icon(Icons.broken_image, color: Colors.grey));
-                                    },
-                                  ),
-                                  Positioned(
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    child: Container(
-                                      color: Colors.black.withValues(alpha: 0.65),
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      child: const Text(
-                                        'Current Image (Click to change)',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                      : (index == totalCount
+                            ? InkWell(
+                                onTap: () => controller.pickMultipleImage(isSecondary: isSecondary),
+                                child: const Center(child: Icon(Icons.add, size: 20, color: Colors.grey)),
                               )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    isMobile ? Icons.phone_android_rounded : Icons.desktop_mac_rounded,
-                                    size: context.responsiveSize(32, 38),
-                                    color: AppColors.primaryRed.withValues(alpha: 0.7),
-                                  ),
-                                  SizedBox(height: context.responsiveHeight(8, 10)),
-                                  Text(
-                                    'Click to browse or drop asset',
-                                    style: context.titleStyleRegular.copyWith(fontSize: context.responsiveSize(12, 13), fontWeight: FontWeight.w500),
-                                  ),
-                                  SizedBox(height: context.responsiveHeight(2, 4)),
-                                  Text(
-                                    'Formats: JPG, PNG, WEBP',
-                                    style: context.captionStyle.copyWith(color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
-                                  ),
-                                ],
-                              )),
+                            : const SizedBox.shrink()),
                 ),
-              ),
-            ),
-            if (hasError) ...[
-              SizedBox(height: context.responsiveHeight(8, 10)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.statusRedError.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppColors.statusRedError.withValues(alpha: 0.25)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.statusRedError),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        validationError,
-                        style: TextStyle(color: AppColors.statusRedError, fontSize: context.responsiveSize(10, 11), fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
+              );
+            }),
+          ),
+        ],
       );
     });
   }
 
-  // SERVER RESPONSE STATUS BANNER
-  Widget _buildServerResponseStatus(BuildContext context) {
-    return Obx(() {
-      final String msg = controller.uploadStatusMessage.value;
-      if (msg.isEmpty) return const SizedBox.shrink();
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(12, 14), vertical: context.responsiveHeight(8, 10)),
-        decoration: BoxDecoration(
-          color: AppColors.statusGreenSuccess.withValues(alpha: 0.08),
-          borderRadius: context.responsiveRadius(6, 8),
-          border: Border.all(color: AppColors.statusGreenSuccess.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: AppColors.statusGreenSuccess, size: 18),
-            SizedBox(width: context.responsiveWidth(8, 10)),
-            Expanded(
-              child: Text(
-                msg,
-                style: TextStyle(fontSize: context.responsiveSize(12, 13), color: AppColors.statusGreenSuccess, fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
-  // FOOTER ACTIONS
   Widget _buildFooterActions(BuildContext context) {
-    final isDark = context.isDark;
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -464,38 +390,15 @@ class ImageUploadView extends GetView<ImageUploadController> {
               Get.back();
             }
           },
-          child: Text(
-            'Reset / Cancel',
-            style: TextStyle(fontSize: context.responsiveSize(13, 14), color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
-          ),
+          child: const Text('Cancel'),
         ),
-        SizedBox(width: context.responsiveWidth(12, 16)),
-        Obx(() {
-          final bool hasSelection =
-              (controller.webImageBytes.value != null && controller.webImageBytes.value!.isNotEmpty) ||
-              (controller.mobileImageBytes.value != null && controller.mobileImageBytes.value!.isNotEmpty);
-          final bool isSubmitting = controller.isLoading.value;
-
-          return ElevatedButton.icon(
-            onPressed: (hasSelection && !isSubmitting) ? () => controller.uploadImages() : null,
-            icon: isSubmitting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                  )
-                : const Icon(Icons.cloud_upload_rounded, size: 18),
-            label: Text(isSubmitting ? 'Uploading...' : 'Save & Link Media', style: const TextStyle(fontWeight: FontWeight.w600)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryRed,
-              foregroundColor: AppColors.onPrimaryWhite,
-              disabledBackgroundColor: AppColors.primaryRed.withValues(alpha: 0.5),
-              disabledForegroundColor: Colors.white70,
-              padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(18, 24), vertical: context.responsiveHeight(12, 16)),
-              shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(8, 10)),
-            ),
-          );
-        }),
+        const SizedBox(width: 12),
+        ElevatedButton.icon(
+          onPressed: () => controller.uploadImages(),
+          icon: const Icon(Icons.cloud_upload_rounded, size: 16),
+          label: const Text('Save & Link Media'),
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryRed, foregroundColor: Colors.white),
+        ),
       ],
     );
   }
