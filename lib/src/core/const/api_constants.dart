@@ -5,7 +5,9 @@ abstract final class ApiConstants {
   const ApiConstants._();
 
   static const String baseUrl = "https://abctest.animationmedia.org";
-  // static const String baseUrl = "http://192.168.1.18:8087";
+  // static const String baseUrl = "http://192.168.1.10:8087";
+  // static const String baseUrl = "http://172.20.10.10:8087";
+  // static const String baseUrl = "http://10.57.50.67:8087";
 
   static String resolveImageUrl(String? path) {
     if (path == null || path.trim().isEmpty) return '';
@@ -21,6 +23,7 @@ abstract final class ApiConstants {
   static const String tokenApiEndpoint = "$baseUrl/api/admin/get-token";
   static const String roleApiEndpoint = "$baseUrl/api/admin/role-type";
   static const String loginApiEndpoint = "$baseUrl/api/admin/login";
+  static const String permissionsApiEndpoint = "$baseUrl/api/admin/get-permission-menu";
 
   /// Image API
   static const String uploadImgApiEndpoint = "$baseUrl/api/product/uploadImage";
@@ -84,6 +87,13 @@ abstract final class ApiConstants {
   static const String viewChargesApiEndpoint = "$baseUrl/api/cart/getAllCartCharges";
   static const String addChargesApiEndpoint = "$baseUrl/api/cart/addCartCharges";
   static const String updateChargesApiEndpoint = "$baseUrl/api/cart/updateCartCharges";
+
+  /// Banner APIs
+  static const String viewBannersApiEndpoint = "$baseUrl/api/banner/getBanner";
+  static const String addBannersApiEndpoint = "$baseUrl/api/banner/saveBanner";
+
+  /// Customer Details and Wallet History APIs
+  static const String viewCustDetailsWalletApiEndpoint = "$baseUrl/api/customermanagement/customerDetails";
 
   /// Misc Charges APIs
 
