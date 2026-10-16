@@ -77,6 +77,7 @@ abstract final class ApiConstants {
   static const String viewDeliveryRulesApiEndpoint = "$baseUrl/api/delivery-rule/list";
   static const String addDeliveryRulesApiEndpoint = "$baseUrl/api/delivery-rule/saveRule";
   static const String saveDistanceSlabApiEndpoint = "$baseUrl/api/delivery-rule/distanceRuleSave";
+  static const String pincodeListDeliveryRulesApiEndpoint = "$baseUrl/api/delivery-rule/distanceRuleSave";
 
   /// Time Slot APIs
   static const String addUpdateTimeSlotApiEndpoint = "$baseUrl/api/delivery-rule/addUpdateSlot";
@@ -94,6 +95,12 @@ abstract final class ApiConstants {
 
   /// Customer Details and Wallet History APIs
   static const String viewCustDetailsWalletApiEndpoint = "$baseUrl/api/customermanagement/customerDetails";
+
+  /// Loyalty Program
+  static const String getAvailableItemsEndpoint = '$baseUrl/api/loyalty/getAvailableItems';
+  static const String saveRuleEndpoint = '$baseUrl/api/loyalty/saveRule';
+  static const String getRulesEndpoint = '$baseUrl/api/loyalty/getRules';
+  static const String savePointsSettingsEndpoint = '$baseUrl/api/loyalty/savePointsSettings';
 
   /// Misc Charges APIs
 

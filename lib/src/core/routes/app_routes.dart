@@ -15,4 +15,8 @@ abstract class AppRoutes {
   static const String delivery = '/delivery';
   static const String timeSlot = '/time-slot';
   static const String miscCharges = '/misc-charges';
+  static const String coinSettings = '/coin-rewards';
+  static const String loyaltyProgram = '/loyalty-program';
+  static const String appBanners = '/app-banners';
+  static const String customerDetails = '/customer-details';
 }

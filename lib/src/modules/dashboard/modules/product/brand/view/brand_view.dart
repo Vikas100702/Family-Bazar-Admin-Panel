@@ -1,4 +1,3 @@
-import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
@@ -9,6 +8,7 @@ import 'package:family_bazar_admin_panel/src/core/global_components/view/table_i
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/brand/controller/brand_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/brand/model/view_brand_model.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/shared/models/view_items_by_type_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -395,28 +395,24 @@ class BrandView extends GetView<BrandController> {
   }
 
   DataRow _buildModalDataRow(BuildContext context, ViewItemByTypeDatum item, ViewBrandDatum brand, bool isDark) {
-    final String imgUrl = item.imageMob.isNotEmpty ? item.imageMob : item.imageWeb;
-
     return DataRow(
       cells: [
         DataCell(SelectableText(item.iCode.isEmpty ? 'N/A' : item.iCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
         DataCell(
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: imgUrl.isNotEmpty
-                ? Image.network(
-                    imgUrl.startsWith('http') ? imgUrl : '${ApiConstants.baseUrl}${imgUrl.startsWith('/') ? '' : '/'}$imgUrl',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const Icon(Icons.inventory_2_rounded, size: 18, color: Colors.grey),
-                  )
-                : const Icon(Icons.inventory_2_rounded, size: 18, color: Colors.grey),
+          TableImageCellWidget(
+            webImageUrl: item.imImageWeb,
+            mobileImageUrl: item.imImageMob,
+            secondaryImageUrl: item.imSecondryImage,
+            informationImageUrl: item.imImformation,
+            uploadType: 'item',
+            entityCode: item.iCode,
+            entityTitle: item.iName,
+            onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
+              final repo = Get.find<ItemRepository>();
+              final res = await repo.addItemDetails(itemCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
+              return res.success;
+            },
+            onSuccess: controller.refreshBrands,
           ),
         ),
         DataCell(
@@ -455,7 +451,9 @@ class BrandView extends GetView<BrandController> {
         DataCell(
           Builder(
             builder: (_) {
-              final int stock = int.tryParse(item.sbSaleableStock?.toString() ?? '') ?? 0;
+              final double rawStock = double.tryParse(item.sbSaleableStock?.toString() ?? '') ?? 0;
+              final int stock = rawStock.toInt();
+
               return Text(
                 '$stock',
                 style: TextStyle(

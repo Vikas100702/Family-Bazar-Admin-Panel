@@ -31,10 +31,10 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         if (controller.groupList.isEmpty) {
           return EmptyStateWidget(
             title: 'No Dashboard Groups Found',
-            subtitle: 'No group listings are provisioned for this tenant store.',
+            subtitle: 'No group listings are provisioned for this tenant store. Create a new group to get started.',
             icon: Icons.folder_off_outlined,
-            actionLabel: 'Reload Groups',
-            onActionPressed: controller.refreshAll,
+            actionLabel: '+ Add New Group',
+            onActionPressed: () => _openAddGroupDialog(context),
           );
         }
 
@@ -290,7 +290,9 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
 
   DataRow _buildDataRow(BuildContext context, ViewItemByTypeDatum item) {
     final isDark = context.isDark;
-    final int stock = int.tryParse(item.sbSaleableStock?.toString().trim() ?? '') ?? 0;
+    // final int stock = int.tryParse(item.sbSaleableStock.toString() ?? '0') ?? 0;
+    final double rawStock = double.tryParse(item.sbSaleableStock?.toString() ?? '0') ?? 0.0;
+    final int stock = rawStock.toInt();
 
     return DataRow(
       cells: [
@@ -298,8 +300,10 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         DataCell(Text(item.iFirmCode.isEmpty ? 'N/A' : item.iFirmCode)),
         DataCell(
           TableImageCellWidget(
-            webImageUrl: (item.imageWeb).toString().trim(),
-            mobileImageUrl: (item.imageMob).toString().trim(),
+            webImageUrl: (item.imImageWeb).toString().trim(),
+            mobileImageUrl: (item.imImageMob).toString().trim(),
+            secondaryImageUrl: item.imSecondryImage,
+            informationImageUrl: item.imImformation,
             uploadType: 'item',
             entityCode: item.iCode,
             entityTitle: item.iName,

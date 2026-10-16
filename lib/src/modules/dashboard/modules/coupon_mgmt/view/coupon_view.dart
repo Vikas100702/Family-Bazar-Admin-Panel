@@ -1,7 +1,6 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -155,7 +154,7 @@ class CouponView extends GetView<CouponController> {
                 icon: const Icon(Icons.visibility_outlined, size: 18),
                 mouseCursor: SystemMouseCursors.click,
                 color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
-                tooltip: 'View Coupon Details',
+                tooltip: 'View & Edit Coupon Details',
                 splashRadius: 18,
                 onPressed: () => _showCouponDetails(context, coupon),
               ),
@@ -169,7 +168,7 @@ class CouponView extends GetView<CouponController> {
                   title: 'Delete Coupon',
                   itemName: coupon.code,
                   message: 'Are you sure you want to delete coupon "${coupon.code}"?',
-                  onConfirm: () {},
+                  onConfirm: () => controller.deleteCoupon(coupon),
                 ),
               ),
             ],
@@ -179,6 +178,391 @@ class CouponView extends GetView<CouponController> {
     );
   }
 
+  // VIEW & EDIT DYNAMIC COUPON DIALOG
+  void _showCouponDetails(BuildContext context, ViewCouponListDatum coupon) {
+    controller.prefillFormForEdit(coupon);
+    final isDark = context.isDark;
+    final isMobile = context.isMobile;
+    final double dialogWidth = isMobile ? context.screenWidth * 0.95 : 760.0;
+
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          width: dialogWidth,
+          constraints: BoxConstraints(maxWidth: 760, maxHeight: context.screenHeight * 0.92),
+          padding: EdgeInsets.all(context.responsiveSize(18, 24)),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+          ),
+          child: Obx(() {
+            final bool isEditing = controller.isEditingInViewDialog.value;
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header Bar with Mode Switcher
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                          child: Icon(isEditing ? Icons.edit_note_rounded : Icons.confirmation_number_rounded, color: AppColors.primaryRed, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isEditing ? 'Edit Coupon: ${coupon.code}' : 'Coupon Details: ${coupon.code}',
+                              style: context.titleStyleActive.copyWith(fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              isEditing ? 'Modify parameters and save updates directly.' : 'Detailed specifications & configurations',
+                              style: context.captionStyle.copyWith(color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: controller.toggleViewDialogEditMode,
+                          icon: Icon(isEditing ? Icons.visibility_outlined : Icons.edit_outlined, size: 16),
+                          label: Text(isEditing ? 'View Mode' : 'Edit Coupon'),
+                          style: TextButton.styleFrom(foregroundColor: isEditing ? AppColors.statusBlueInfo : AppColors.primaryRed),
+                        ),
+                        IconButton(icon: const Icon(Icons.close_rounded, size: 20), onPressed: () => Get.back()),
+                      ],
+                    ),
+                  ],
+                ),
+                const Divider(height: 20, thickness: 1),
+
+                // Content Area: Switch between View Layout and Edit Form
+                Flexible(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: isEditing ? _buildInlineEditForm(context, isMobile) : _buildReadOnlyDetails(context, coupon, isDark),
+                  ),
+                ),
+              ],
+            );
+          }),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  // READ-ONLY VIEW MODE
+  Widget _buildReadOnlyDetails(BuildContext context, ViewCouponListDatum coupon, bool isDark) {
+    final bool isPercentage = coupon.discountType.toLowerCase().contains('percent');
+    final bool isUniversal = coupon.applicableAll.toString().trim() == '1' || (coupon.applicableGroup.isEmpty && coupon.applicableBrand.isEmpty);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildDetailSection(
+          title: '1. Identification & Setup',
+          isDark: isDark,
+          items: [
+            _buildDetailTile('Coupon Code', coupon.code, isCopyable: true),
+            _buildDetailTile('Title', coupon.title),
+            _buildDetailTile('Discount Type', coupon.discountType.toUpperCase()),
+            _buildDetailTile('Status', coupon.status == 1 ? 'Active' : 'Inactive'),
+            _buildDetailTile('User Type', coupon.userType),
+            _buildDetailTile('Payment Type', coupon.paymentType),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _buildDetailSection(
+          title: '2. Value & Bounds',
+          isDark: isDark,
+          items: [
+            _buildDetailTile('Discount Value', isPercentage ? '${coupon.discountValue}%' : '₹${coupon.discountValue}'),
+            _buildDetailTile('Max Discount', '₹${coupon.maxDiscount}'),
+            _buildDetailTile('Min Order Amount', '₹${coupon.minOrderAmount}'),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _buildDetailSection(
+          title: '3. Limits & Applicability',
+          isDark: isDark,
+          items: [
+            _buildDetailTile('Total Usage Limit', '${coupon.usageLimit}'),
+            _buildDetailTile('Limit Per Customer', '${coupon.usagePerCustomer}'),
+            _buildDetailTile('Currently Used', '${coupon.usedCount}'),
+            _buildDetailTile('Applicability', isUniversal ? 'Universal (All Groups & Brands)' : 'Applicable on Categories and Brands'),
+            if (coupon.applicableGroup.isNotEmpty) _buildDetailTile('Groups', coupon.applicableGroup.join(', ')),
+            if (coupon.applicableBrand.isNotEmpty) _buildDetailTile('Brands', coupon.applicableBrand.join(', ')),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _buildDetailSection(
+          title: '4. Validity Dates',
+          isDark: isDark,
+          items: [_buildDetailTile('Valid From', _formatDate(coupon.startAt)), _buildDetailTile('Valid Until', _formatDate(coupon.endAt))],
+        ),
+      ],
+    );
+  }
+
+  // INLINE EDIT FORM MODE
+  Widget _buildInlineEditForm(BuildContext context, bool isMobile) {
+    final isDark = context.isDark;
+
+    return Form(
+      key: controller.editCouponFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildAdaptiveFieldsRow(
+            isMobile: isMobile,
+            first: TextFormField(
+              controller: controller.codeController,
+              decoration: _buildInputDecoration(context, 'Coupon Code *', 'e.g., SAVE10', Icons.qr_code_rounded),
+              validator: (val) => (val == null || val.trim().isEmpty) ? 'Code is required' : null,
+            ),
+            second: TextFormField(
+              controller: controller.titleController,
+              decoration: _buildInputDecoration(context, 'Title *', 'e.g., ₹100 Off', Icons.title_rounded),
+              validator: (val) => (val == null || val.trim().isEmpty) ? 'Title is required' : null,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _buildAdaptiveFieldsRow(
+            isMobile: isMobile,
+            first: Obx(() {
+              final currentValue = controller.selectedDiscountType.value;
+              return DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: currentValue,
+                hint: const Text('Select Discount Type *', style: TextStyle(fontSize: 13)),
+                decoration: _buildInputDecoration(context, 'Discount Type *', '', Icons.percent_rounded),
+                dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+                items: controller.discountTypeOptions.map((opt) {
+                  return DropdownMenuItem<String>(value: opt['value'], child: Text(opt['label']!));
+                }).toList(),
+                validator: (val) => (val == null || val.isEmpty) ? 'Discount type required' : null,
+                onChanged: (val) {
+                  if (val != null) controller.selectedDiscountType.value = val;
+                },
+              );
+            }),
+            second: TextFormField(
+              controller: controller.discountValueController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _buildInputDecoration(context, 'Discount Value *', 'e.g., 100', Icons.discount_outlined),
+              validator: (val) => (val == null || val.trim().isEmpty) ? 'Discount value required' : null,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _buildAdaptiveFieldsRow(
+            isMobile: isMobile,
+            first: TextFormField(
+              controller: controller.maxDiscountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _buildInputDecoration(context, 'Max Discount *', 'e.g., 200', Icons.money_off_rounded),
+              validator: (val) => (val == null || val.trim().isEmpty) ? 'Max discount required' : null,
+            ),
+            second: TextFormField(
+              controller: controller.minOrderAmountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: _buildInputDecoration(context, 'Min Order Amount *', 'e.g., 500', Icons.shopping_cart_outlined),
+              validator: (val) => (val == null || val.trim().isEmpty) ? 'Min order required' : null,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _buildAdaptiveFieldsRow(
+            isMobile: isMobile,
+            first: TextFormField(
+              controller: controller.usageLimitController,
+              keyboardType: TextInputType.number,
+              decoration: _buildInputDecoration(context, 'Usage Limit *', 'e.g., 10000', Icons.group_rounded),
+              validator: (val) => (val == null || val.trim().isEmpty) ? 'Usage limit required' : null,
+            ),
+            second: TextFormField(
+              controller: controller.usagePerCustomerController,
+              keyboardType: TextInputType.number,
+              decoration: _buildInputDecoration(context, 'Usage Per Customer *', 'e.g., 1', Icons.person_outline_rounded),
+              validator: (val) => (val == null || val.trim().isEmpty) ? 'Usage per customer required' : null,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _buildAdaptiveFieldsRow(
+            isMobile: isMobile,
+            first: Obx(() {
+              final currentValue = controller.selectedUserType.value;
+              return DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: currentValue,
+                hint: const Text('Select User Type *', style: TextStyle(fontSize: 13)),
+                decoration: _buildInputDecoration(context, 'User Type *', '', Icons.people_outline_rounded),
+                dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+                items: controller.userTypeOptions.map((opt) {
+                  return DropdownMenuItem<String>(value: opt['value'], child: Text(opt['label']!));
+                }).toList(),
+                validator: (val) => (val == null || val.isEmpty) ? 'User type required' : null,
+                onChanged: (val) {
+                  if (val != null) controller.selectedUserType.value = val;
+                },
+              );
+            }),
+            second: Obx(() {
+              final currentValue = controller.selectedPaymentType.value;
+              return DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: currentValue,
+                hint: const Text('Select Payment Type *', style: TextStyle(fontSize: 13)),
+                decoration: _buildInputDecoration(context, 'Payment Type *', '', Icons.payment_rounded),
+                dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+                items: controller.paymentTypeOptions.map((opt) {
+                  return DropdownMenuItem<String>(value: opt['value'], child: Text(opt['label']!));
+                }).toList(),
+                validator: (val) => (val == null || val.isEmpty) ? 'Payment type required' : null,
+                onChanged: (val) {
+                  if (val != null) controller.selectedPaymentType.value = val;
+                },
+              );
+            }),
+          ),
+          const SizedBox(height: 14),
+          _buildAdaptiveFieldsRow(
+            isMobile: isMobile,
+            first: TextFormField(
+              controller: controller.startAtController,
+              readOnly: true,
+              onTap: () => controller.pickDateTime(context: context, isStart: true),
+              decoration: _buildInputDecoration(context, 'Start Date & Time *', 'YYYY-MM-DD HH:mm:ss', Icons.calendar_today_rounded),
+              validator: (val) => (val == null || val.trim().isEmpty) ? 'Start date & time required' : null,
+            ),
+            second: TextFormField(
+              controller: controller.endAtController,
+              readOnly: true,
+              onTap: () => controller.pickDateTime(context: context, isStart: false),
+              decoration: _buildInputDecoration(context, 'End Date & Time *', 'YYYY-MM-DD HH:mm:ss', Icons.event_available_rounded),
+              validator: (val) => (val == null || val.trim().isEmpty) ? 'End date & time required' : null,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Obx(() {
+            final bool isAll = controller.applicableAll.value == 1;
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isAll ? AppColors.primaryRed.withValues(alpha: 0.5) : (isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Checkbox(value: isAll, activeColor: AppColors.primaryRed, onChanged: (val) => controller.toggleApplicableAll(val ?? false)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Applicable to All (Universal Coupon)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 1),
+          Text(
+            '* Uncheck above to enable below',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondaryMuted),
+          ),
+          const SizedBox(height: 16),
+          Obx(() {
+            final bool isAll = controller.applicableAll.value == 1;
+            return _buildAdaptiveFieldsRow(
+              isMobile: isMobile,
+              first: _buildSelectorTile(
+                context: context,
+                title: 'Applicable Groups',
+                icon: Icons.grid_view_rounded,
+                isDisabled: isAll,
+                selectedCount: controller.selectedGroupCodes.length,
+                onTap: isAll ? null : () => _openGroupSelectionDialog(context),
+              ),
+              second: _buildSelectorTile(
+                context: context,
+                title: 'Applicable Brands',
+                icon: Icons.branding_watermark_rounded,
+                isDisabled: isAll,
+                selectedCount: controller.selectedBrandCodes.length,
+                onTap: isAll ? null : () => _openBrandSelectionDialog(context),
+              ),
+            );
+          }),
+          const SizedBox(height: 16),
+          Obx(() {
+            final isActive = controller.couponStatus.value == 1;
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Active Status',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                  ),
+                ),
+                StatusBadge(
+                  isEditable: true,
+                  isActive: isActive,
+                  activeLabel: 'Active',
+                  inactiveLabel: 'Inactive',
+                  onToggle: (val) => controller.couponStatus.value = val ? 1 : 0,
+                ),
+              ],
+            );
+          }),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(onPressed: controller.toggleViewDialogEditMode, child: const Text('Cancel Edit')),
+              const SizedBox(width: 12),
+              Obx(
+                () => ElevatedButton.icon(
+                  onPressed: controller.isSubmitting.value ? null : () => controller.submitUpdateCoupon(),
+                  icon: controller.isSubmitting.value
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.check_circle_outline_rounded, size: 16),
+                  label: const Text('Save & Update Coupon'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ADD COUPON DIALOG
   void _openAddCouponDialog(BuildContext context) {
     final isDark = context.isDark;
     final isMobile = context.isMobile;
@@ -218,8 +602,6 @@ class CouponView extends GetView<CouponController> {
                     style: TextStyle(fontSize: 12, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
                   ),
                   const SizedBox(height: 20),
-
-                  // Code & Title
                   _buildAdaptiveFieldsRow(
                     isMobile: isMobile,
                     first: TextFormField(
@@ -234,17 +616,13 @@ class CouponView extends GetView<CouponController> {
                     ),
                   ),
                   const SizedBox(height: 14),
-
-                  // Dynamic Discount Type & Discount Value
                   _buildAdaptiveFieldsRow(
                     isMobile: isMobile,
                     first: Obx(() {
                       final currentValue = controller.selectedDiscountType.value;
-                      final bool isMatch = controller.discountTypeOptions.any((opt) => opt['value'] == currentValue);
-
                       return DropdownButtonFormField<String>(
                         isExpanded: true,
-                        initialValue: isMatch ? currentValue : null,
+                        value: currentValue,
                         hint: const Text('Select Discount Type *', style: TextStyle(fontSize: 13)),
                         decoration: _buildInputDecoration(context, 'Discount Type *', '', Icons.percent_rounded),
                         dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
@@ -265,8 +643,6 @@ class CouponView extends GetView<CouponController> {
                     ),
                   ),
                   const SizedBox(height: 14),
-
-                  // Max Discount & Minimum Order Amount
                   _buildAdaptiveFieldsRow(
                     isMobile: isMobile,
                     first: TextFormField(
@@ -283,8 +659,6 @@ class CouponView extends GetView<CouponController> {
                     ),
                   ),
                   const SizedBox(height: 14),
-
-                  // Usage Limit & Usage Per Customer
                   _buildAdaptiveFieldsRow(
                     isMobile: isMobile,
                     first: TextFormField(
@@ -301,17 +675,13 @@ class CouponView extends GetView<CouponController> {
                     ),
                   ),
                   const SizedBox(height: 14),
-
-                  // Dynamic User Type & Dynamic Payment Type
                   _buildAdaptiveFieldsRow(
                     isMobile: isMobile,
                     first: Obx(() {
                       final currentValue = controller.selectedUserType.value;
-                      final bool isMatch = controller.userTypeOptions.any((opt) => opt['value'] == currentValue);
-
                       return DropdownButtonFormField<String>(
                         isExpanded: true,
-                        initialValue: isMatch ? currentValue : null,
+                        value: currentValue,
                         hint: const Text('Select User Type *', style: TextStyle(fontSize: 13)),
                         decoration: _buildInputDecoration(context, 'User Type *', '', Icons.people_outline_rounded),
                         dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
@@ -326,11 +696,9 @@ class CouponView extends GetView<CouponController> {
                     }),
                     second: Obx(() {
                       final currentValue = controller.selectedPaymentType.value;
-                      final bool isMatch = controller.paymentTypeOptions.any((opt) => opt['value'] == currentValue);
-
                       return DropdownButtonFormField<String>(
                         isExpanded: true,
-                        initialValue: isMatch ? currentValue : null,
+                        value: currentValue,
                         hint: const Text('Select Payment Type *', style: TextStyle(fontSize: 13)),
                         decoration: _buildInputDecoration(context, 'Payment Type *', '', Icons.payment_rounded),
                         dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
@@ -345,8 +713,6 @@ class CouponView extends GetView<CouponController> {
                     }),
                   ),
                   const SizedBox(height: 14),
-
-                  // Start Date & End Date
                   _buildAdaptiveFieldsRow(
                     isMobile: isMobile,
                     first: TextFormField(
@@ -365,11 +731,8 @@ class CouponView extends GetView<CouponController> {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // APPLICABLE TO ALL TOGGLE STRIP
                   Obx(() {
                     final bool isAll = controller.applicableAll.value == 1;
-
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
@@ -409,13 +772,8 @@ class CouponView extends GetView<CouponController> {
                     );
                   }),
                   const SizedBox(height: 16),
-
-                  // APPLICABLE GROUPS & BRANDS SELECTORS
                   Obx(() {
                     final bool isAll = controller.applicableAll.value == 1;
-                    final int groupCount = controller.selectedGroupCodes.length;
-                    final int brandCount = controller.selectedBrandCodes.length;
-
                     return _buildAdaptiveFieldsRow(
                       isMobile: isMobile,
                       first: _buildSelectorTile(
@@ -423,7 +781,7 @@ class CouponView extends GetView<CouponController> {
                         title: 'Applicable Groups',
                         icon: Icons.grid_view_rounded,
                         isDisabled: isAll,
-                        selectedCount: groupCount,
+                        selectedCount: controller.selectedGroupCodes.length,
                         onTap: isAll ? null : () => _openGroupSelectionDialog(context),
                       ),
                       second: _buildSelectorTile(
@@ -431,14 +789,12 @@ class CouponView extends GetView<CouponController> {
                         title: 'Applicable Brands',
                         icon: Icons.branding_watermark_rounded,
                         isDisabled: isAll,
-                        selectedCount: brandCount,
+                        selectedCount: controller.selectedBrandCodes.length,
                         onTap: isAll ? null : () => _openBrandSelectionDialog(context),
                       ),
                     );
                   }),
                   const SizedBox(height: 16),
-
-                  // Status Toggle
                   Obx(() {
                     final isActive = controller.couponStatus.value == 1;
                     return Row(
@@ -463,8 +819,6 @@ class CouponView extends GetView<CouponController> {
                     );
                   }),
                   const SizedBox(height: 24),
-
-                  // Submit Actions
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -504,7 +858,43 @@ class CouponView extends GetView<CouponController> {
     );
   }
 
-  // SELECTOR TILE BUILDER
+  // SUB-DIALOGS & HELPERS
+  Widget _buildDetailSection({required String title, required bool isDark, required List<Widget> items}) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryRed),
+          ),
+          const SizedBox(height: 10),
+          Wrap(spacing: 16, runSpacing: 10, children: items),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailTile(String label, String value, {bool isCopyable = false}) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 140),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          const SizedBox(height: 2),
+          Text(value.isNotEmpty ? value : '-', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSelectorTile({
     required BuildContext context,
     required String title,
@@ -514,7 +904,6 @@ class CouponView extends GetView<CouponController> {
     required VoidCallback? onTap,
   }) {
     final isDark = context.isDark;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -610,17 +999,14 @@ class CouponView extends GetView<CouponController> {
                 child: Obx(() {
                   final groups = controller.filteredGroups;
                   final Set<String> selectedSet = controller.selectedGroupCodes.toSet();
-
                   if (groups.isEmpty) {
                     return const Center(child: Text('No dashboard groups found.'));
                   }
-
                   return ListView.builder(
                     itemCount: groups.length,
                     itemBuilder: (context, index) {
                       final group = groups[index];
                       final isSelected = selectedSet.contains(group.dgCode);
-
                       return CheckboxListTile(
                         dense: true,
                         title: Text(group.dgName, style: const TextStyle(fontSize: 13)),
@@ -687,18 +1073,15 @@ class CouponView extends GetView<CouponController> {
                 child: Obx(() {
                   final brands = controller.filteredBrands;
                   final Set<String> selectedSet = controller.selectedBrandCodes.toSet();
-
                   if (brands.isEmpty) {
                     return const Center(child: Text('No brands found.'));
                   }
-
                   return ListView.builder(
                     itemCount: brands.length,
                     itemBuilder: (context, index) {
                       final brand = brands[index];
                       final String brandCode = brand.mcCompCode.trim();
                       final isSelected = selectedSet.contains(brandCode);
-
                       return CheckboxListTile(
                         dense: true,
                         title: Text(brand.mcCompName, style: const TextStyle(fontSize: 13)),
@@ -726,60 +1109,6 @@ class CouponView extends GetView<CouponController> {
     );
   }
 
-  void _showCouponDetails(BuildContext context, ViewCouponListDatum coupon) {
-    final bool isPercentage = coupon.discountType.toLowerCase().contains('percent');
-    final bool isUniversal = coupon.applicableAll.toString().trim() == '1' || (coupon.applicableGroup.isEmpty && coupon.applicableBrand.isEmpty);
-
-    EntityDetailsDialogHelper.show(
-      context: context,
-      title: coupon.title.isNotEmpty ? coupon.title.trim() : coupon.code,
-      subtitle: 'Details for Coupon Code: ${coupon.code}',
-      headerIcon: Icons.confirmation_number_rounded,
-      sections: [
-        DetailSection(
-          title: '1. Identification & Nomenclature',
-          items: [
-            DetailItem(label: 'Coupon ID', value: coupon.id.toString(), isCopyable: true),
-            DetailItem(label: 'Coupon Code', value: coupon.code, isCopyable: true),
-            DetailItem(label: 'Title', value: coupon.title),
-            DetailItem(label: 'Discount Type', value: coupon.discountType.toUpperCase()),
-            DetailItem(label: 'User Type', value: coupon.userType),
-            DetailItem(label: 'Payment Type', value: coupon.paymentType),
-          ],
-        ),
-        DetailSection(
-          title: '2. Value & Order Rules',
-          items: [
-            DetailItem(label: 'Discount Value', value: isPercentage ? '${coupon.discountValue}%' : '₹${coupon.discountValue}'),
-            DetailItem(label: 'Max Discount Amount', value: '₹${coupon.maxDiscount}'),
-            DetailItem(label: 'Min Order Amount', value: '₹${coupon.minOrderAmount}'),
-          ],
-        ),
-        DetailSection(
-          title: '3. Limits & Usage Quotas',
-          items: [
-            DetailItem(label: 'Usage Limit', value: '${coupon.usageLimit}'),
-            DetailItem(label: 'Limit Per Customer', value: '${coupon.usagePerCustomer}'),
-            DetailItem(label: 'Used Count', value: '${coupon.usedCount}'),
-            DetailItem(label: 'Applicability Rule', value: isUniversal ? 'Applicable to All (Universal)' : 'Targeted Specific Groups / Brands'),
-            if (coupon.applicableGroup.isNotEmpty) DetailItem(label: 'Assigned Groups (Codes)', value: coupon.applicableGroup.join(', ')),
-            if (coupon.applicableBrand.isNotEmpty) DetailItem(label: 'Assigned Brands (Codes)', value: coupon.applicableBrand.join(', ')),
-          ],
-        ),
-        DetailSection(
-          title: '4. Validity & Timestamps',
-          items: [
-            DetailItem(label: 'Valid From', value: _formatDate(coupon.startAt)),
-            DetailItem(label: 'Valid Until', value: _formatDate(coupon.endAt)),
-            DetailItem(label: 'Created At', value: _formatDate(coupon.createdAt)),
-            DetailItem(label: 'Updated At', value: _formatDate(coupon.updatedAt)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // HELPER WIDGETS & UTILITIES
   InputDecoration _buildInputDecoration(BuildContext context, String label, String hint, IconData icon) {
     final isDark = context.isDark;
     return InputDecoration(
@@ -797,7 +1126,6 @@ class CouponView extends GetView<CouponController> {
     if (isMobile) {
       return Column(children: [first, const SizedBox(height: 14), second]);
     }
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -809,7 +1137,7 @@ class CouponView extends GetView<CouponController> {
   }
 
   String _formatDate(DateTime? date) {
-    if (date == null) return '—';
+    if (date == null) return '-';
     try {
       return DateFormat('dd MMM yyyy, hh:mm a').format(date.toLocal());
     } catch (_) {

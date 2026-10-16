@@ -302,6 +302,102 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+                    Text('Delivery Type', style: context.titleStyleRegular.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        // Container 1: Schedule Slot
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => controller.selectSlot(1),
+                            borderRadius: BorderRadius.circular(8),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                              decoration: BoxDecoration(
+                                color: controller.selectedSlot.value == 1 ? AppColors.primaryRed.withValues(alpha: 0.08) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: controller.selectedSlot.value == 1
+                                      ? AppColors.primaryRed
+                                      : (isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+                                  width: controller.selectedSlot.value == 1 ? 1.8 : 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    controller.selectedSlot.value == 1 ? Icons.radio_button_checked : Icons.radio_button_off,
+                                    size: 18,
+                                    color: controller.selectedSlot.value == 1
+                                        ? AppColors.primaryRed
+                                        : (isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Scheduled',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: controller.selectedSlot.value == 1 ? FontWeight.w600 : FontWeight.w400,
+                                      color: controller.selectedSlot.value == 1
+                                          ? AppColors.primaryRed
+                                          : (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Container 2: Regular Slot
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => controller.selectSlot(2),
+                            borderRadius: BorderRadius.circular(8),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                              decoration: BoxDecoration(
+                                color: controller.selectedSlot.value == 2 ? AppColors.primaryRed.withValues(alpha: 0.08) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: controller.selectedSlot.value == 2
+                                      ? AppColors.primaryRed
+                                      : (isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+                                  width: controller.selectedSlot.value == 2 ? 1.8 : 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    controller.selectedSlot.value == 2 ? Icons.radio_button_checked : Icons.radio_button_off,
+                                    size: 18,
+                                    color: controller.selectedSlot.value == 2
+                                        ? AppColors.primaryRed
+                                        : (isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Regular',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: controller.selectedSlot.value == 2 ? FontWeight.w600 : FontWeight.w400,
+                                      color: controller.selectedSlot.value == 2
+                                          ? AppColors.primaryRed
+                                          : (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 20),
                     if (controller.isSubmitting.value)
                       const Center(

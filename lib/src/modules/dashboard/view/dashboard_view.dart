@@ -6,7 +6,12 @@ import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_controller.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/app_banners/view/app_banners_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/view/delivery_rule_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/misc_charges/view/misc_charges_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/time_slot/view/time_slot_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/view/coupon_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/view/customer_details_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/view/drawer_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
@@ -15,6 +20,7 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/c
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/view/dashboard_group_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/view/item_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/view/sub_cat_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/app_settings/loyalty_prog/view/loyalty_prog_view.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -146,7 +152,7 @@ class DashboardView extends GetView<DashboardController> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Left: Drawer Collapse Toggle + Breadcrumb Module Title
+          // Left: Drawer Collapse Toggle
           Row(
             children: [
               IconButton(
@@ -262,6 +268,18 @@ class DashboardView extends GetView<DashboardController> {
       case 'couponmanagement':
       case 'couponmgmt':
         return const CouponView();
+      case 'appbanner':
+        return AppBannersView();
+      case 'deliverymanagement':
+        return const DeliveryView();
+      case 'timeslot':
+        return const TimeSlotView();
+      case 'miscellaneouscharges':
+        return const MiscChargesView();
+      case 'loyaltyprogram':
+        return const LoyaltyProgView();
+      case 'customerdetails':
+        return const CustomerDetailsView();
       default:
         return ComingSoonView(title: menuKey);
     }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
+import 'package:family_bazar_admin_panel/src/core/models/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/model/add_coupon_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/model/view_coupon_filter_type_model.dart';
@@ -8,15 +9,13 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class CouponRepository {
   final ApiClient _apiClient;
-  const CouponRepository({required this._apiClient});
+  const CouponRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
-  Future<ViewCouponListModel> viewCouponList({int page = 1, int limit = 20, String? searchValue, CancelToken? cancelToken}) async {
+  Future<ViewCouponListModel> viewCouponList({int page = 1, int limit = 20, String? searchValue}) async {
     final String cleanSearch = searchValue?.trim() ?? '';
     final Map<String, dynamic> payload = {"searchvalue": cleanSearch, "isAdmin": 1, "page": page, "limit": limit};
-
     try {
       final response = await _apiClient.dio.post(ApiConstants.viewCouponListApiEndpoint, data: payload);
-
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return ViewCouponListModel.fromJson(responseData);
@@ -43,6 +42,7 @@ class CouponRepository {
   }
 
   Future<AddCouponModel> addCoupon({
+    int? id,
     required String code,
     required String discountType,
     required String title,
@@ -61,10 +61,8 @@ class CouponRepository {
     int status = 1,
   }) async {
     const String endpoint = ApiConstants.addCouponListApiEndpoint;
-
     final String trimmedCode = code.trim();
     final String trimmedTitle = title.trim();
-
     if (trimmedCode.isEmpty) {
       throw ArgumentError('Coupon code cannot be empty.');
     }
@@ -73,6 +71,7 @@ class CouponRepository {
     }
 
     final Map<String, dynamic> payload = {
+      if (id != null) 'id': id,
       'code': trimmedCode,
       'discount_type': discountType.trim(),
       'title': trimmedTitle,
@@ -93,12 +92,10 @@ class CouponRepository {
 
     try {
       final response = await _apiClient.dio.post(endpoint, data: payload);
-
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return AddCouponModel.fromJson(responseData);
       }
-
       throw FormatException('[CouponRepository.addCoupon]: Invalid response format from endpoint: $endpoint');
     } catch (e, stackTrace) {
       _logException(e, stackTrace, 'addCoupon', {'endpoint': endpoint, 'payload': payload});
@@ -108,10 +105,8 @@ class CouponRepository {
 
   Future<ViewCouponFilterTypeModel> getCouponFilterType() async {
     String endpoint = ApiConstants.getCouponFilterTypeApiEndpoint;
-
     try {
       final response = await _apiClient.dio.post(endpoint);
-
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return ViewCouponFilterTypeModel.fromJson(responseData);
@@ -123,11 +118,25 @@ class CouponRepository {
     }
   }
 
+  Future<CommonDeleteModel> deleteCoupon({required String couponId}) async {
+    const String endpoint = ApiConstants.deleteApiEndpoint;
+    try {
+      final response = await _apiClient.dio.post(endpoint, data: {'tablename': "Coupons", 'id': couponId});
+      if (response.data != null && response.data is Map<String, dynamic>) {
+        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
+        return CommonDeleteModel.fromJson(responseData);
+      }
+      throw FormatException('[CouponRepository.deleteCoupon]: Invalid response format received from endpoint: $endpoint');
+    } catch (e, stackTrace) {
+      _logException(e, stackTrace, 'deleteCoupon', {'endpoint': endpoint, 'coupon_id': couponId});
+      rethrow;
+    }
+  }
+
   void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {
     Sentry.addBreadcrumb(
       Breadcrumb(message: 'CouponRepository error in $action', category: 'coupon.repository.network', level: SentryLevel.error, data: extra),
     );
-
     if (exception is! DioException) {
       Sentry.captureException(
         exception,

@@ -46,7 +46,7 @@ class Data {
   final DateTime? updatedAt;
   final String roleName;
 
-  /// Pure permissions_new contract: Group Key -> List of Module Permission Items
+  /// Permissions_new contract: Group Key -> List of Module Permission Items
   final Map<String, List<PermissionModuleItem>> permissionsNew;
 
   const Data({
@@ -161,8 +161,14 @@ class PermissionModuleItem {
   final String name;
   final String? icon;
   final ActionPermissions permissions;
+  final List<PermissionModuleItem> child;
 
-  const PermissionModuleItem({this.name = '', this.icon, this.permissions = const ActionPermissions()});
+  const PermissionModuleItem({
+    this.name = '',
+    this.icon,
+    this.permissions = const ActionPermissions(),
+    this.child = const [], // <-- Defaults to empty list if no child exists
+  });
 
   factory PermissionModuleItem.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const PermissionModuleItem();
@@ -173,10 +179,21 @@ class PermissionModuleItem {
       permissions: json['permissions'] != null && json['permissions'] is Map<String, dynamic>
           ? ActionPermissions.fromJson(json['permissions'] as Map<String, dynamic>)
           : const ActionPermissions(),
+      // Recursive parsing for the 3rd tier children
+      child: json['child'] != null && json['child'] is List
+          ? (json['child'] as List).whereType<Map<String, dynamic>>().map((item) => PermissionModuleItem.fromJson(item)).toList()
+          : const [],
     );
   }
 
-  Map<String, dynamic> toJson() => {'name': name, 'icon': icon, 'permissions': permissions.toJson()};
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{'name': name, 'icon': icon, 'permissions': permissions.toJson()};
+    // Include child only if it exists
+    if (child.isNotEmpty) {
+      map['child'] = child.map((e) => e.toJson()).toList();
+    }
+    return map;
+  }
 }
 
 @immutable

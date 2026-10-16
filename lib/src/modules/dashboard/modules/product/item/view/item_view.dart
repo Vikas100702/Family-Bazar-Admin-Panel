@@ -105,8 +105,10 @@ class ItemsView extends GetView<ItemController> {
         DataCell(Text(_formatText(item.iFirmCode))),
         DataCell(
           TableImageCellWidget(
-            webImageUrl: item.imageWeb,
-            mobileImageUrl: item.imageMob,
+            webImageUrl: item.imImageWeb,
+            mobileImageUrl: item.imImageMob,
+            secondaryImageUrl: item.imSecondryImage,
+            informationImageUrl: item.imImformation,
             uploadType: 'item',
             entityCode: item.iCode,
             entityTitle: item.iName,

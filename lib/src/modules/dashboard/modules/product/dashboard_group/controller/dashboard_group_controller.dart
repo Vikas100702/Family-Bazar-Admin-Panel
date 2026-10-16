@@ -70,8 +70,8 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
     return '${item.iCode} ${item.iName} ${item.iBarCode} ${item.iFirmCode} ${item.itemGroupName} ${item.otherGroupName}';
   }
 
-  int extractCode(String code, int fallback) {
-    return int.tryParse(code.trim()) ?? fallback;
+  int? extractCode(int code) {
+    return code;
   }
 
   Future<void> fetchDashboardGroups() async {
@@ -208,6 +208,7 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
     return await updateGroup(
       groupId: group.id,
       status: editStatus.value,
+      groupName: editGroupNameController.value.text.trim().isNotEmpty ? editGroupNameController.value.text.trim() : null,
       gImgM: editGImgM.value.trim().isNotEmpty ? editGImgM.value.trim() : null,
       gImgW: editGImgW.value.trim().isNotEmpty ? editGImgW.value.trim() : null,
     );
@@ -409,7 +410,7 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
       return false;
     }
 
-    final int itemCodeNumber = extractCode(item.iCode, item.id);
+    final int? itemCodeNumber = extractCode(item.id);
     if (itemCodeNumber == 0) {
       errorMessage(message: 'Unable to resolve valid item code.');
       return false;
@@ -419,7 +420,7 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
 
     await runWithLoading(() async {
       try {
-        final CommonDeleteModel response = await _groupRepository.deleteGroupItems(groupId: selectedGroupId.value, itemId: itemCodeNumber);
+        final CommonDeleteModel response = await _groupRepository.deleteGroupItems(groupId: selectedGroupId.value, itemCode: item.iCode);
 
         if (isClosed) return;
 
@@ -431,7 +432,7 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to remove item from group.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'deleteGroupItem', {'group_id': selectedGroupId.value, 'item_id': itemCodeNumber});
+        _logException(e, stackTrace, 'deleteGroupItem', {'group_id': selectedGroupId.value, 'item_code': itemCodeNumber});
         errorMessage(message: 'An error occurred while deleting item from group.');
       }
     });

@@ -11,6 +11,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class LoginRepository {
   final ApiClient _apiClient;
+
   const LoginRepository({required this._apiClient});
 
   Future<GetTokenModel> fetchToken() async {
@@ -99,6 +100,47 @@ class LoginRepository {
       }
     } catch (e, stackTrace) {
       _logRepositoryException(exception: e, stackTrace: stackTrace, endpoint: ApiConstants.loginApiEndpoint, action: 'fetchLoginUser');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, List<PermissionModuleItem>>> fetchPermissionMenu({required int roleId}) async {
+    final Map<String, dynamic> payload = {'role_id': roleId};
+
+    try {
+      final response = await _apiClient.dio.post(ApiConstants.permissionsApiEndpoint, data: payload);
+
+      if (response.data != null && response.data is Map<String, dynamic>) {
+        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
+        final bool status =
+            responseData['status'] == true || responseData['status'] == 1 || responseData['status'] == 'true' || responseData['status'] == '1';
+
+        if (!status) throw Exception(responseData['message']?.toString() ?? 'Failed to retrieve permissions menu.');
+        final dynamic dataObj = responseData['data'];
+
+        if (dataObj != null && dataObj is Map<String, dynamic>) {
+          final dynamic rawPermissionsNew = dataObj['permissions_new'];
+
+          if (rawPermissionsNew != null && rawPermissionsNew is Map<String, dynamic>) {
+            final Map<String, List<PermissionModuleItem>> parsedPermissions = {};
+
+            rawPermissionsNew.forEach((groupKey, groupList) {
+              if (groupList is List) {
+                final List<PermissionModuleItem> items = groupList
+                    .whereType<Map<String, dynamic>>()
+                    .map((item) => PermissionModuleItem.fromJson(item))
+                    .toList();
+                parsedPermissions[groupKey] = items;
+              }
+            });
+            return parsedPermissions;
+          }
+        }
+        return <String, List<PermissionModuleItem>>{};
+      }
+      throw const FormatException("[Permission Menu API]: Invalid JSON response received");
+    } catch (e, stackTrace) {
+      _logRepositoryException(exception: e, stackTrace: stackTrace, endpoint: ApiConstants.permissionsApiEndpoint, action: 'fetchPermissionMenu');
       rethrow;
     }
   }

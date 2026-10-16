@@ -1,6 +1,8 @@
 import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
 import 'package:family_bazar_admin_panel/src/core/routes/auth_middleware.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/binding/dashboard_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/app_banners/binding/app_banners_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/app_banners/view/app_banners_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/binding/delivery_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/view/delivery_rule_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/misc_charges/binding/misc_charges_binding.dart';
@@ -9,6 +11,7 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/time_slot/view/time_slot_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/binding/coupon_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/view/coupon_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/view/customer_details_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/binding/firm_setup_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/binding/pincode_settings_binding.dart';
@@ -23,6 +26,8 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/i
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/view/item_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/binding/sub_cat_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/sub_category/view/sub_cat_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/app_settings/loyalty_prog/binding/loyalty_prog_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/app_settings/loyalty_prog/view/loyalty_prog_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/view/dashboard_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/login/binding/login_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/login/view/login_view.dart';
@@ -130,6 +135,27 @@ class AppPages {
       name: AppRoutes.miscCharges,
       page: () => const MiscChargesView(),
       binding: MiscChargesBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.loyaltyProgram,
+      page: () => const LoyaltyProgView(),
+      binding: LoyaltyProgBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.appBanners,
+      page: () => const AppBannersView(),
+      binding: AppBannersBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.customerDetails,
+      page: () => const CustomerDetailsView(),
+      binding: AppBannersBinding(),
       transition: Transition.noTransition,
       middlewares: [AuthMiddleware()],
     ),

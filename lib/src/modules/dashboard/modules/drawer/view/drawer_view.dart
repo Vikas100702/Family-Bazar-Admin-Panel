@@ -8,7 +8,6 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/co
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/model/drawer_menu_model/drawer_menu_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 class DrawerView extends GetView<DashboardDrawerController> {
   const DrawerView({super.key});
@@ -28,11 +27,9 @@ class DrawerView extends GetView<DashboardDrawerController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. Adaptive Header (Branded Banner or Centered Collapsed Logo)
             _buildAdaptiveHeader(context, isCollapsed: isCollapsed),
             Divider(height: 1, thickness: 1, color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
 
-            // 2. Dynamic Reactive Menu List
             Expanded(
               child: controller.menuItems.isEmpty
                   ? const Center(
@@ -55,7 +52,6 @@ class DrawerView extends GetView<DashboardDrawerController> {
                     ),
             ),
 
-            // 3. Adaptive Footer
             Divider(height: 1, thickness: 1, color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
             _buildAdaptiveFooter(context, isCollapsed: isCollapsed),
           ],
@@ -177,13 +173,13 @@ class DrawerView extends GetView<DashboardDrawerController> {
     });
   }
 
-  // Mini Sidebar Item with Popup (For items with sub-menus)
+  // Mini Sidebar Item with Popup (Supports 2nd & 3rd Tiers)
   Widget _buildCollapsedExpandableItem(BuildContext context, DrawerMenuModel item) {
     final isDark = context.isDark;
 
     return Obx(() {
       final dashboardController = Get.find<DashboardController>();
-      final bool isAnyChildActive = item.subItems.any((sub) => _isKeyActive(dashboardController.selectedMenuKey.value, sub.identifier));
+      final bool isAnyChildActive = _isRecursiveActive(dashboardController.selectedMenuKey.value, item);
 
       final Color tileColor = isAnyChildActive ? AppColors.primaryRed.withValues(alpha: 0.12) : Colors.transparent;
       final Color borderColor = isAnyChildActive ? AppColors.primaryRed.withValues(alpha: 0.35) : Colors.transparent;
@@ -207,7 +203,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
               ),
               onSelected: (identifier) => _handleItemTap(context, identifier),
               itemBuilder: (popupContext) {
-                return [
+                final List<PopupMenuEntry<String>> entries = [
                   PopupMenuItem<String>(
                     enabled: false,
                     height: 36,
@@ -222,33 +218,80 @@ class DrawerView extends GetView<DashboardDrawerController> {
                     ),
                   ),
                   const PopupMenuDivider(height: 1),
-                  ...item.subItems.map((subItem) {
-                    final bool isSubActive = _isKeyActive(dashboardController.selectedMenuKey.value, subItem.identifier);
+                ];
 
-                    return PopupMenuItem<String>(
-                      value: subItem.identifier,
-                      height: 40,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.circle,
-                            size: 6,
-                            color: isSubActive ? AppColors.primaryRed : (isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
+                for (final subItem in item.subItems) {
+                  if (subItem.hasSubItems) {
+                    // Group Header for 2nd tier parent having 3rd tier children
+                    entries.add(
+                      PopupMenuItem<String>(
+                        enabled: false,
+                        height: 28,
+                        child: Text(
+                          subItem.title,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
                           ),
-                          const SizedBox(width: 10),
-                          Text(
-                            subItem.title,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: isSubActive ? FontWeight.w600 : FontWeight.w500,
-                              color: isSubActive ? AppColors.primaryRed : (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     );
-                  }),
-                ];
+                    for (final thirdItem in subItem.subItems) {
+                      final bool isThirdActive = _isKeyActive(dashboardController.selectedMenuKey.value, thirdItem.identifier);
+                      entries.add(
+                        PopupMenuItem<String>(
+                          value: thirdItem.identifier,
+                          height: 38,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Row(
+                              children: [
+                                Icon(Icons.circle, size: 5, color: isThirdActive ? AppColors.primaryRed : Colors.grey),
+                                const SizedBox(width: 8),
+                                Text(
+                                  thirdItem.title,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isThirdActive ? FontWeight.w600 : FontWeight.w500,
+                                    color: isThirdActive ? AppColors.primaryRed : (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  } else {
+                    final bool isSubActive = _isKeyActive(dashboardController.selectedMenuKey.value, subItem.identifier);
+                    entries.add(
+                      PopupMenuItem<String>(
+                        value: subItem.identifier,
+                        height: 40,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.circle,
+                              size: 6,
+                              color: isSubActive ? AppColors.primaryRed : (isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              subItem.title,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isSubActive ? FontWeight.w600 : FontWeight.w500,
+                                color: isSubActive ? AppColors.primaryRed : (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                }
+                return entries;
               },
               child: Container(
                 height: 48,
@@ -322,13 +365,13 @@ class DrawerView extends GetView<DashboardDrawerController> {
     });
   }
 
-  // Full Sidebar Dropdown (For items with sub-menus)
+  // Full Sidebar 1st-Tier Dropdown
   Widget _buildExpandableMenuGroup(BuildContext context, DrawerMenuModel item) {
     final isDark = context.isDark;
 
     return Obx(() {
       final dashboardController = Get.find<DashboardController>();
-      final bool isAnyChildActive = item.subItems.any((sub) => _isKeyActive(dashboardController.selectedMenuKey.value, sub.identifier));
+      final bool isAnyChildActive = _isRecursiveActive(dashboardController.selectedMenuKey.value, item);
 
       return Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent, splashColor: Colors.transparent),
@@ -353,6 +396,10 @@ class DrawerView extends GetView<DashboardDrawerController> {
           iconColor: AppColors.primaryRed,
           collapsedIconColor: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
           children: item.subItems.map((subItem) {
+            // Check if subItem contains 3rd tier children
+            if (subItem.hasSubItems) {
+              return _buildSecondTierExpandableGroup(context, subItem);
+            }
             return _buildSubMenuItem(context, subItem);
           }).toList(),
         ),
@@ -360,7 +407,56 @@ class DrawerView extends GetView<DashboardDrawerController> {
     });
   }
 
-  Widget _buildSubMenuItem(BuildContext context, DrawerMenuModel subItem) {
+  // Full Sidebar 2nd-Tier Dropdown (For 3rd Tier Children)
+  Widget _buildSecondTierExpandableGroup(BuildContext context, DrawerMenuModel item) {
+    final isDark = context.isDark;
+
+    return Obx(() {
+      final dashboardController = Get.find<DashboardController>();
+      final bool isAnyChildActive = _isRecursiveActive(dashboardController.selectedMenuKey.value, item);
+
+      return Padding(
+        padding: EdgeInsets.only(left: context.responsiveWidth(14, 18), right: context.responsiveWidth(4, 6)),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent, splashColor: Colors.transparent),
+          child: ExpansionTile(
+            initiallyExpanded: isAnyChildActive,
+            tilePadding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(10, 12), vertical: 0),
+            collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            leading: Icon(
+              Icons.tune_rounded,
+              size: context.responsiveSize(16, 18),
+              color: isAnyChildActive ? AppColors.primaryRed : (isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
+            ),
+            title: Text(
+              item.title,
+              style: isAnyChildActive
+                  ? context.titleStyleActive.copyWith(
+                      fontSize: context.responsiveSize(12, 13),
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryRed,
+                    )
+                  : context.titleStyleRegular.copyWith(
+                      fontSize: context.responsiveSize(12, 13),
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                    ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            iconColor: AppColors.primaryRed,
+            collapsedIconColor: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
+            children: item.subItems.map((subItem) {
+              return _buildSubMenuItem(context, subItem, isThirdTier: true);
+            }).toList(),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildSubMenuItem(BuildContext context, DrawerMenuModel subItem, {bool isThirdTier = false}) {
     final isDark = context.isDark;
 
     return Obx(() {
@@ -368,9 +464,10 @@ class DrawerView extends GetView<DashboardDrawerController> {
       final bool isSubActive = _isKeyActive(dashboardController.selectedMenuKey.value, subItem.identifier);
 
       final Color subColor = isSubActive ? AppColors.primaryRed.withValues(alpha: 0.08) : Colors.transparent;
+      final double leftPadding = isThirdTier ? context.responsiveWidth(36, 44) : context.responsiveWidth(28, 34);
 
       return Padding(
-        padding: EdgeInsets.only(left: context.responsiveWidth(28, 34), right: context.responsiveWidth(6, 8), top: 2, bottom: 2),
+        padding: EdgeInsets.only(left: leftPadding, right: context.responsiveWidth(6, 8), top: 2, bottom: 2),
         child: Material(
           color: subColor,
           borderRadius: BorderRadius.circular(6),
@@ -385,8 +482,8 @@ class DrawerView extends GetView<DashboardDrawerController> {
               child: Row(
                 children: [
                   Icon(
-                    Icons.circle,
-                    size: context.responsiveSize(6, 7),
+                    isThirdTier ? Icons.circle_outlined : Icons.circle,
+                    size: context.responsiveSize(5, 6),
                     color: isSubActive ? AppColors.primaryRed : (isDark ? AppColors.textMutedDark : AppColors.textMutedSlate),
                   ),
                   SizedBox(width: context.responsiveWidth(10, 12)),
@@ -463,17 +560,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
           fit: BoxFit.contain,
           color: isActive ? AppColors.primaryRed : null,
           colorBlendMode: isActive ? BlendMode.srcIn : null,
-          errorWidget: (context, error, stackTrace) {
-            Sentry.addBreadcrumb(
-              Breadcrumb(
-                message: AppStrings.failedToLoadIcon,
-                category: 'ui.image_load',
-                level: SentryLevel.warning,
-                data: {'url': item.icon, 'menu_identifier': item.identifier},
-              ),
-            );
-            return Icon(_getIconForIdentifier(item.identifier), size: iconSize, color: iconColor);
-          },
+          errorWidget: (context, error, stackTrace) => Icon(_getIconForIdentifier(item.identifier), size: iconSize, color: iconColor),
         ),
       );
     }
@@ -496,32 +583,20 @@ class DrawerView extends GetView<DashboardDrawerController> {
       return Icons.pin_drop_rounded;
     } else if (cleanKey.contains('coupon')) {
       return Icons.discount_rounded;
-    } else if (cleanKey.contains('category')) {
-      return Icons.category_rounded;
-    } else if (cleanKey.contains('subcategory')) {
-      return Icons.account_tree_rounded;
-    } else if (cleanKey.contains('brand')) {
-      return Icons.branding_watermark_rounded;
-    } else if (cleanKey.contains('item')) {
-      return Icons.shopping_bag_rounded;
     } else if (cleanKey.contains('product')) {
       return Icons.inventory_2_rounded;
-    } else if (cleanKey.contains('dashboardgroup') || cleanKey.contains('group')) {
-      return Icons.grid_view_rounded;
-    } else if (cleanKey.contains('order')) {
+    } else if (cleanKey.contains('banner')) {
+      return Icons.view_carousel_rounded;
+    } else if (cleanKey.contains('cart')) {
       return Icons.shopping_cart_rounded;
     } else if (cleanKey.contains('customer')) {
       return Icons.people_rounded;
-    } else if (cleanKey.contains('payment')) {
-      return Icons.payment_rounded;
+    } else if (cleanKey.contains('loyalty')) {
+      return Icons.military_tech_rounded;
+    } else if (cleanKey.contains('coin')) {
+      return Icons.monetization_on_rounded;
     } else if (cleanKey.contains('setting')) {
       return Icons.settings_rounded;
-    } else if (cleanKey.contains('report')) {
-      return Icons.analytics_rounded;
-    } else if (cleanKey.contains('delivery')) {
-      return Icons.delivery_dining_rounded;
-    } else if (cleanKey.contains('policy')) {
-      return Icons.policy_rounded;
     }
     return Icons.widgets_rounded;
   }
@@ -530,7 +605,6 @@ class DrawerView extends GetView<DashboardDrawerController> {
     final dashboardController = Get.find<DashboardController>();
     dashboardController.changeActiveMenu(identifier);
 
-    // Dynamic Platform Awareness: Safely close overlay drawer on mobile viewports
     if (!context.isDesktop) {
       final scaffoldState = Scaffold.maybeOf(context);
       if (scaffoldState != null && scaffoldState.isDrawerOpen) {
@@ -543,5 +617,18 @@ class DrawerView extends GetView<DashboardDrawerController> {
     final String cleanActive = activeKey.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
     final String cleanItem = itemKey.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
     return cleanActive == cleanItem;
+  }
+
+  bool _isRecursiveActive(String activeKey, DrawerMenuModel item) {
+    if (_isKeyActive(activeKey, item.identifier)) return true;
+    for (final sub in item.subItems) {
+      if (_isKeyActive(activeKey, sub.identifier)) return true;
+      if (sub.hasSubItems) {
+        for (final third in sub.subItems) {
+          if (_isKeyActive(activeKey, third.identifier)) return true;
+        }
+      }
+    }
+    return false;
   }
 }

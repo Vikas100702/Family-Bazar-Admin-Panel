@@ -1,52 +1,41 @@
 import 'package:family_bazar_admin_panel/src/core/base_controller/base_server_table_controller.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/model/delivery_rule_details_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/model/view_delivery_rules_model.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/model/delivery_management_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/repository/delivery_repository.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/model/pincode_settings_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/repository/pincode_settings_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-class DeliveryController extends BaseServerTableController<Rule> {
+class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
   final DeliveryRepository _repository;
-  final PincodeSettingsRepository _pincodeRepository;
 
-  DeliveryController({required this._repository, required this._pincodeRepository});
+  DeliveryController({required DeliveryRepository repository}) : _repository = repository;
 
-  // Studio View Navigation State
+  // Studio Mode State (Single In-Page Flow)
   final RxBool isStudioMode = false.obs;
   final Rxn<int> studioRuleId = Rxn<int>();
   final RxBool isStudioEditing = false.obs;
   final RxBool isInlineSlabFormOpen = false.obs;
 
-  // Pin Code Selection & Multi-Select Reactive State
-  final RxList<Datum> pincodeDropdownList = <Datum>[].obs;
-  final RxList<Datum> filteredPincodeList = <Datum>[].obs;
-  final RxList<int> selectedPincodeIds = <int>[].obs;
-  final RxBool isAllPincodesSelected = false.obs;
-  final RxBool isLoadingPincodes = false.obs;
-  final RxString pincodeSearchQuery = ''.obs;
-
-  // Delivery Rule Form Management (Add & Edit)
+  // Rule Form Management
   final GlobalKey<FormState> deliveryRuleFormKey = GlobalKey<FormState>();
   late final TextEditingController ruleNameController;
   late final TextEditingController descriptionController;
-  late final TextEditingController priorityController;
+  final RxString selectedRuleType = 'amount'.obs;
   final RxInt status = 1.obs;
-  final RxBool isSubmitting = false.obs;
-  final RxMap<int, bool> togglingStatusMap = <int, bool>{}.obs;
-  final RxMap<int, bool> togglingSlabStatusMap = <int, bool>{}.obs;
 
-  // Detailed Rule Data (Pin codes & Slabs for View/Edit)
-  final Rxn<DeliveryRuleDetailsData> activeRuleDetails = Rxn<DeliveryRuleDetailsData>();
-  final RxBool isLoadingRuleDetails = false.obs;
+  // Pincode Selection State
+  final RxList<DeliveryRulePincodeItem> allPincodes = <DeliveryRulePincodeItem>[].obs;
+  final RxList<DeliveryRulePincodeItem> filteredPincodes = <DeliveryRulePincodeItem>[].obs;
+  final RxSet<int> selectedPincodeIds = <int>{}.obs;
+  final RxBool isLoadingPincodes = false.obs;
+  final RxBool isAllPincodesSelected = false.obs;
+  late final TextEditingController pincodeSearchController;
 
-  // Distance Slab Management State & Controllers
+  final RxList<DeliveryRuleSlabItem> studioSlabs = <DeliveryRuleSlabItem>[].obs;
+
+  // Inline Slab Form Management
   final GlobalKey<FormState> distanceSlabFormKey = GlobalKey<FormState>();
-  final Rxn<int> editingSlabId = Rxn<int>();
-  final RxString selectedSlabType = 'amount'.obs;
-
+  final Rxn<int> editingSlabIndex = Rxn<int>();
   late final TextEditingController minDistanceKmController;
   late final TextEditingController maxDistanceKmController;
   late final TextEditingController minOrderAmountController;
@@ -55,14 +44,20 @@ class DeliveryController extends BaseServerTableController<Rule> {
   late final TextEditingController perKmChargeController;
   late final TextEditingController slabPriorityController;
   final RxInt slabStatus = 1.obs;
+
+  // Mutex Submissions & Status Loading Maps
+  final RxBool isSubmitting = false.obs;
   final RxBool isSubmittingSlab = false.obs;
+  final RxMap<int, bool> togglingStatusMap = <int, bool>{}.obs;
+  final Rxn<DeliveryRuleDataWrapper> activeViewingDetails = Rxn<DeliveryRuleDataWrapper>();
+  final RxBool isLoadingDetails = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     ruleNameController = TextEditingController();
     descriptionController = TextEditingController();
-    priorityController = TextEditingController(text: '1');
+    pincodeSearchController = TextEditingController();
 
     minDistanceKmController = TextEditingController();
     maxDistanceKmController = TextEditingController();
@@ -73,33 +68,31 @@ class DeliveryController extends BaseServerTableController<Rule> {
     slabPriorityController = TextEditingController(text: '1');
 
     fetchServerData();
-    fetchPincodesForDropdown();
   }
 
   @override
   Future<void> fetchServerData() async {
     await runWithLoading(() async {
       try {
-        final response = await _repository.viewDeliveryRulesList(page: currentPage.value, limit: itemsPerPage.value, searchValue: searchQuery.value);
+        final DeliveryRulesResponseModel response = await _repository.getDeliveryRules(
+          search: searchQuery.value,
+          page: currentPage.value,
+          limit: itemsPerPage.value,
+        );
+
         if (isClosed) return;
 
-        if (response.status) {
-          final List<Rule> rulesList = response.data?.rules ?? <Rule>[];
-          final int totalRecords = response.data?.pagination?.total ?? rulesList.length;
-          final int? totalPages = response.data?.pagination?.totalPages;
-          setServerData(data: rulesList, totalCount: totalRecords, pageCount: totalPages);
+        if (response.status && response.data != null) {
+          final List<DeliveryRuleItem> rulesList = response.data!.rules;
+          final int total = response.data!.pagination?.total ?? rulesList.length;
+          final int? totalPages = response.data!.pagination?.totalPages;
+
+          setServerData(data: rulesList, totalCount: total, pageCount: totalPages);
         } else {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch delivery rules.');
         }
       } catch (e, stackTrace) {
-        Sentry.captureException(
-          e,
-          stackTrace: stackTrace,
-          withScope: (scope) {
-            scope.setTag('controller', 'DeliveryController');
-            scope.setTag('action', 'fetchServerData');
-          },
-        );
+        _logException(e, stackTrace, 'fetchServerData', {'page': currentPage.value, 'search': searchQuery.value});
         if (!isClosed) {
           errorMessage(message: 'An unexpected error occurred while fetching delivery rules.');
         }
@@ -107,130 +100,118 @@ class DeliveryController extends BaseServerTableController<Rule> {
     });
   }
 
-  Future<void> fetchPincodesForDropdown() async {
-    try {
-      isLoadingPincodes.value = true;
-      final response = await _pincodeRepository.getPincodes(page: 1, limit: 1000);
-      if (isClosed) return;
+  Future<void> refreshDeliveryRules() async => refreshData();
 
-      if (response.status) {
-        pincodeDropdownList.assignAll(response.data);
-        filteredPincodeList.assignAll(response.data);
-        _updateSelectAllStatus();
+  Future<DeliveryRuleDataWrapper?> loadRuleDetails(int ruleId) async {
+    try {
+      isLoadingDetails.value = true;
+      final DeliveryRulesResponseModel response = await _repository.getDeliveryRules(id: ruleId);
+      if (isClosed) return null;
+
+      if (response.status && response.data != null) {
+        activeViewingDetails.value = response.data;
+        return response.data;
       } else {
-        errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch pincodes list.');
+        errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to retrieve rule details.');
+        return null;
       }
     } catch (e, stackTrace) {
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('controller', 'DeliveryController');
-          scope.setTag('action', 'fetchPincodesForDropdown');
-        },
-      );
-      if (!isClosed) errorMessage(message: 'Error fetching pincodes for dropdown.');
+      _logException(e, stackTrace, 'loadRuleDetails', {'rule_id': ruleId});
+      return null;
+    } finally {
+      if (!isClosed) isLoadingDetails.value = false;
+    }
+  }
+
+  Future<void> loadPincodes({int? ruleId}) async {
+    try {
+      isLoadingPincodes.value = true;
+      final DeliveryRulePincodeListResponse response = await _repository.getPincodeList(ruleId: ruleId);
+
+      if (isClosed) return;
+
+      if (response.status && response.data != null) {
+        allPincodes.assignAll(response.data!.pincodes);
+        filteredPincodes.assignAll(response.data!.pincodes);
+
+        // Pre-select mapped pincodes
+        for (final pin in response.data!.pincodes) {
+          if (pin.isSelected) {
+            selectedPincodeIds.add(pin.id);
+          }
+        }
+        _updateSelectAllStatus();
+      } else {
+        errorMessage(message: 'Failed to fetch available pincodes.');
+      }
+    } catch (e, stackTrace) {
+      _logException(e, stackTrace, 'loadPincodes', {'rule_id': ruleId});
     } finally {
       if (!isClosed) isLoadingPincodes.value = false;
     }
   }
 
-  List<String> getPincodeLabelsForRule(Rule rule) {
-    if (rule.pincodes.isNotEmpty) {
-      return rule.pincodes;
-    }
-
-    if (rule.pincodeIds.isNotEmpty && pincodeDropdownList.isNotEmpty) {
-      final Set<int> targetIds = rule.pincodeIds.toSet();
-      return pincodeDropdownList.where((p) => targetIds.contains(p.id)).map((p) => '${p.pPinCode} (${p.pFirmName})').toList();
-    }
-
-    if (rule.pincodeIds.isNotEmpty) {
-      return rule.pincodeIds.map((id) => 'Pincode ID: #$id').toList();
-    }
-
-    return const <String>['No pincodes assigned'];
-  }
-
-  Future<DeliveryRuleDetailsData?> loadRuleDetails(int ruleId) async {
-    try {
-      isLoadingRuleDetails.value = true;
-      final response = await _repository.getDeliveryRuleDetails(ruleId);
-      if (isClosed) return null;
-
-      if (response.status && response.data != null) {
-        activeRuleDetails.value = response.data;
-        return response.data;
-      } else {
-        errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to load rule details.');
-        return null;
-      }
-    } catch (e, stackTrace) {
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('controller', 'DeliveryController');
-          scope.setTag('action', 'loadRuleDetails');
-          scope.setContexts('rule_meta', {'rule_id': ruleId});
-        },
-      );
-      if (!isClosed) {
-        errorMessage(message: 'Failed to fetch rule details: $e');
-      }
-      return null;
-    } finally {
-      if (!isClosed) {
-        isLoadingRuleDetails.value = false;
-      }
-    }
-  }
-
+  /// Create New Rule
   void openCreateRuleStudio() {
-    clearForm();
+    clearStudioState();
     studioRuleId.value = null;
     isStudioEditing.value = false;
-    activeRuleDetails.value = null;
-    isInlineSlabFormOpen.value = false;
     isStudioMode.value = true;
+    loadPincodes();
   }
 
-  Future<void> openEditRuleStudio(Rule rule) async {
-    clearForm();
+  /// Edit Existing Rule
+  Future<void> openEditRuleStudio(DeliveryRuleItem rule) async {
+    clearStudioState();
     studioRuleId.value = rule.id;
     isStudioEditing.value = true;
-    isInlineSlabFormOpen.value = false;
     isStudioMode.value = true;
 
     ruleNameController.text = rule.ruleName;
     descriptionController.text = rule.description;
-    priorityController.text = rule.priority.toString();
+    selectedRuleType.value = rule.ruleType.isNotEmpty ? rule.ruleType : 'amount';
     status.value = rule.status;
 
-    await loadRuleDetails(rule.id);
-    if (activeRuleDetails.value != null && activeRuleDetails.value!.pincodeIds.isNotEmpty) {
-      selectedPincodeIds.assignAll(activeRuleDetails.value!.pincodeIds);
-    } else if (rule.pincodeIds.isNotEmpty) {
-      selectedPincodeIds.assignAll(rule.pincodeIds);
+    // Load server details for pre-filling assigned pincodes & slabs
+    final DeliveryRuleDataWrapper? details = await loadRuleDetails(rule.id);
+    if (details != null) {
+      studioSlabs.assignAll(details.deliveryRules);
     }
-    _updateSelectAllStatus();
+    await loadPincodes(ruleId: rule.id);
   }
 
   void closeRuleStudio() {
-    clearForm();
+    clearStudioState();
     isStudioMode.value = false;
-    studioRuleId.value = null;
-    isStudioEditing.value = false;
-    activeRuleDetails.value = null;
-    isInlineSlabFormOpen.value = false;
     fetchServerData();
   }
 
-  void togglePincodeSelection(int pincodeId) {
-    if (selectedPincodeIds.contains(pincodeId)) {
-      selectedPincodeIds.remove(pincodeId);
+  void clearStudioState() {
+    ruleNameController.clear();
+    descriptionController.clear();
+    selectedRuleType.value = 'amount';
+    status.value = 1;
+    selectedPincodeIds.clear();
+    isAllPincodesSelected.value = false;
+    pincodeSearchController.clear();
+    studioSlabs.clear();
+    closeInlineSlabForm();
+  }
+
+  void onPincodeSearch(String query) {
+    final String clean = query.trim().toLowerCase();
+    if (clean.isEmpty) {
+      filteredPincodes.assignAll(allPincodes);
     } else {
-      selectedPincodeIds.add(pincodeId);
+      filteredPincodes.assignAll(allPincodes.where((p) => p.pincode.toLowerCase().contains(clean) || p.firmName.toLowerCase().contains(clean)));
+    }
+  }
+
+  void togglePincodeSelection(int id) {
+    if (selectedPincodeIds.contains(id)) {
+      selectedPincodeIds.remove(id);
+    } else {
+      selectedPincodeIds.add(id);
     }
     _updateSelectAllStatus();
   }
@@ -239,131 +220,106 @@ class DeliveryController extends BaseServerTableController<Rule> {
     final bool isChecked = selectAll ?? false;
     isAllPincodesSelected.value = isChecked;
     if (isChecked) {
-      final List<int> allIds = pincodeDropdownList.map((item) => item.id).whereType<int>().toList();
-      selectedPincodeIds.assignAll(allIds);
+      selectedPincodeIds.assignAll(allPincodes.map((p) => p.id));
     } else {
       selectedPincodeIds.clear();
     }
   }
 
-  void onPincodeSearch(String query) {
-    pincodeSearchQuery.value = query;
-    final String clean = query.trim().toLowerCase();
-    if (clean.isEmpty) {
-      filteredPincodeList.assignAll(pincodeDropdownList);
-    } else {
-      filteredPincodeList.assignAll(
-        pincodeDropdownList.where((p) => p.pPinCode.toLowerCase().contains(clean) || p.pFirmName.toLowerCase().contains(clean)),
-      );
-    }
-  }
-
   void _updateSelectAllStatus() {
-    if (pincodeDropdownList.isEmpty) {
+    if (allPincodes.isEmpty) {
       isAllPincodesSelected.value = false;
     } else {
-      isAllPincodesSelected.value = selectedPincodeIds.length == pincodeDropdownList.length;
+      isAllPincodesSelected.value = selectedPincodeIds.length == allPincodes.length;
     }
   }
 
-  Future<void> refreshDeliveryRules() async {
-    await fetchPincodesForDropdown();
-    await fetchServerData();
+  void setRuleType(String type) {
+    selectedRuleType.value = type;
   }
 
-  Future<void> toggleRuleStatus(Rule rule, bool newStatus) async {
-    if (togglingStatusMap[rule.id] == true) return;
-    togglingStatusMap[rule.id] = true;
+  void openInlineSlabForm({DeliveryRuleSlabItem? slab, int? index}) {
+    editingSlabIndex.value = index;
+    if (slab != null) {
+      minDistanceKmController.text = slab.minDistanceKm.toStringAsFixed(0);
+      maxDistanceKmController.text = slab.maxDistanceKm.toStringAsFixed(0);
+      minOrderAmountController.text = slab.minOrderAmount.toStringAsFixed(0);
+      maxOrderAmountController.text = (slab.maxOrderAmount != null && slab.maxOrderAmount! > 0) ? slab.maxOrderAmount!.toStringAsFixed(0) : '';
+      baseChargeController.text = slab.baseCharge.toStringAsFixed(0);
+      perKmChargeController.text = slab.perKmCharge.toStringAsFixed(0);
+      slabPriorityController.text = slab.priority.toString();
+      slabStatus.value = slab.status;
+    } else {
+      minDistanceKmController.clear();
+      maxDistanceKmController.clear();
+      minOrderAmountController.clear();
+      maxOrderAmountController.clear();
+      baseChargeController.clear();
+      perKmChargeController.text = '0';
+      slabPriorityController.text = (studioSlabs.length + 1).toString();
+      slabStatus.value = 1;
+    }
+    isInlineSlabFormOpen.value = true;
+  }
 
-    try {
-      final int updatedStatusInt = newStatus ? 1 : 0;
-      final List<int> effectivePincodes = rule.pincodeIds.isNotEmpty
-          ? rule.pincodeIds
-          : (pincodeDropdownList.isNotEmpty ? pincodeDropdownList.map((e) => e.id).whereType<int>().take(1).toList() : <int>[1]);
+  void closeInlineSlabForm() {
+    editingSlabIndex.value = null;
+    minDistanceKmController.clear();
+    maxDistanceKmController.clear();
+    minOrderAmountController.clear();
+    maxOrderAmountController.clear();
+    baseChargeController.clear();
+    perKmChargeController.text = '0';
+    slabPriorityController.text = '1';
+    isInlineSlabFormOpen.value = false;
+  }
 
-      final response = await _repository.addDeliveryRules(
-        id: rule.id,
-        ruleName: rule.ruleName,
-        description: rule.description.isNotEmpty ? rule.description : null,
-        priority: rule.priority,
-        status: updatedStatusInt,
-        pincodeIds: effectivePincodes,
-      );
+  /// Adds or updates a slab
+  void saveInlineSlab() {
+    if (!distanceSlabFormKey.currentState!.validate()) return;
 
-      if (isClosed) return;
+    final String type = selectedRuleType.value.toLowerCase().trim();
+    final bool isDistanceType = type == 'distance';
+    final bool isAmountType = type == 'amount';
 
-      if (response.status) {
-        successMessage(title: 'Status Updated', message: 'Rule status changed to ${newStatus ? 'Active' : 'Inactive'}.');
-        await fetchServerData();
-      } else {
-        errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to update rule status.');
-      }
-    } catch (e, stackTrace) {
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('controller', 'DeliveryController');
-          scope.setTag('action', 'toggleRuleStatus');
-          scope.setContexts('rule_payload', {'id': rule.id, 'targetStatus': newStatus});
-        },
-      );
-      if (!isClosed) {
-        errorMessage(message: 'Error updating rule status: $e');
-      }
-    } finally {
-      togglingStatusMap[rule.id] = false;
+    final double minDistance = isAmountType ? 0.0 : (double.tryParse(minDistanceKmController.text.trim()) ?? 0.0);
+    final double maxDistance = isAmountType ? 0.0 : (double.tryParse(maxDistanceKmController.text.trim()) ?? 0.0);
+    final double perKm = isAmountType ? 0.0 : (double.tryParse(perKmChargeController.text.trim()) ?? 0.0);
+
+    final double minAmount = isDistanceType ? 0.0 : (double.tryParse(minOrderAmountController.text.trim()) ?? 0.0);
+    final String rawMax = maxOrderAmountController.text.trim();
+    final double? maxAmount = isDistanceType ? 0.0 : (rawMax.isNotEmpty ? double.tryParse(rawMax) : null);
+
+    final double baseCharge = double.tryParse(baseChargeController.text.trim()) ?? 0.0;
+    final int priority = int.tryParse(slabPriorityController.text.trim()) ?? 1;
+
+    final DeliveryRuleSlabItem slabItem = DeliveryRuleSlabItem(
+      minDistanceKm: minDistance,
+      maxDistanceKm: maxDistance,
+      minOrderAmount: minAmount,
+      maxOrderAmount: maxAmount,
+      baseCharge: baseCharge,
+      perKmCharge: perKm,
+      priority: priority,
+      status: slabStatus.value,
+    );
+
+    if (editingSlabIndex.value != null && editingSlabIndex.value! >= 0 && editingSlabIndex.value! < studioSlabs.length) {
+      studioSlabs[editingSlabIndex.value!] = slabItem;
+    } else {
+      studioSlabs.add(slabItem);
+    }
+
+    closeInlineSlabForm();
+  }
+
+  void removeSlab(int index) {
+    if (index >= 0 && index < studioSlabs.length) {
+      studioSlabs.removeAt(index);
     }
   }
 
-  Future<void> toggleSlabStatus(RuleDistanceItem slab, bool newStatus) async {
-    final int? currentRuleId = studioRuleId.value;
-    if (currentRuleId == null || currentRuleId <= 0) return;
-    if (togglingSlabStatusMap[slab.id] == true) return;
-
-    togglingSlabStatusMap[slab.id] = true;
-    try {
-      final int updatedStatus = newStatus ? 1 : 0;
-      final response = await _repository.saveDistanceSlab(
-        id: slab.id,
-        ruleId: currentRuleId,
-        minDistanceKm: slab.minDistanceKm.toInt(),
-        maxDistanceKm: slab.maxDistanceKm.toInt(),
-        minOrderAmount: slab.minOrderAmount.toInt(),
-        maxOrderAmount: slab.maxOrderAmount > 0 ? slab.maxOrderAmount.toInt() : null,
-        baseCharge: slab.baseCharge.toInt(),
-        perKmCharge: slab.perKmCharge.toInt(),
-        priority: slab.priority,
-        status: updatedStatus,
-      );
-
-      if (isClosed) return;
-
-      if (response.status) {
-        successMessage(title: 'Status Updated', message: 'Slab status updated to ${newStatus ? "Active" : "Inactive"}.');
-        await loadRuleDetails(currentRuleId);
-      } else {
-        errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to update slab status.');
-      }
-    } catch (e, stackTrace) {
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('controller', 'DeliveryController');
-          scope.setTag('action', 'toggleSlabStatus');
-          scope.setContexts('slab_payload', {'id': slab.id, 'status': newStatus});
-        },
-      );
-      if (!isClosed) {
-        errorMessage(message: 'Error updating slab status: $e');
-      }
-    } finally {
-      togglingSlabStatusMap[slab.id] = false;
-    }
-  }
-
-  Future<bool> saveOrUpdateStudioRule() async {
+  Future<bool> submitEntireStudioRule() async {
     if (isSubmitting.value) return false;
     if (!deliveryRuleFormKey.currentState!.validate()) return false;
 
@@ -372,191 +328,101 @@ class DeliveryController extends BaseServerTableController<Rule> {
       return false;
     }
 
-    isSubmitting.value = true;
-    try {
-      final int parsedPriority = int.tryParse(priorityController.text.trim()) ?? 1;
-      final int? currentId = studioRuleId.value;
+    if (studioSlabs.isEmpty) {
+      errorMessage(message: 'Please configure at least one delivery charge slab.');
+      return false;
+    }
 
-      final response = await _repository.addDeliveryRules(
-        id: currentId,
+    isSubmitting.value = true;
+
+    try {
+      final int? ruleId = studioRuleId.value;
+
+      final SaveDeliveryRuleResponseModel response = await _repository.saveRule(
+        id: ruleId,
         ruleName: ruleNameController.text.trim(),
-        description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
-        priority: parsedPriority,
+        ruleType: selectedRuleType.value,
+        description: descriptionController.text.trim(),
         status: status.value,
         pincodeIds: selectedPincodeIds.toList(),
+        deliveryRules: studioSlabs.toList(),
       );
 
       if (isClosed) return false;
 
       if (response.status) {
-        final int resolvedId = response.data?.ruleId ?? currentId ?? 0;
-        studioRuleId.value = resolvedId;
-        isStudioEditing.value = true;
-
-        successMessage(title: 'Success', message: response.message.isNotEmpty ? response.message : 'Delivery rule saved successfully.');
-
-        if (resolvedId > 0) {
-          await loadRuleDetails(resolvedId);
-        }
+        final String actionVerb = ruleId != null ? 'updated' : 'created';
+        successMessage(title: 'Success', message: response.message.isNotEmpty ? response.message : 'Delivery rule $actionVerb successfully.');
+        closeRuleStudio();
         return true;
       } else {
         errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to save delivery rule.');
         return false;
       }
     } catch (e, stackTrace) {
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('controller', 'DeliveryController');
-          scope.setTag('action', 'saveOrUpdateStudioRule');
-        },
-      );
-      if (!isClosed) errorMessage(message: e.toString());
+      _logException(e, stackTrace, 'submitEntireStudioRule');
+      if (!isClosed) {
+        errorMessage(message: 'An error occurred while saving the delivery rule.');
+      }
       return false;
     } finally {
       if (!isClosed) isSubmitting.value = false;
     }
   }
 
-  void clearForm() {
-    ruleNameController.clear();
-    descriptionController.clear();
-    priorityController.text = '1';
-    status.value = 1;
-    selectedPincodeIds.clear();
-    isAllPincodesSelected.value = false;
-    pincodeSearchQuery.value = '';
-    filteredPincodeList.assignAll(pincodeDropdownList);
-    activeRuleDetails.value = null;
-    editingSlabId.value = null;
-    slabStatus.value = 1;
-    isSubmitting.value = false;
-    isSubmittingSlab.value = false;
-  }
-
-  // Distance Slab Operations & Type Setter
-  void setSlabType(String type) {
-    selectedSlabType.value = type;
-  }
-
-  void openInlineSlabForm({dynamic slab}) {
-    selectedSlabType.value = 'amount';
-
-    if (slab != null) {
-      editingSlabId.value = slab.id as int;
-      minDistanceKmController.text = slab.minDistanceKm.toString();
-      maxDistanceKmController.text = slab.maxDistanceKm?.toString() ?? '0';
-      minOrderAmountController.text = slab.minOrderAmount.toString();
-      maxOrderAmountController.text = slab.maxOrderAmount != null && slab.maxOrderAmount > 0 ? slab.maxOrderAmount.toString() : '';
-      baseChargeController.text = slab.baseCharge.toString();
-      perKmChargeController.text = slab.perKmCharge?.toString() ?? '0';
-      slabPriorityController.text = slab.priority.toString();
-      slabStatus.value = slab.status as int;
-    } else {
-      editingSlabId.value = null;
-      minDistanceKmController.clear();
-      maxDistanceKmController.clear();
-      minOrderAmountController.clear();
-      maxOrderAmountController.clear();
-      baseChargeController.clear();
-      perKmChargeController.text = '0';
-      slabPriorityController.text = '1';
-      slabStatus.value = 1;
-    }
-    isInlineSlabFormOpen.value = true;
-  }
-
-  void closeInlineSlabForm() {
-    editingSlabId.value = null;
-    minOrderAmountController.clear();
-    maxOrderAmountController.clear();
-    baseChargeController.clear();
-    slabStatus.value = 1;
-    isInlineSlabFormOpen.value = false;
-  }
-
-  Future<void> submitStudioDistanceSlab() async {
-    if (isSubmittingSlab.value) return;
-    final int? currentRuleId = studioRuleId.value;
-
-    if (currentRuleId == null || currentRuleId <= 0) {
-      errorMessage(message: 'Please save the rule details first before configuring order slabs.');
-      return;
-    }
-
-    if (!distanceSlabFormKey.currentState!.validate()) return;
-    isSubmittingSlab.value = true;
+  /// Toggles rule status directly from list view
+  Future<void> toggleRuleStatus(DeliveryRuleItem rule, bool newStatus) async {
+    if (togglingStatusMap[rule.id] == true) return;
+    togglingStatusMap[rule.id] = true;
 
     try {
-      final String type = selectedSlabType.value.toLowerCase().trim();
-      final bool isAmountType = type == 'amount';
-      final bool isDistanceType = type == 'distance';
+      final int targetStatus = newStatus ? 1 : 0;
+      final DeliveryRuleDataWrapper? details = await loadRuleDetails(rule.id);
+      final List<int> currentPinIds = details?.pincodes.map((p) => p.pincodeId).toList() ?? <int>[];
+      final List<DeliveryRuleSlabItem> currentSlabs = details?.deliveryRules ?? <DeliveryRuleSlabItem>[];
 
-      final int minDistance = isAmountType ? 0 : (int.tryParse(minDistanceKmController.text.trim()) ?? 0);
-      final int maxDistance = isAmountType ? 0 : (int.tryParse(maxDistanceKmController.text.trim()) ?? 0);
-      final int perKm = isAmountType ? 0 : (int.tryParse(perKmChargeController.text.trim()) ?? 0);
-
-      final int minAmount = isDistanceType ? 0 : (int.tryParse(minOrderAmountController.text.trim()) ?? 0);
-      final String rawMaxAmount = maxOrderAmountController.text.trim();
-      final int? maxAmount = isDistanceType ? 0 : (rawMaxAmount.isNotEmpty ? int.tryParse(rawMaxAmount) : null);
-
-      final int baseCharge = int.tryParse(baseChargeController.text.trim()) ?? 0;
-      final int priority = int.tryParse(slabPriorityController.text.trim()) ?? 1;
-
-      final response = await _repository.saveDistanceSlab(
-        id: editingSlabId.value,
-        ruleId: currentRuleId,
-        minDistanceKm: minDistance,
-        maxDistanceKm: maxDistance,
-        minOrderAmount: minAmount,
-        maxOrderAmount: maxAmount,
-        baseCharge: baseCharge,
-        perKmCharge: perKm,
-        priority: priority,
-        status: slabStatus.value,
+      final response = await _repository.saveRule(
+        id: rule.id,
+        ruleName: rule.ruleName,
+        ruleType: rule.ruleType,
+        description: rule.description,
+        status: targetStatus,
+        pincodeIds: currentPinIds,
+        deliveryRules: currentSlabs,
       );
 
       if (isClosed) return;
 
-      final bool isSuccess = response.status == true || response.status.toString() == 'true' || response.status.toString() == '1';
-      if (isSuccess) {
-        closeInlineSlabForm();
-        successMessage(
-          title: 'Success',
-          message: response.message.isNotEmpty
-              ? response.message
-              : (editingSlabId.value != null ? 'Distance slab updated successfully.' : 'Order slab added successfully.'),
-        );
-        await loadRuleDetails(currentRuleId);
+      if (response.status) {
+        successMessage(title: 'Status Updated', message: 'Rule status changed to ${newStatus ? 'Active' : 'Inactive'}.');
+        await fetchServerData();
       } else {
-        errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to save distance slab rule.');
+        errorMessage(message: 'Failed to update rule status.');
       }
     } catch (e, stackTrace) {
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('controller', 'DeliveryController');
-          scope.setTag('action', 'submitStudioDistanceSlab');
-          scope.setContexts('target_rule', {'ruleId': currentRuleId, 'slabId': editingSlabId.value});
-        },
-      );
-      if (!isClosed) {
-        errorMessage(message: 'Error saving slab: $e');
-      }
+      _logException(e, stackTrace, 'toggleRuleStatus', {'rule_id': rule.id});
+      if (!isClosed) errorMessage(message: 'Error toggling rule status.');
     } finally {
-      if (!isClosed) {
-        isSubmittingSlab.value = false;
-      }
+      if (!isClosed) togglingStatusMap[rule.id] = false;
     }
+  }
+
+  void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {
+    Sentry.captureException(
+      exception,
+      stackTrace: stackTrace,
+      withScope: (scope) {
+        scope.setTag('controller', 'DeliveryController');
+        scope.setContexts('delivery_action', {'action': action, 'current_page': currentPage.value, ...?extra});
+      },
+    );
   }
 
   @override
   void onClose() {
     ruleNameController.dispose();
     descriptionController.dispose();
-    priorityController.dispose();
+    pincodeSearchController.dispose();
     minDistanceKmController.dispose();
     maxDistanceKmController.dispose();
     minOrderAmountController.dispose();
@@ -564,6 +430,11 @@ class DeliveryController extends BaseServerTableController<Rule> {
     baseChargeController.dispose();
     perKmChargeController.dispose();
     slabPriorityController.dispose();
+    allPincodes.clear();
+    filteredPincodes.clear();
+    selectedPincodeIds.clear();
+    studioSlabs.clear();
+    togglingStatusMap.clear();
     super.onClose();
   }
 }

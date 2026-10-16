@@ -26,6 +26,9 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
   late final TextEditingController firmNameController;
   late final TextEditingController pinCodeController;
 
+  // Slot Selection State (1 -> Schedule Slot, 2 -> Regular Slot)
+  final RxInt selectedSlot = 1.obs;
+
   // Conflict Tracking & Operation State
   final RxInt addPincodeStatus = 0.obs;
   final RxString addPincodeErrorMessage = ''.obs;
@@ -96,12 +99,16 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
     }
   }
 
+  void selectSlot(int slotType) {
+    selectedSlot.value = slotType;
+  }
+
   Future<void> refreshPincodes() async {
     await fetchFirmsForDropdown();
     await fetchServerData();
   }
 
-  /// Submits pincode assignment with conflict verification
+  /// Submits pincode assignment with conflict verification and slot values
   Future<void> submitPincode({bool isEdit = false, int? id}) async {
     if (!pincodeFormKey.currentState!.validate()) return;
     isSubmitting.value = true;
@@ -113,6 +120,8 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
         "P_FirmName": firmNameController.text.trim(),
         "P_PinCode": pinCodeController.text.trim(),
         "id": ?id,
+        "IsScheduleSlot": selectedSlot.value == 1 ? 1 : 0,
+        "IsRegularSlot": selectedSlot.value == 2 ? 1 : 0,
       };
 
       final response = await _repository.addPincode(payload);
@@ -138,7 +147,6 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
     }
   }
 
-  /// Unmaps and reassigns existing pincode mapping
   Future<void> confirmAndUnmapPincode() async {
     isSubmitting.value = true;
     try {
@@ -147,6 +155,8 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
         "P_FirmCode": firmCodeController.text.trim(),
         "P_FirmName": firmNameController.text.trim(),
         "P_PinCode": pinCodeController.text.trim(),
+        "IsScheduleSlot": selectedSlot.value == 1 ? 1 : 0,
+        "IsRegularSlot": selectedSlot.value == 2 ? 1 : 0,
       };
 
       final response = await _repository.unmapAndAssignPincode(payload);
@@ -172,6 +182,7 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
     firmNameController.clear();
     pinCodeController.clear();
     selectedFirm.value = null;
+    selectedSlot.value = 1; // Reset to default Schedule Slot
     addPincodeStatus.value = 0;
     addPincodeErrorMessage.value = '';
     isSubmitting.value = false;

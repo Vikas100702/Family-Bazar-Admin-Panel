@@ -308,11 +308,11 @@ class DashboardGroupRepository {
     }
   }
 
-  Future<CommonDeleteModel> deleteGroupItems({required int groupId, required int itemId}) async {
+  Future<CommonDeleteModel> deleteGroupItems({required int groupId, required String itemCode}) async {
     const String endpoint = ApiConstants.deleteGroupItemsApiEndpoint;
 
     try {
-      final response = await _apiClient.dio.post(endpoint, data: {'group_id': groupId, 'item_id': itemId});
+      final response = await _apiClient.dio.post(endpoint, data: {'group_id': groupId, 'item_code': itemCode});
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
@@ -326,7 +326,7 @@ class DashboardGroupRepository {
           message: 'Failed executing deleteGroupItem mutation',
           category: 'DashboardGroupRepository.deleteGroupItem',
           level: SentryLevel.error,
-          data: {'endpoint': endpoint, 'group_id': groupId, 'item_id': itemId},
+          data: {'endpoint': endpoint, 'group_id': groupId, 'item_code': itemCode},
         ),
       );
 
@@ -337,7 +337,7 @@ class DashboardGroupRepository {
           withScope: (scope) {
             scope.setTag('repository', 'DashboardGroupRepository');
             scope.setTag('group_id', groupId.toString());
-            scope.setContexts('delete_group_item_action', {'endpoint': endpoint, 'group_id': groupId, 'item_id': itemId});
+            scope.setContexts('delete_group_item_action', {'endpoint': endpoint, 'group_id': groupId, 'item_code': itemCode});
           },
         );
       }
