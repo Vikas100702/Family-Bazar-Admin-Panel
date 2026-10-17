@@ -1,8 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_single_image_picker_field.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_single_image_table_cell.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -39,8 +40,8 @@ class AppBannersView extends GetView<AppBannersController> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryRed,
                 foregroundColor: AppColors.onPrimaryWhite,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 16), vertical: context.responsiveHeight(12, 14)),
+                shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
               ),
             ),
           ],
@@ -71,15 +72,15 @@ class AppBannersView extends GetView<AppBannersController> {
                 Expanded(
                   child: RepaintBoundary(
                     child: DataTableWidget<AppBannerDatum>(
-                      items: controller.pagedList.toList(),
+                      items: controller.pagedList,
                       horizontalScrollController: controller.horizontalScrollController,
                       verticalScrollController: controller.verticalScrollController,
                       emptyTitle: 'No Banners Found',
-                      emptySubtitle: 'Click "Add Banner" to create home sliders or promo banners.',
+                      emptySubtitle: 'Click "Add Banner" to configure home sliders or promo banners.',
                       emptyIcon: Icons.view_carousel_rounded,
                       columns: const [
                         DataColumn(label: Text('ID')),
-                        DataColumn(label: Text('IMAGES')),
+                        DataColumn(label: Text('IMAGE')),
                         DataColumn(label: Text('TYPE')),
                         DataColumn(label: Text('START DATE')),
                         DataColumn(label: Text('END DATE')),
@@ -115,22 +116,26 @@ class AppBannersView extends GetView<AppBannersController> {
     return DataRow(
       cells: [
         DataCell(SelectableText('#${banner.id}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
-        // In-Table Image Cell with Direct Upload / Replace Trigger (Items View Pattern)
-        DataCell(_buildBannerImageCell(context, banner)),
+        DataCell(
+          AppSingleImageTableCell(
+            imageUrl: banner.bnrImg,
+            tooltipMessage: 'Click to replace banner image',
+            onTap: () => controller.uploadBannerImageFromTable(banner),
+          ),
+        ),
         DataCell(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: context.responsiveRadius(4, 6),
               border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
             ),
             child: Text(banner.bnrType.isNotEmpty ? banner.bnrType : 'N/A', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ),
-        DataCell(Text(banner.startAt?.isNotEmpty == true ? banner.startAt! : '—', style: const TextStyle(fontSize: 12))),
-        DataCell(Text(banner.endAt?.isNotEmpty == true ? banner.endAt! : '—', style: const TextStyle(fontSize: 12))),
-        // Inline Status Toggle (Direct mutation via single saveBanner API)
+        DataCell(Text((banner.startDate != null && banner.startDate!.isNotEmpty) ? banner.startDate! : '—', style: const TextStyle(fontSize: 12))),
+        DataCell(Text((banner.endDate != null && banner.endDate!.isNotEmpty) ? banner.endDate! : '—', style: const TextStyle(fontSize: 12))),
         DataCell(
           StatusBadge(
             isEditable: true,
@@ -141,7 +146,6 @@ class AppBannersView extends GetView<AppBannersController> {
           ),
         ),
         DataCell(Text(banner.created.isNotEmpty ? banner.created : '—', style: const TextStyle(fontSize: 11))),
-        // Approach B: Streamlined 2 Buttons (View Details & Delete Banner)
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -150,9 +154,20 @@ class AppBannersView extends GetView<AppBannersController> {
                 icon: const Icon(Icons.visibility_outlined, size: 18),
                 mouseCursor: SystemMouseCursors.click,
                 color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
-                tooltip: 'View / Edit Banner Details',
+                tooltip: 'View Banner Details',
                 splashRadius: 18,
-                onPressed: () => _showDualModeBannerDetailsDialog(context, banner),
+                onPressed: () => _showBannerDetails(context, banner),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                mouseCursor: SystemMouseCursors.click,
+                color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo,
+                tooltip: 'Edit Banner',
+                splashRadius: 18,
+                onPressed: () {
+                  controller.prefillForEdit(banner);
+                  _openSaveBannerDialog(context, isEditing: true);
+                },
               ),
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded, size: 18),
@@ -174,307 +189,41 @@ class AppBannersView extends GetView<AppBannersController> {
     );
   }
 
-  /// In-Table Image Cell matching the Items View style:
-  /// - If empty: renders Red outlined "Upload" button
-  /// - If present: renders thumbnail with edit icon; click replaces image directly
-  Widget _buildBannerImageCell(BuildContext context, AppBannerDatum banner) {
-    final bool hasImage = banner.bnrImg.trim().isNotEmpty;
-    final bool isDark = context.isDark;
-
-    if (!hasImage) {
-      return InkWell(
-        onTap: () => controller.uploadBannerImageFromTable(banner),
-        mouseCursor: SystemMouseCursors.click,
-        borderRadius: BorderRadius.circular(6),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.primaryRed.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.25)),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_photo_alternate_outlined, size: 15, color: AppColors.primaryRed),
-              SizedBox(width: 4),
-              Text(
-                'Upload',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primaryRed),
-              ),
-            ],
-          ),
+  void _showBannerDetails(BuildContext context, AppBannerDatum banner) {
+    EntityDetailsDialogHelper.show(
+      context: context,
+      title: 'Banner #${banner.id}',
+      subtitle: 'Type: ${banner.bnrType.isNotEmpty ? banner.bnrType : 'N/A'}',
+      headerIcon: Icons.view_carousel_rounded,
+      sections: [
+        DetailSection(
+          title: '1. Identification & Type',
+          items: [
+            DetailItem(label: 'Banner ID', value: '#${banner.id}', isCopyable: true),
+            DetailItem(label: 'Banner Type', value: banner.bnrType, isCopyable: true),
+            DetailItem(label: 'Image URL', value: banner.bnrImg.isNotEmpty ? banner.bnrImg : 'None Attached', isCopyable: banner.bnrImg.isNotEmpty),
+          ],
+          flags: [DetailFlag(label: 'Active Status', value: banner.status == 1)],
         ),
-      );
-    }
-
-    final String fullUrl = banner.bnrImg.startsWith('http') ? banner.bnrImg : '${ApiConstants.baseUrl}/${banner.bnrImg}';
-
-    return InkWell(
-      onTap: () => controller.uploadBannerImageFromTable(banner),
-      mouseCursor: SystemMouseCursors.click,
-      borderRadius: BorderRadius.circular(6),
-      child: Tooltip(
-        message: 'Click to replace banner image',
-        waitDuration: const Duration(milliseconds: 300),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: CachedNetworkImage(
-                  imageUrl: fullUrl,
-                  width: 50,
-                  height: 26,
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) => const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: Center(child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.primaryRed)),
-                  ),
-                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image_rounded, size: 16, color: Colors.grey),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Icon(Icons.edit_outlined, size: 14, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
-            ],
-          ),
+        DetailSection(
+          title: '2. Scheduling & Display Rules',
+          items: [
+            DetailItem(label: 'Start Date', value: (banner.startDate != null && banner.startDate!.isNotEmpty) ? banner.startDate! : 'No Limit'),
+            DetailItem(label: 'End Date', value: (banner.endDate != null && banner.endDate!.isNotEmpty) ? banner.endDate! : 'No Limit'),
+          ],
         ),
-      ),
-    );
-  }
-
-  /// Approach B: Dual-Mode Inspector & Editor Dialog
-  void _showDualModeBannerDetailsDialog(BuildContext context, AppBannerDatum banner) {
-    controller.prefillForEdit(banner);
-    final bool isDark = context.isDark;
-    final bool isMobile = context.isMobile;
-    final double dialogWidth = isMobile ? context.screenWidth * 0.95 : 620.0;
-
-    Get.dialog(
-      Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: Container(
-          width: dialogWidth,
-          constraints: BoxConstraints(maxWidth: 620, maxHeight: context.screenHeight * 0.90),
-          padding: EdgeInsets.all(context.responsiveSize(16, 24)),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-          ),
-          child: Obx(() {
-            final bool isEditing = controller.isDetailsEditing.value;
-            return SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                            child: const Icon(Icons.view_carousel_rounded, size: 20, color: AppColors.primaryRed),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            isEditing ? 'Edit Banner #${banner.id}' : 'Banner Details #${banner.id}',
-                            style: context.titleStyleActive.copyWith(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          if (!isEditing)
-                            OutlinedButton.icon(
-                              onPressed: () => controller.enableDetailsEditMode(banner),
-                              icon: const Icon(Icons.edit_outlined, size: 15),
-                              label: const Text('Edit Banner', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.statusBlueInfo,
-                                side: const BorderSide(color: AppColors.statusBlueInfo),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              ),
-                            ),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 20),
-                            onPressed: () {
-                              controller.cancelDetailsEditMode();
-                              Get.back();
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 22, thickness: 1),
-                  if (!isEditing) _buildInspectionView(context, isDark, banner) else _buildInlineFormEditor(context, isDark),
-                ],
-              ),
-            );
-          }),
+        DetailSection(
+          title: '3. Audit Trail & Timestamps',
+          items: [
+            DetailItem(label: 'Created At', value: banner.created.isNotEmpty ? banner.created : '—'),
+            DetailItem(label: 'Updated At', value: banner.updated.isNotEmpty ? banner.updated : '—'),
+          ],
         ),
-      ),
-      barrierDismissible: false,
-    );
-  }
-
-  Widget _buildInspectionView(BuildContext context, bool isDark, AppBannerDatum banner) {
-    final String fullUrl = banner.bnrImg.startsWith('http') ? banner.bnrImg : '${ApiConstants.baseUrl}/${banner.bnrImg}';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          height: 140,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: banner.bnrImg.isNotEmpty
-              ? CachedNetworkImage(
-                  imageUrl: fullUrl,
-                  fit: BoxFit.contain,
-                  placeholder: (_, __) => const Center(
-                    child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryRed)),
-                  ),
-                  errorWidget: (_, __, ___) => const Center(child: Icon(Icons.broken_image_rounded, size: 36, color: Colors.grey)),
-                )
-              : const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.image_not_supported_outlined, size: 36, color: Colors.grey),
-                      SizedBox(height: 6),
-                      Text('No Banner Image Attached', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
-                  ),
-                ),
-        ),
-        const SizedBox(height: 16),
-        _buildInfoGrid(context, isDark, banner),
       ],
     );
   }
 
-  Widget _buildInfoGrid(BuildContext context, bool isDark, AppBannerDatum banner) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: _buildDetailCard(isDark, 'BANNER ID', '#${banner.id}')),
-            const SizedBox(width: 10),
-            Expanded(child: _buildDetailCard(isDark, 'BANNER TYPE', banner.bnrType)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(child: _buildDetailCard(isDark, 'START DATE', banner.startAt?.isNotEmpty == true ? banner.startAt! : 'No Limit')),
-            const SizedBox(width: 10),
-            Expanded(child: _buildDetailCard(isDark, 'END DATE', banner.endAt?.isNotEmpty == true ? banner.endAt! : 'No Limit')),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(child: _buildDetailCard(isDark, 'CREATED AT', banner.created.isNotEmpty ? banner.created : '—')),
-            const SizedBox(width: 10),
-            Expanded(child: _buildDetailCard(isDark, 'UPDATED AT', banner.updated.isNotEmpty ? banner.updated : '—')),
-          ],
-        ),
-        const SizedBox(height: 10),
-        _buildDetailCard(isDark, 'STATUS', banner.status == 1 ? 'Active' : 'Inactive'),
-      ],
-    );
-  }
-
-  Widget _buildDetailCard(bool isDark, String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Colors.grey),
-          ),
-          const SizedBox(height: 4),
-          SelectableText(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInlineFormEditor(BuildContext context, bool isDark) {
-    return Form(
-      key: controller.bannerFormKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildBannerTypeInput(context, isDark),
-          const SizedBox(height: 16),
-          _buildImagePickerSlot(context, isDark),
-          const SizedBox(height: 16),
-          _buildDatesRow(context, isDark),
-          const SizedBox(height: 16),
-          _buildStatusToggle(context, isDark),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(onPressed: controller.cancelDetailsEditMode, child: const Text('Cancel Edit')),
-              const SizedBox(width: 12),
-              Obx(
-                () => ElevatedButton.icon(
-                  onPressed: controller.isSubmitting.value
-                      ? null
-                      : () async {
-                          final bool success = await controller.submitBanner();
-                          if (success) {
-                            controller.cancelDetailsEditMode();
-                            Get.back();
-                          }
-                        },
-                  icon: controller.isSubmitting.value
-                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.check_circle_outline_rounded, size: 16),
-                  label: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Add New Banner Dialog
-  void _openSaveBannerDialog(BuildContext context) {
+  void _openSaveBannerDialog(BuildContext context, {bool isEditing = false}) {
     final bool isDark = context.isDark;
     final bool isMobile = context.isMobile;
     final double dialogWidth = isMobile ? context.screenWidth * 0.95 : 540.0;
@@ -483,13 +232,14 @@ class AppBannersView extends GetView<AppBannersController> {
       Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        insetPadding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(12, 24), vertical: context.responsiveHeight(16, 24)),
         child: Container(
           width: dialogWidth,
-          constraints: BoxConstraints(maxWidth: 540, maxHeight: context.screenHeight * 0.88),
+          constraints: BoxConstraints(maxWidth: 540, maxHeight: context.screenHeight * 0.90),
           padding: EdgeInsets.all(context.responsiveSize(16, 24)),
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: context.responsiveRadius(12, 14),
             border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
           ),
           child: SingleChildScrollView(
@@ -502,23 +252,47 @@ class AppBannersView extends GetView<AppBannersController> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Add New Banner', style: context.titleStyleActive.copyWith(fontSize: 17, fontWeight: FontWeight.bold)),
-                      IconButton(icon: const Icon(Icons.close_rounded, size: 20), onPressed: () => Get.back()),
+                      Text(
+                        isEditing ? 'Edit Banner #${controller.editingBannerId.value}' : 'Add New Banner',
+                        style: context.titleStyleActive.copyWith(fontSize: 17),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20),
+                        onPressed: () {
+                          controller.resetForm();
+                          Get.back();
+                        },
+                      ),
                     ],
                   ),
                   const Divider(height: 20, thickness: 1),
-                  _buildBannerTypeInput(context, isDark),
+                  _buildBannerTypeInput(context),
                   const SizedBox(height: 16),
-                  _buildImagePickerSlot(context, isDark),
+                  Obx(
+                    () => AppSingleImagePickerField(
+                      label: 'Banner Image',
+                      isRequired: controller.editingBannerId.value == null,
+                      selectedBytes: controller.selectedImageBytes.value,
+                      existingImageUrl: controller.existingImageUrl.value,
+                      onPickImage: controller.pickImageWeb,
+                      onClearImage: controller.clearSelectedImage,
+                    ),
+                  ),
                   const SizedBox(height: 16),
-                  _buildDatesRow(context, isDark),
+                  _buildDatesRow(context),
                   const SizedBox(height: 16),
                   _buildStatusToggle(context, isDark),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () {
+                          controller.resetForm();
+                          Get.back();
+                        },
+                        child: const Text('Cancel'),
+                      ),
                       const SizedBox(width: 12),
                       Obx(
                         () => ElevatedButton.icon(
@@ -529,14 +303,18 @@ class AppBannersView extends GetView<AppBannersController> {
                                   if (success) Get.back();
                                 },
                           icon: controller.isSubmitting.value
-                              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                                )
                               : const Icon(Icons.check_circle_outline_rounded, size: 16),
-                          label: const Text('Save Banner', style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: Text(isEditing ? 'Save Changes' : 'Save Banner', style: const TextStyle(fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryRed,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(18, 22), vertical: context.responsiveHeight(10, 12)),
+                            shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                           ),
                         ),
                       ),
@@ -552,30 +330,32 @@ class AppBannersView extends GetView<AppBannersController> {
     );
   }
 
-  Widget _buildBannerTypeInput(BuildContext context, bool isDark) {
+  Widget _buildBannerTypeInput(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Banner Type *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
         const SizedBox(height: 6),
         Autocomplete<String>(
-          optionsBuilder: (textEditingValue) {
+          optionsBuilder: (TextEditingValue textEditingValue) {
             if (textEditingValue.text.isEmpty) {
               return controller.bannerTypeSuggestions;
             }
             return controller.bannerTypeSuggestions.where((option) => option.toLowerCase().contains(textEditingValue.text.toLowerCase()));
           },
           initialValue: TextEditingValue(text: controller.bnrTypeController.text),
-          onSelected: (selection) => controller.bnrTypeController.text = selection,
+          onSelected: (String selection) {
+            controller.bnrTypeController.text = selection;
+          },
           fieldViewBuilder: (ctx, textEditingController, focusNode, onFieldSubmitted) {
-            textEditingController.addListener(() {
-              controller.bnrTypeController.text = textEditingController.text;
-            });
             return TextFormField(
               controller: textEditingController,
               focusNode: focusNode,
-              decoration: _inputDecoration(isDark, 'e.g. home_slider, category_banner'),
+              decoration: const InputDecoration(hintText: 'e.g. home_slider, category_banner'),
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Banner type is required' : null,
+              onChanged: (val) {
+                controller.bnrTypeController.text = val;
+              },
             );
           },
         ),
@@ -583,78 +363,7 @@ class AppBannersView extends GetView<AppBannersController> {
     );
   }
 
-  Widget _buildImagePickerSlot(BuildContext context, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Banner Image *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-        const SizedBox(height: 6),
-        Obx(() {
-          final bytes = controller.selectedImageBytes.value;
-          final existing = controller.existingImageUrl.value;
-
-          return Container(
-            height: 120,
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-            ),
-            child: Stack(
-              children: [
-                if (bytes != null)
-                  Center(
-                    child: Image.memory(bytes, fit: BoxFit.contain, width: double.infinity, height: 120),
-                  )
-                else if (existing != null && existing.isNotEmpty)
-                  Center(
-                    child: CachedNetworkImage(
-                      imageUrl: existing.startsWith('http') ? existing : '${ApiConstants.baseUrl}/$existing',
-                      fit: BoxFit.contain,
-                      width: double.infinity,
-                      height: 120,
-                    ),
-                  )
-                else
-                  Center(
-                    child: InkWell(
-                      onTap: controller.pickImageWeb,
-                      borderRadius: BorderRadius.circular(8),
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.cloud_upload_outlined, size: 32, color: AppColors.primaryRed),
-                          SizedBox(height: 6),
-                          Text('Click to select banner image', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                        ],
-                      ),
-                    ),
-                  ),
-                if (bytes != null || (existing != null && existing.isNotEmpty))
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Row(
-                      children: [
-                        IconButton(icon: const Icon(Icons.refresh_rounded, size: 18), tooltip: 'Change Image', onPressed: controller.pickImageWeb),
-                        if (bytes != null)
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 18, color: Colors.red),
-                            tooltip: 'Clear Selected Image',
-                            onPressed: controller.clearSelectedImage,
-                          ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          );
-        }),
-      ],
-    );
-  }
-
-  Widget _buildDatesRow(BuildContext context, bool isDark) {
+  Widget _buildDatesRow(BuildContext context) {
     return Row(
       children: [
         Expanded(
@@ -664,10 +373,11 @@ class AppBannersView extends GetView<AppBannersController> {
               const Text('Start Date (YYYY-MM-DD)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
               const SizedBox(height: 6),
               TextFormField(
-                controller: controller.startAtController,
+                controller: controller.startDateController,
                 readOnly: true,
                 onTap: () => controller.pickDate(context: context, isStart: true),
-                decoration: _inputDecoration(isDark, 'YYYY-MM-DD').copyWith(
+                decoration: InputDecoration(
+                  hintText: 'YYYY-MM-DD',
                   prefixIcon: const Icon(Icons.calendar_today_rounded, size: 16),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.clear_rounded, size: 16),
@@ -687,10 +397,11 @@ class AppBannersView extends GetView<AppBannersController> {
               const Text('End Date (YYYY-MM-DD)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
               const SizedBox(height: 6),
               TextFormField(
-                controller: controller.endAtController,
+                controller: controller.endDateController,
                 readOnly: true,
                 onTap: () => controller.pickDate(context: context, isStart: false),
-                decoration: _inputDecoration(isDark, 'YYYY-MM-DD').copyWith(
+                decoration: InputDecoration(
+                  hintText: 'YYYY-MM-DD',
                   prefixIcon: const Icon(Icons.event_available_rounded, size: 16),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.clear_rounded, size: 16),
@@ -718,21 +429,10 @@ class AppBannersView extends GetView<AppBannersController> {
             isActive: isActive,
             activeLabel: 'Active',
             inactiveLabel: 'Inactive',
-            onToggle: (val) => controller.bannerStatus.value = val ? 1 : 0,
+            onToggle: (bool val) => controller.bannerStatus.value = val ? 1 : 0,
           ),
         ],
       );
     });
-  }
-
-  InputDecoration _inputDecoration(bool isDark, String hint) {
-    return InputDecoration(
-      hintText: hint,
-      isDense: true,
-      filled: true,
-      fillColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    );
   }
 }

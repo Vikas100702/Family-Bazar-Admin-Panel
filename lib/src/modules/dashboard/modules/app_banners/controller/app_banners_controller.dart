@@ -12,30 +12,31 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class AppBannersController extends BaseServerTableController<AppBannerDatum> {
   final AppBannersRepository _bannerRepository;
+  AppBannersController({required this._bannerRepository});
 
-  AppBannersController({required AppBannersRepository bannerRepository}) : _bannerRepository = bannerRepository;
+  bool _isActionLocked = false;
 
-  // Form Keys & State Management
+  // FORM KEYS & REACTIVE MODAL STATE
   final GlobalKey<FormState> bannerFormKey = GlobalKey<FormState>();
   final Rxn<int> editingBannerId = Rxn<int>();
   final RxBool isSubmitting = false.obs;
   final RxBool isDetailsEditing = false.obs;
 
-  // Form Fields & Controllers
+  // FORM CONTROLLERS & DATA ANCHORS
   late final TextEditingController bnrTypeController;
-  late final TextEditingController startAtController;
-  late final TextEditingController endAtController;
+  late final TextEditingController startDateController;
+  late final TextEditingController endDateController;
   final RxInt bannerStatus = 1.obs;
 
-  // In-Memory Byte Buffers for Form Modal
+  // In Memory Byte Buffers (Web-Safe)
   final Rxn<Uint8List> selectedImageBytes = Rxn<Uint8List>();
   final RxnString selectedImageName = RxnString();
   final RxnString existingImageUrl = RxnString();
 
-  // Banner Type Options
-  final List<String> bannerTypeSuggestions = const ['home_slider', 'category_banner', 'deal_of_the_day', 'bottom_promo'];
+  // Banner Type Suggestion Constants
+  final List<String> bannerTypeSuggestions = const <String>['home_slider', 'category_banner', 'deal_of_the_day', 'bottom_promo'];
 
-  // Search & Combination Filters
+  // Table Server-Side Combination Filters
   final RxnString filterBnrType = RxnString();
   final RxnInt filterStatus = RxnInt();
 
@@ -43,11 +44,12 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
   void onInit() {
     super.onInit();
     bnrTypeController = TextEditingController();
-    startAtController = TextEditingController();
-    endAtController = TextEditingController();
+    startDateController = TextEditingController();
+    endDateController = TextEditingController();
     fetchServerData();
   }
 
+  // SERVER-SIDE DATA FETCHING
   @override
   Future<void> fetchServerData() async {
     await runWithLoading(() async {
@@ -72,10 +74,14 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
             pageCount: response.pagination?.totalPages,
           );
         } else {
-          throw Exception(response.message.isNotEmpty ? response.message : 'Failed to fetch banner list.');
+          throw Exception(response.message.isNotEmpty ? response.message : 'Failed to fetch banner list from server.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'fetchServerData', {'page': currentPage.value, 'limit': itemsPerPage.value, 'query': searchQuery.value});
+        _logException(e, stackTrace, 'fetchServerData', <String, dynamic>{
+          'page': currentPage.value,
+          'limit': itemsPerPage.value,
+          'query': searchQuery.value,
+        });
         errorMessage(message: 'Failed to retrieve app banners from server.');
       }
     });
@@ -96,7 +102,7 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     clearSearch();
   }
 
-  /// Date picker adhering strictly to 'YYYY-MM-DD' contract
+  // DATE PICKER ADAPTER
   Future<void> pickDate({required BuildContext context, required bool isStart}) async {
     final DateTime initialDate = DateTime.now();
     final DateTime? picked = await showDatePicker(context: context, initialDate: initialDate, firstDate: DateTime(2020), lastDate: DateTime(2040));
@@ -104,28 +110,37 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     if (picked == null || !context.mounted) return;
 
     final String formattedDate = DateFormat('yyyy-MM-dd').format(picked);
+    setDate(formattedDate: formattedDate, isStart: isStart);
+  }
+
+  void setDate({required String formattedDate, required bool isStart}) {
     if (isStart) {
-      startAtController.text = formattedDate;
+      startDateController.text = formattedDate;
     } else {
-      endAtController.text = formattedDate;
+      endDateController.text = formattedDate;
     }
   }
 
   void clearDateField({required bool isStart}) {
     if (isStart) {
-      startAtController.clear();
+      startDateController.clear();
     } else {
-      endAtController.clear();
+      endDateController.clear();
     }
   }
 
-  /// Web-safe Image Picker for dialog form modal
   Future<void> pickImageWeb() async {
     try {
-      final List<PlatformFile>? files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp']);
+      final List<PlatformFile> files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp']);
 
-      if (files == null || files.isEmpty) return;
+      if (files.isEmpty) return;
       final PlatformFile file = files.first;
+
+      final int fileSize = file.lengthSync() ?? await file.length();
+      if (fileSize > 5 * 1024 * 1024) {
+        errorMessage(message: 'File size exceeds 5MB limit.');
+        return;
+      }
 
       final Uint8List bytes = await file.readAsBytes();
       if (bytes.isEmpty) {
@@ -133,13 +148,11 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
         return;
       }
 
-      if (bytes.length > 5 * 1024 * 1024) {
-        errorMessage(message: 'File size exceeds 5MB limit.');
-        return;
-      }
-
       selectedImageBytes.value = bytes;
       selectedImageName.value = file.name;
+    } on UnimplementedError catch (e, stackTrace) {
+      _logException(e, stackTrace, 'pickImageWeb.unimplemented');
+      errorMessage(message: 'File picker web plugin is not registered. Please restart the web server.');
     } catch (e, stackTrace) {
       _logException(e, stackTrace, 'pickImageWeb');
       errorMessage(message: 'Failed to pick image: $e');
@@ -151,12 +164,13 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     selectedImageName.value = null;
   }
 
+  // FORM & MODAL STATE PREFILLS
   void prefillForEdit(AppBannerDatum banner) {
     editingBannerId.value = banner.id;
     bnrTypeController.text = banner.bnrType;
     bannerStatus.value = banner.status;
-    startAtController.text = banner.startAt ?? '';
-    endAtController.text = banner.endAt ?? '';
+    startDateController.text = banner.startDate ?? '';
+    endDateController.text = banner.endDate ?? '';
     existingImageUrl.value = banner.bnrImg;
     selectedImageBytes.value = null;
     selectedImageName.value = null;
@@ -176,8 +190,8 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
   void resetForm() {
     editingBannerId.value = null;
     bnrTypeController.clear();
-    startAtController.clear();
-    endAtController.clear();
+    startDateController.clear();
+    endDateController.clear();
     bannerStatus.value = 1;
     existingImageUrl.value = null;
     selectedImageBytes.value = null;
@@ -185,16 +199,18 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     isDetailsEditing.value = false;
   }
 
-  /// Inline status toggle directly via the single saveBanner API
   Future<bool> toggleBannerStatus(AppBannerDatum banner, bool newStatus) async {
+    if (_isActionLocked) return false;
+    _isActionLocked = true;
+
     final int targetStatus = newStatus ? 1 : 0;
     try {
       final SaveBannerResponseModel response = await _bannerRepository.saveBanner(
         id: banner.id,
         bnrType: banner.bnrType,
         status: targetStatus,
-        startAt: banner.startAt,
-        endAt: banner.endAt,
+        startDate: banner.startDate,
+        endDate: banner.endDate,
       );
 
       if (isClosed) return false;
@@ -208,19 +224,28 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
         return false;
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'toggleBannerStatus', {'banner_id': banner.id, 'status': targetStatus});
+      _logException(e, stackTrace, 'toggleBannerStatus', <String, dynamic>{'banner_id': banner.id, 'status': targetStatus});
       errorMessage(message: 'Error updating banner status.');
       return false;
+    } finally {
+      _isActionLocked = false;
     }
   }
 
-  /// Directly picks and updates image from Table row using the same single saveBanner API
   Future<void> uploadBannerImageFromTable(AppBannerDatum banner) async {
-    try {
-      final List<PlatformFile>? files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp']);
+    if (_isActionLocked) return;
 
-      if (files == null || files.isEmpty) return;
+    try {
+      final List<PlatformFile> files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp']);
+
+      if (files.isEmpty) return;
       final PlatformFile file = files.first;
+
+      final int fileSize = file.lengthSync() ?? await file.length();
+      if (fileSize > 5 * 1024 * 1024) {
+        errorMessage(message: 'File size exceeds 5MB limit.');
+        return;
+      }
 
       final Uint8List bytes = await file.readAsBytes();
       if (bytes.isEmpty) {
@@ -228,11 +253,7 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
         return;
       }
 
-      if (bytes.length > 5 * 1024 * 1024) {
-        errorMessage(message: 'File size exceeds 5MB limit.');
-        return;
-      }
-
+      _isActionLocked = true;
       await runWithLoading(() async {
         final SaveBannerResponseModel response = await _bannerRepository.saveBanner(
           id: banner.id,
@@ -240,8 +261,8 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
           status: banner.status,
           imageBytes: bytes,
           imageName: file.name,
-          startAt: banner.startAt,
-          endAt: banner.endAt,
+          startDate: banner.startDate,
+          endDate: banner.endDate,
         );
 
         if (isClosed) return;
@@ -253,23 +274,31 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to update banner image.');
         }
       }, message: 'Updating Banner Image...');
+    } on UnimplementedError catch (e, stackTrace) {
+      _logException(e, stackTrace, 'uploadBannerImageFromTable.unimplemented');
+      errorMessage(message: 'File picker web plugin is not registered. Please restart the web server.');
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'uploadBannerImageFromTable', {'banner_id': banner.id});
+      _logException(e, stackTrace, 'uploadBannerImageFromTable', <String, dynamic>{'banner_id': banner.id});
       errorMessage(message: 'Failed to upload banner image: $e');
+    } finally {
+      _isActionLocked = false;
     }
   }
 
-  /// Submits Add or Edit form modal via the single saveBanner API
   Future<bool> submitBanner() async {
-    if (!bannerFormKey.currentState!.validate()) return false;
+    if (isSubmitting.value || _isActionLocked) return false;
+
+    if (bannerFormKey.currentState == null || !bannerFormKey.currentState!.validate()) {
+      return false;
+    }
 
     if (editingBannerId.value == null && selectedImageBytes.value == null) {
       errorMessage(message: 'Please upload an image for the banner.');
       return false;
     }
 
-    final String start = startAtController.text.trim();
-    final String end = endAtController.text.trim();
+    final String start = startDateController.text.trim();
+    final String end = endDateController.text.trim();
     if (start.isNotEmpty && end.isNotEmpty) {
       final DateTime? startDate = DateTime.tryParse(start);
       final DateTime? endDate = DateTime.tryParse(end);
@@ -279,6 +308,7 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
       }
     }
 
+    _isActionLocked = true;
     isSubmitting.value = true;
 
     try {
@@ -288,8 +318,8 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
         status: bannerStatus.value,
         imageBytes: selectedImageBytes.value,
         imageName: selectedImageName.value,
-        startAt: start.isNotEmpty ? start : null,
-        endAt: end.isNotEmpty ? end : null,
+        startDate: start.isNotEmpty ? start : null,
+        endDate: end.isNotEmpty ? end : null,
       );
 
       if (isClosed) return false;
@@ -305,27 +335,31 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
         return false;
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'submitBanner', {'id': editingBannerId.value, 'bnr_type': bnrTypeController.text.trim()});
+      _logException(e, stackTrace, 'submitBanner', <String, dynamic>{'id': editingBannerId.value, 'bnr_type': bnrTypeController.text.trim()});
       errorMessage(message: 'An error occurred while saving the banner.');
       return false;
     } finally {
+      _isActionLocked = false;
       if (!isClosed) {
         isSubmitting.value = false;
       }
     }
   }
 
-  /// Deletes a banner entry using common system endpoint
   Future<bool> deleteBanner(AppBannerDatum banner) async {
     if (banner.id <= 0) {
       errorMessage(message: 'Invalid banner ID.');
       return false;
     }
 
+    if (_isActionLocked) return false;
+    _isActionLocked = true;
+
     bool isSuccess = false;
     await runWithLoading(() async {
       try {
         final CommonDeleteModel response = await _bannerRepository.deleteBanner(bannerId: banner.id);
+
         if (isClosed) return;
 
         if (response.success) {
@@ -336,11 +370,12 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to delete banner.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'deleteBanner', {'banner_id': banner.id});
+        _logException(e, stackTrace, 'deleteBanner', <String, dynamic>{'banner_id': banner.id});
         errorMessage(message: 'An error occurred while deleting the banner.');
       }
     });
 
+    _isActionLocked = false;
     return isSuccess;
   }
 
@@ -348,9 +383,9 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     Sentry.captureException(
       exception,
       stackTrace: stackTrace,
-      withScope: (scope) {
+      withScope: (Scope scope) {
         scope.setTag('controller', 'AppBannersController');
-        scope.setContexts('banner_action', {'action': action, 'current_page': currentPage.value, ...?extra});
+        scope.setContexts('banner_action', <String, dynamic>{'action': action, 'current_page': currentPage.value, ...?extra});
       },
     );
   }
@@ -358,9 +393,12 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
   @override
   void onClose() {
     bnrTypeController.dispose();
-    startAtController.dispose();
-    endAtController.dispose();
+    startDateController.dispose();
+    endDateController.dispose();
     selectedImageBytes.value = null;
+    selectedImageName.value = null;
+    existingImageUrl.value = null;
+    editingBannerId.value = null;
     super.onClose();
   }
 }
