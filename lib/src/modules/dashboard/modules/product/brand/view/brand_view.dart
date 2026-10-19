@@ -26,7 +26,7 @@ class BrandView extends GetView<BrandController> {
           onSearchChanged: controller.onSearchChanged,
           onSearchSubmitted: controller.onSearchSubmitted,
           onSearchClear: controller.clearSearch,
-          onRefresh: controller.refreshBrands,
+          onRefresh: controller.refreshData,
           rxIsRefreshing: controller.isLoading,
           refreshTooltip: 'Refresh Brands',
         ),
@@ -56,7 +56,7 @@ class BrandView extends GetView<BrandController> {
                 Expanded(
                   child: RepaintBoundary(
                     child: DataTableWidget<ViewBrandDatum>(
-                      items: controller.pagedList.toList(),
+                      items: controller.pagedList,
                       horizontalScrollController: controller.horizontalScrollController,
                       verticalScrollController: controller.verticalScrollController,
                       emptyTitle: 'No Brands Found',
@@ -96,7 +96,7 @@ class BrandView extends GetView<BrandController> {
     return DataRow(
       cells: [
         DataCell(
-          SelectableText(brand.mcCompCode.isEmpty ? 'N/A' : brand.mcCompCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          SelectableText(brand.mcCompCode.isEmpty ? '—' : brand.mcCompCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
         ),
         DataCell(
           TableImageCellWidget(
@@ -105,20 +105,20 @@ class BrandView extends GetView<BrandController> {
             uploadType: 'brand',
             entityCode: brand.mcCompCode,
             entityTitle: brand.mcCompName,
-            onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
+            onLinkEntity: ({required String entityCode, required String webImageUrl, required String mobileImageUrl}) async {
               return await controller.updateBrand(mcCompCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
             },
-            onSuccess: controller.refreshBrands,
+            onSuccess: controller.refreshData,
           ),
         ),
         DataCell(
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 220),
             child: Tooltip(
-              message: brand.mcCompName.trim().isEmpty ? 'N/A' : brand.mcCompName,
+              message: brand.mcCompName.trim().isEmpty ? '—' : brand.mcCompName,
               waitDuration: const Duration(milliseconds: 400),
               child: Text(
-                brand.mcCompName.trim().isEmpty ? 'N/A' : brand.mcCompName,
+                brand.mcCompName.trim().isEmpty ? '—' : brand.mcCompName,
                 style: const TextStyle(fontWeight: FontWeight.w500),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -163,7 +163,7 @@ class BrandView extends GetView<BrandController> {
 
   void _openBrandItemsDialog(BuildContext context, ViewBrandDatum brand) {
     controller.openBrandItemsModal(brand.mcCompCode);
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     Get.dialog(
       Dialog(
@@ -171,41 +171,41 @@ class BrandView extends GetView<BrandController> {
         elevation: 0,
         insetPadding: EdgeInsets.symmetric(horizontal: context.responsiveSize(16, 32), vertical: context.responsiveSize(16, 24)),
         child: Container(
-          width: 1050,
-          height: 720,
+          width: context.isDesktop ? 1050 : context.screenWidth * 0.96,
+          constraints: BoxConstraints(maxWidth: 1050, maxHeight: context.screenHeight * 0.90),
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: context.responsiveRadius(12, 14),
             border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 24, offset: const Offset(0, 8))],
           ),
           child: Column(
-            crossAxisAlignment: .stretch,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const .fromLTRB(22, 18, 18, 16),
+                padding: const EdgeInsets.fromLTRB(22, 18, 18, 16),
                 child: Row(
-                  mainAxisAlignment: .spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
-                      crossAxisAlignment: .center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                          decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: context.responsiveRadius(6, 8)),
                           child: const Icon(Icons.branding_watermark_rounded, size: 22, color: AppColors.primaryRed),
                         ),
                         const SizedBox(width: 12),
                         Column(
-                          crossAxisAlignment: .start,
-                          mainAxisSize: .min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               brand.mcCompName.trim().isNotEmpty ? brand.mcCompName.trim() : 'Brand Catalog',
                               style: context.titleStyleActive.copyWith(fontSize: context.responsiveSize(14, 16)),
                               maxLines: 2,
                               softWrap: true,
-                              overflow: .ellipsis,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -258,8 +258,9 @@ class BrandView extends GetView<BrandController> {
                           ),
                           filled: true,
                           fillColor: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          border: OutlineInputBorder(borderRadius: context.responsiveRadius(6, 8), borderSide: BorderSide.none),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          isDense: true,
                         ),
                         onChanged: controller.filterBrandItems,
                       ),
@@ -269,7 +270,10 @@ class BrandView extends GetView<BrandController> {
                       onPressed: () => controller.fetchBrandItems(brand.mcCompCode),
                       icon: const Icon(Icons.refresh_rounded, size: 16),
                       label: const Text('Refresh'),
-                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
+                      ),
                     ),
                   ],
                 ),
@@ -351,9 +355,11 @@ class BrandView extends GetView<BrandController> {
                                 label: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold)),
                               ),
                             ],
-                            rows: controller.filteredBrandItems.map((item) {
-                              return _buildModalDataRow(context, item, brand, isDark);
-                            }).toList(),
+                            rows: controller.filteredBrandItems
+                                .map((item) {
+                                  return _buildModalDataRow(context, item, brand, isDark);
+                                })
+                                .toList(growable: false),
                           ),
                         ),
                       ),
@@ -379,7 +385,7 @@ class BrandView extends GetView<BrandController> {
                         backgroundColor: AppColors.primaryRed,
                         foregroundColor: AppColors.onPrimaryWhite,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(4, 6)),
                       ),
                       child: const Text('Close', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
@@ -397,7 +403,7 @@ class BrandView extends GetView<BrandController> {
   DataRow _buildModalDataRow(BuildContext context, ViewItemByTypeDatum item, ViewBrandDatum brand, bool isDark) {
     return DataRow(
       cells: [
-        DataCell(SelectableText(item.iCode.isEmpty ? 'N/A' : item.iCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+        DataCell(SelectableText(item.iCode.isEmpty ? '—' : item.iCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
         DataCell(
           TableImageCellWidget(
             webImageUrl: item.imImageWeb,
@@ -407,21 +413,21 @@ class BrandView extends GetView<BrandController> {
             uploadType: 'item',
             entityCode: item.iCode,
             entityTitle: item.iName,
-            onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
-              final repo = Get.find<ItemRepository>();
+            onLinkEntity: ({required String entityCode, required String webImageUrl, required String mobileImageUrl}) async {
+              final ItemRepository repo = Get.find<ItemRepository>();
               final res = await repo.addItemDetails(itemCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
               return res.success;
             },
-            onSuccess: controller.refreshBrands,
+            onSuccess: controller.refreshData,
           ),
         ),
         DataCell(
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 220),
             child: Tooltip(
-              message: item.iName.trim().isEmpty ? 'N/A' : item.iName,
+              message: item.iName.trim().isEmpty ? '—' : item.iName,
               child: Text(
-                item.iName.trim().isEmpty ? 'N/A' : item.iName,
+                item.iName.trim().isEmpty ? '—' : item.iName,
                 style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -437,23 +443,22 @@ class BrandView extends GetView<BrandController> {
         ),
         DataCell(
           Text(
-            (item.otherGroupName?.toString() ?? '').trim().isEmpty ? '—' : item.otherGroupName.toString().trim(),
+            (item.otherGroupName.toString()).trim().isEmpty ? '—' : item.otherGroupName.toString().trim(),
             style: TextStyle(fontSize: 12, color: isDark ? AppColors.accentGoldAmber : AppColors.statusAmberWarning),
           ),
         ),
-        DataCell(Text('₹ ${_formatPrice(item.sbMRate)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
+        DataCell(Text('₹${_formatPrice(item.sbMRate)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
         DataCell(
           Text(
-            '₹ ${_formatPrice(item.sbRateA)}',
+            '₹${_formatPrice(item.sbRateA)}',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
         DataCell(
           Builder(
             builder: (_) {
-              final double rawStock = double.tryParse(item.sbSaleableStock?.toString() ?? '') ?? 0;
+              final double rawStock = double.tryParse(item.sbSaleableStock.toString()) ?? 0;
               final int stock = rawStock.toInt();
-
               return Text(
                 '$stock',
                 style: TextStyle(
@@ -481,46 +486,48 @@ class BrandView extends GetView<BrandController> {
 
   void _showItemDetails(BuildContext context, ViewItemByTypeDatum item, ViewBrandDatum brand) {
     final bool isActiveItem = item.iStatus == '1' || item.iStatus.toLowerCase() == 'active' || item.iStatus.toLowerCase() == 'true';
-    final int stockCount = int.tryParse(item.sbSaleableStock?.toString() ?? '') ?? 0;
-
+    final double rawStock = double.tryParse(item.sbSaleableStock.toString()) ?? 0;
+    final int stockCount = rawStock.toInt();
     EntityDetailsDialogHelper.show(
       context: context,
       title: item.iName.isNotEmpty ? item.iName.trim() : 'Item Details',
-      subtitle: 'Inventory details for item code: ${item.iCode}',
+      subtitle: 'Code: ${item.iCode}',
       headerIcon: Icons.inventory_2_rounded,
       sections: [
         DetailSection(
-          title: '1. Identification & Nomenclature',
+          title: 'Basic Information',
           items: [
-            DetailItem(label: 'Item Code (I_Code)', value: item.iCode, isCopyable: true),
+            DetailItem(label: 'Item Code', value: item.iCode, isCopyable: true),
             DetailItem(label: 'Item Name', value: item.iName),
-            DetailItem(label: 'EAN / Barcode', value: item.iBarCode, isCopyable: true),
-            DetailItem(label: 'Firm Code', value: item.iFirmCode, isCopyable: true),
+            DetailItem(label: 'EAN Code', value: item.iBarCode),
+            DetailItem(label: 'Batch Number', value: item.batchNo),
+            DetailItem(label: 'Brand Code', value: item.iMfgComp),
             DetailItem(
-              label: 'Brand',
+              label: 'Brand Name',
               value: item.brandName.isNotEmpty ? item.brandName : (brand.mcCompName.isNotEmpty ? brand.mcCompName : brand.mcCompCode),
             ),
           ],
         ),
         DetailSection(
-          title: '2. Group & Taxonomy Associations',
+          title: 'System Information',
+          flags: [DetailFlag(label: 'Active Status', value: isActiveItem)],
           items: [
-            DetailItem(label: 'Category (ItemGroup)', value: item.itemGroupName),
-            DetailItem(label: 'Category Code (I_ItemGroup)', value: item.iItemGroup, isCopyable: true),
-            DetailItem(label: 'Sub-Category (OtherGroup)', value: item.otherGroupName?.toString() ?? '—'),
-            DetailItem(label: 'Sub-Category Code (I_OtherGroup)', value: item.iOtherGroup, isCopyable: true),
-            DetailItem(label: 'Mfg Company Code', value: item.iMfgComp),
+            DetailItem(label: 'Category Code', value: item.iItemGroup),
+            DetailItem(label: 'Category Name', value: item.itemGroupName, isCopyable: true),
+            DetailItem(label: 'Sub-Category Code', value: item.iOtherGroup, isCopyable: true),
+            DetailItem(
+              label: 'Sub-Category Name',
+              value: (item.otherGroupName.toString()).trim().isNotEmpty ? item.otherGroupName.toString().trim() : '—',
+            ),
+            DetailItem(label: 'Firm Code', value: item.iFirmCode, isCopyable: true),
           ],
         ),
         DetailSection(
-          title: '3. Pricing & Stock Inventory',
-          flags: [
-            DetailFlag(label: 'Active Status', value: isActiveItem),
-            DetailFlag(label: 'In Stock', value: stockCount > 0),
-          ],
+          title: 'Pricing & Stock Details',
+          flags: [DetailFlag(label: 'In Stock', value: stockCount > 0)],
           items: [
-            DetailItem(label: 'MRP Rate', value: '₹ ${_formatPrice(item.sbMRate)}'),
-            DetailItem(label: 'Sale Rate (Rate A)', value: '₹ ${_formatPrice(item.sbRateA)}'),
+            DetailItem(label: 'MRP Rate', value: '₹${_formatPrice(item.sbMRate)}'),
+            DetailItem(label: 'Sale Rate', value: '₹${_formatPrice(item.sbRateA)}'),
             DetailItem(label: 'Saleable Stock Units', value: '$stockCount'),
           ],
         ),
