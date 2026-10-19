@@ -8,6 +8,8 @@ class ItemController extends BaseTableController<ViewItemByTypeDatum> {
 
   ItemController({required this._itemRepository});
 
+  bool _isActionLocked = false;
+
   @override
   void onInit() {
     super.onInit();
@@ -16,13 +18,16 @@ class ItemController extends BaseTableController<ViewItemByTypeDatum> {
 
   @override
   String searchTokenBuilder(ViewItemByTypeDatum item) {
-    return '${item.iCode} ${item.iName} ${item.iBarCode} ${item.iFirmCode} ${item.iItemGroup} ${item.itemGroupName} ${item.otherGroupName}';
+    return '${item.iCode} ${item.iName} ${item.iBarCode} ${item.iFirmCode} ${item.iItemGroup} ${item.itemGroupName} ${item.otherGroupName}'
+        .toLowerCase()
+        .trim();
   }
 
   Future<void> fetchItems() async {
     await runWithLoading(() async {
       try {
-        final response = await _itemRepository.viewItems();
+        final ViewItemByTypeModel response = await _itemRepository.viewItems();
+
         if (isClosed) return;
 
         if (response.success) {
@@ -31,33 +36,42 @@ class ItemController extends BaseTableController<ViewItemByTypeDatum> {
           throw Exception(response.message.isNotEmpty ? response.message : 'Failed to fetch the item list from server.');
         }
       } catch (e, stackTrace) {
-        Sentry.captureException(
-          e,
-          stackTrace: stackTrace,
-          withScope: (scope) {
-            scope.setTag('controller', 'ItemController');
-          },
-        );
-        errorMessage(message: 'An unexpected error occurred while fetching items.');
+        _logException(e, stackTrace, 'fetchItems');
+        if (!isClosed) {
+          errorMessage(message: 'An unexpected error occurred while fetching items.');
+        }
       }
     });
   }
 
+  Future<void> refreshItems() async => fetchItems();
+
   Future<bool> updateItems({required String itemCode, int? status}) async {
+    if (_isActionLocked) return false;
+    _isActionLocked = true;
+
     bool isSuccess = false;
     await runWithLoading(() async {
       try {
-        final updatedDatum = await _itemRepository.updateItem(itemCode: itemCode, status: status);
+        final ViewItemByTypeDatum updatedDatum = await _itemRepository.updateItem(itemCode: itemCode, status: status);
+
+        if (isClosed) return;
+
         if (updatedDatum.iCode.isNotEmpty) {
           isSuccess = true;
-          successMessage(title: 'Success', message: '${updatedDatum.iCode} updated successfully');
+          successMessage(title: 'Success', message: '${updatedDatum.iCode} updated successfully.');
           await fetchItems();
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'updateItem', {'itemCode': itemCode});
-        errorMessage(message: 'Failed to update brand');
+        _logException(e, stackTrace, 'updateItems', <String, dynamic>{'itemCode': itemCode, 'status': status});
+        if (!isClosed) {
+          errorMessage(message: 'Failed to update item parameters.');
+        }
+      } finally {
+        _isActionLocked = false;
       }
     });
+
     return isSuccess;
   }
 
@@ -65,19 +79,18 @@ class ItemController extends BaseTableController<ViewItemByTypeDatum> {
     await updateItems(itemCode: item.iCode, status: newStatus ? 1 : 0);
   }
 
-  Future<void> refreshItems() async => fetchItems();
-
   void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {
     Sentry.addBreadcrumb(
-      Breadcrumb(message: 'BrandController error in $action', category: 'brand.controller', level: SentryLevel.error, data: extra),
+      Breadcrumb(message: 'ItemController error in $action', category: 'product.item.controller', level: SentryLevel.error, data: extra),
     );
 
     Sentry.captureException(
       exception,
       stackTrace: stackTrace,
-      withScope: (scope) {
-        scope.setTag('controller', 'BrandController');
-        scope.setContexts('brand_action', {'action': action, ...?extra});
+      withScope: (Scope scope) {
+        scope.setTag('module', 'item');
+        scope.setTag('controller', 'ItemController');
+        scope.setContexts('item_action', <String, dynamic>{'action': action, ...?extra});
       },
     );
   }

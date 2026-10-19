@@ -14,6 +14,7 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mg
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/view/customer_details_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/view/drawer_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/order_mgmt/view/orders_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/brand/view/brand_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/view/category_view.dart';
@@ -280,6 +281,8 @@ class DashboardView extends GetView<DashboardController> {
         return const LoyaltyProgView();
       case 'customerdetails':
         return const CustomerDetailsView();
+      case 'ordermanagement':
+        return const OrdersView();
       default:
         return ComingSoonView(title: menuKey);
     }

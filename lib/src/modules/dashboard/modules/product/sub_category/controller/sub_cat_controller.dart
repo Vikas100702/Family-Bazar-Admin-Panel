@@ -5,8 +5,9 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class SubCategoryController extends BaseServerTableController<ViewSubCategoryDatum> {
   final SubCategoryRepository _subCategoryRepository;
-
   SubCategoryController({required this._subCategoryRepository});
+
+  bool _isActionLocked = false;
 
   @override
   void onInit() {
@@ -18,64 +19,87 @@ class SubCategoryController extends BaseServerTableController<ViewSubCategoryDat
   Future<void> fetchServerData() async {
     await runWithLoading(() async {
       try {
-        final response = await _subCategoryRepository.viewSubCategories(
+        final ViewSubCategoryModel response = await _subCategoryRepository.viewSubCategories(
           page: currentPage.value,
           limit: itemsPerPage.value,
           searchValue: searchQuery.value,
         );
+
         if (isClosed) return;
 
         if (response.success) {
-          setServerData(data: response.data, totalCount: response.pagination?.totalRecords ?? 0, pageCount: response.pagination?.totalPages);
+          setServerData(
+            data: response.data,
+            totalCount: response.pagination?.totalRecords ?? response.data.length,
+            pageCount: response.pagination?.totalPages,
+          );
         } else {
           throw Exception(response.message.isNotEmpty ? response.message : 'Failed to fetch the sub category list from server.');
         }
       } catch (e, stackTrace) {
-        Sentry.captureException(
-          e,
-          stackTrace: stackTrace,
-          withScope: (scope) {
-            scope.setTag('controller', 'SubCategoryController');
-          },
-        );
-        errorMessage(message: 'An unexpected error occurred while fetching sub categories.');
+        _logException(e, stackTrace, 'fetchServerData', <String, dynamic>{
+          'page': currentPage.value,
+          'limit': itemsPerPage.value,
+          'search': searchQuery.value,
+        });
+        if (!isClosed) {
+          errorMessage(message: 'An unexpected error occurred while fetching sub categories.');
+        }
       }
     });
   }
 
   Future<bool> updateSubCategory({required String ogCode, int? status, String? mImg, String? wImg}) async {
+    if (_isActionLocked) return false;
+    _isActionLocked = true;
+
     bool isSuccess = false;
     await runWithLoading(() async {
       try {
-        await _subCategoryRepository.updateSubCategoryDetails(ogCode: ogCode, status: status);
-        isSuccess = true;
-        // Unconditional refresh call after successful API hit
-        await refreshSubCategories();
+        final ViewSubCategoryDatum updatedDatum = await _subCategoryRepository.updateSubCategoryDetails(ogCode: ogCode, status: status);
+
+        if (isClosed) return;
+
+        if (updatedDatum.ogCode.isNotEmpty) {
+          isSuccess = true;
+          successMessage(title: 'Success', message: '${updatedDatum.ogName.isNotEmpty ? updatedDatum.ogName : "Sub Category"} updated successfully.');
+          await refreshData();
+        }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'updateCategory', {'OG_Code': ogCode});
-        errorMessage(message: 'Failed to update category');
+        _logException(e, stackTrace, 'updateSubCategory', <String, dynamic>{'OG_Code': ogCode, 'status': status});
+        if (!isClosed) {
+          errorMessage(message: 'Failed to update sub category.');
+        }
+      } finally {
+        _isActionLocked = false;
       }
     });
+
     return isSuccess;
   }
 
   Future<void> toggleSubCategoryStatus(ViewSubCategoryDatum subCategory, bool newStatus) async {
     await updateSubCategory(ogCode: subCategory.ogCode, status: newStatus ? 1 : 0);
+    await refreshData();
   }
-
-  Future<void> refreshSubCategories() async => fetchServerData();
 
   void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {
     Sentry.addBreadcrumb(
-      Breadcrumb(message: 'SubCategoryController error in $action', category: 'subCategory.controller', level: SentryLevel.error, data: extra),
+      Breadcrumb(
+        message: 'SubCategoryController error in $action',
+        category: 'product.sub_category.controller',
+        level: SentryLevel.error,
+        data: extra,
+      ),
     );
 
     Sentry.captureException(
       exception,
       stackTrace: stackTrace,
-      withScope: (scope) {
+      withScope: (Scope scope) {
+        scope.setTag('module', 'sub_category');
         scope.setTag('controller', 'SubCategoryController');
-        scope.setContexts('subCategory_action', {'action': action, ...?extra});
+        scope.setContexts('sub_category_action', <String, dynamic>{'action': action, 'current_page': currentPage.value, ...?extra});
       },
     );
   }

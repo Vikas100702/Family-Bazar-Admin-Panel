@@ -9,8 +9,9 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> {
   final LoyaltyRepository _repository;
-
   LoyaltyProgController({required this._repository});
+
+  bool _isActionLocked = false;
 
   // LOYALTY RULES STATE
   final RxBool isFormOpen = false.obs;
@@ -27,20 +28,19 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
   final RxBool isSubmitting = false.obs;
   final RxMap<int, bool> togglingStatusMap = <int, bool>{}.obs;
 
-  // Catalog Dropdown & Multi-Select (Strings by Code)
+  // Catalog Dropdown & Multi-Select
   final RxBool isLoadingItems = false.obs;
   final RxList<LoyaltyBrand> availableBrands = <LoyaltyBrand>[].obs;
   final RxList<LoyaltyCategory> availableCategories = <LoyaltyCategory>[].obs;
-
   final RxSet<String> selectedBrandCodes = <String>{}.obs;
   final RxSet<String> selectedCategoryCodes = <String>{}.obs;
-
   final RxBool isAllBrandsSelected = false.obs;
   final RxBool isAllCategoriesSelected = false.obs;
 
   // GLOBAL POINTS SETTINGS STATE
   final GlobalKey<FormState> pointsSettingsFormKey = GlobalKey<FormState>();
   final Rxn<int> pointsSettingsId = Rxn<int>();
+
   late final TextEditingController rupeesPerPointCtrl;
   late final TextEditingController pointsPerRupeeCtrl;
   late final TextEditingController newCustRewardCtrl;
@@ -69,7 +69,6 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
     fetchDropdownItems();
   }
 
-  // RULES DATA FETCHING & PAGINATION
   @override
   Future<void> fetchServerData() async {
     await runWithLoading(() async {
@@ -86,7 +85,6 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
           final List<LoyaltyRuleDatum> rulesList = response.data;
           final int totalRecords = response.pagination?.totalRecords ?? rulesList.length;
           final int? totalPages = response.pagination?.totalPages;
-
           setServerData(data: rulesList, totalCount: totalRecords, pageCount: totalPages);
         } else {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch loyalty rules.');
@@ -105,10 +103,10 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
     await fetchServerData();
   }
 
-  Future<void> fetchDropdownItems() async {
+  Future<void> fetchDropdownItems({int? ruleId}) async {
     try {
       isLoadingItems.value = true;
-      final AvailableItemsModel response = await _repository.getAvailableItems(limit: 1000);
+      final AvailableItemsModel response = await _repository.getAvailableItems(limit: 1000, ruleId: ruleId);
 
       if (isClosed) return;
 
@@ -126,7 +124,6 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
     }
   }
 
-  // MULTI-SELECT CATALOG ACTIONS (BRAND & CATEGORY CODES)
   void toggleBrandSelection(String brandCode) {
     if (selectedBrandCodes.contains(brandCode)) {
       selectedBrandCodes.remove(brandCode);
@@ -148,9 +145,8 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
   void toggleSelectAllBrands(bool? selectAll) {
     final bool isChecked = selectAll ?? false;
     isAllBrandsSelected.value = isChecked;
-
     if (isChecked) {
-      selectedBrandCodes.assignAll(availableBrands.map((b) => b.brandCode).where((c) => c.isNotEmpty));
+      selectedBrandCodes.assignAll(availableBrands.map((LoyaltyBrand b) => b.brandCode).where((String c) => c.isNotEmpty));
     } else {
       selectedBrandCodes.clear();
     }
@@ -159,9 +155,8 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
   void toggleSelectAllCategories(bool? selectAll) {
     final bool isChecked = selectAll ?? false;
     isAllCategoriesSelected.value = isChecked;
-
     if (isChecked) {
-      selectedCategoryCodes.assignAll(availableCategories.map((c) => c.categoryCode).where((c) => c.isNotEmpty));
+      selectedCategoryCodes.assignAll(availableCategories.map((LoyaltyCategory c) => c.categoryCode).where((String c) => c.isNotEmpty));
     } else {
       selectedCategoryCodes.clear();
     }
@@ -172,17 +167,16 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
     isAllCategoriesSelected.value = availableCategories.isNotEmpty && selectedCategoryCodes.length == availableCategories.length;
   }
 
-  // LOYALTY RULES FORM ACTIONS
   void openCreateForm() {
     _clearForm();
     isFormOpen.value = true;
+    fetchDropdownItems();
   }
 
   Future<void> openEditForm(LoyaltyRuleDatum rule) async {
     _clearForm();
     isFormOpen.value = true;
     editingRuleId.value = rule.id;
-
     ruleNameController.text = rule.ruleName;
     minOrderAmtController.text = rule.minOrderAmt.toStringAsFixed(0);
     maxOrderAmtController.text = (rule.maxOrderAmt != null && rule.maxOrderAmt! > 0) ? rule.maxOrderAmt!.toStringAsFixed(0) : '';
@@ -193,8 +187,9 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
       expiryDateController.text = DateFormat('yyyy-MM-dd').format(rule.expiryDate!.toLocal());
     }
 
-    selectedBrandCodes.assignAll(rule.brands.map((b) => b.brandCode).where((c) => c.isNotEmpty));
-    selectedCategoryCodes.assignAll(rule.categories.map((c) => c.categoryCode).where((c) => c.isNotEmpty));
+    selectedBrandCodes.assignAll(rule.brands.map((LoyaltyBrand b) => b.brandCode).where((String c) => c.isNotEmpty));
+    selectedCategoryCodes.assignAll(rule.categories.map((LoyaltyCategory c) => c.categoryCode).where((String c) => c.isNotEmpty));
+    await fetchDropdownItems(ruleId: rule.id);
     _updateSelectAllStates();
   }
 
@@ -227,7 +222,7 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
   }
 
   Future<void> submitLoyaltyRule() async {
-    if (isSubmitting.value) return;
+    if (_isActionLocked || isSubmitting.value) return;
     if (!loyaltyFormKey.currentState!.validate()) return;
 
     if (selectedBrandCodes.isEmpty) {
@@ -244,14 +239,15 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
     final double? maxAmt = rawMax.isNotEmpty ? double.tryParse(rawMax) : null;
     final double ptsVal = double.tryParse(pointsValueController.text.trim()) ?? 0.0;
 
+    _isActionLocked = true;
     isSubmitting.value = true;
 
     try {
-      final response = await _repository.saveLoyaltyRule(
+      final SaveLoyaltyRuleModel response = await _repository.saveLoyaltyRule(
         id: editingRuleId.value,
         ruleName: ruleNameController.text.trim(),
-        brandCodes: selectedBrandCodes.toList(),
-        categoryCodes: selectedCategoryCodes.toList(),
+        brandCodes: selectedBrandCodes.toList(growable: false),
+        categoryCodes: selectedCategoryCodes.toList(growable: false),
         minOrderAmt: minAmt,
         maxOrderAmt: maxAmt,
         pointsValue: ptsVal,
@@ -264,7 +260,7 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
       if (response.success) {
         successMessage(title: 'Success', message: response.message.isNotEmpty ? response.message : 'Rule saved successfully.');
         closeForm();
-        fetchServerData();
+        await fetchServerData();
       } else {
         errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to save rule.');
       }
@@ -272,21 +268,23 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
       _logException(e, stackTrace, 'submitLoyaltyRule');
       if (!isClosed) errorMessage(message: 'An error occurred while saving the rule.');
     } finally {
+      _isActionLocked = false;
       if (!isClosed) isSubmitting.value = false;
     }
   }
 
   Future<void> toggleRuleStatus(LoyaltyRuleDatum rule, bool newStatus) async {
-    if (togglingStatusMap[rule.id] == true) return;
+    if (_isActionLocked || togglingStatusMap[rule.id] == true) return;
     togglingStatusMap[rule.id] = true;
+    _isActionLocked = true;
 
     try {
       final int targetStatus = newStatus ? 1 : 0;
-      final response = await _repository.saveLoyaltyRule(
+      final SaveLoyaltyRuleModel response = await _repository.saveLoyaltyRule(
         id: rule.id,
         ruleName: rule.ruleName,
-        brandCodes: rule.brands.map((b) => b.brandCode).where((c) => c.isNotEmpty).toList(),
-        categoryCodes: rule.categories.map((c) => c.categoryCode).where((c) => c.isNotEmpty).toList(),
+        brandCodes: rule.brands.map((LoyaltyBrand b) => b.brandCode).where((String c) => c.isNotEmpty).toList(growable: false),
+        categoryCodes: rule.categories.map((LoyaltyCategory c) => c.categoryCode).where((String c) => c.isNotEmpty).toList(growable: false),
         minOrderAmt: rule.minOrderAmt,
         maxOrderAmt: rule.maxOrderAmt,
         pointsValue: rule.pointsValue,
@@ -306,11 +304,12 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
       _logException(e, stackTrace, 'toggleRuleStatus');
       if (!isClosed) errorMessage(message: 'Error updating rule status.');
     } finally {
+      _isActionLocked = false;
       if (!isClosed) togglingStatusMap[rule.id] = false;
     }
   }
 
-  // POINTS SETTINGS LOGIC
+  // POINTS SETTINGS
   void populatePointsSettings(PointsSettingsData data) {
     pointsSettingsId.value = data.id;
     rupeesPerPointCtrl.text = data.rupeesPerPoint.toStringAsFixed(2);
@@ -321,7 +320,7 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
   }
 
   Future<bool> submitPointsSettings() async {
-    if (isSubmittingPointsSettings.value) return false;
+    if (_isActionLocked || isSubmittingPointsSettings.value) return false;
     if (!pointsSettingsFormKey.currentState!.validate()) return false;
 
     final double? rupeesPerPt = double.tryParse(rupeesPerPointCtrl.text.trim());
@@ -334,6 +333,7 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
       return false;
     }
 
+    _isActionLocked = true;
     isSubmittingPointsSettings.value = true;
 
     try {
@@ -363,6 +363,7 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
       if (!isClosed) errorMessage(message: 'Error saving points settings.');
       return false;
     } finally {
+      _isActionLocked = false;
       if (!isClosed) isSubmittingPointsSettings.value = false;
     }
   }
@@ -371,9 +372,14 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
     Sentry.captureException(
       exception,
       stackTrace: stackTrace,
-      withScope: (scope) {
+      withScope: (Scope scope) {
+        scope.setTag('module', 'loyalty_program');
         scope.setTag('controller', 'LoyaltyProgController');
-        scope.setContexts('loyalty_action', {'action': action, 'currentPage': currentPage.value, 'pointsSettingsId': pointsSettingsId.value});
+        scope.setContexts('loyalty_action', <String, dynamic>{
+          'action': action,
+          'currentPage': currentPage.value,
+          'pointsSettingsId': pointsSettingsId.value,
+        });
       },
     );
   }
@@ -385,7 +391,6 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
     maxOrderAmtController.dispose();
     pointsValueController.dispose();
     expiryDateController.dispose();
-
     rupeesPerPointCtrl.dispose();
     pointsPerRupeeCtrl.dispose();
     newCustRewardCtrl.dispose();
@@ -396,6 +401,7 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
     selectedBrandCodes.clear();
     selectedCategoryCodes.clear();
     togglingStatusMap.clear();
+
     super.onClose();
   }
 }

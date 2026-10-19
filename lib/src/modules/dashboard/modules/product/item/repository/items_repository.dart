@@ -10,39 +10,26 @@ class ItemRepository {
   const ItemRepository({required this._apiClient});
 
   Future<ViewItemByTypeModel> viewItems() async {
+    const String endpoint = ApiConstants.viewItemsByTypeApiEndpoint;
+    final Map<String, dynamic> payload = <String, dynamic>{'type': 'ITEM', 'isAdmin': '1'};
+
     try {
-      final response = await _apiClient.dio.post(ApiConstants.viewItemsByTypeApiEndpoint, data: {"type": "ITEM", 'isAdmin': '1'});
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return ViewItemByTypeModel.fromJson(responseData);
       }
-      throw FormatException('[ItemRepository.viewItems]: Invalid data format received from endpoint: ${ApiConstants.viewItemsByTypeApiEndpoint}');
-    } catch (e, stackTrace) {
-      Sentry.addBreadcrumb(
-        Breadcrumb(
-          message: 'Failed to fetch or parse Item list',
-          category: 'item.repository',
-          level: SentryLevel.error,
-          data: {'endpoint': ApiConstants.viewItemsApiEndpoint, 'error': e.toString()},
-        ),
-      );
 
-      if (e is! DioException) {
-        Sentry.captureException(
-          e,
-          stackTrace: stackTrace,
-          withScope: (scope) {
-            scope.setTag('repository', 'ItemRepository');
-            scope.setTag('action', 'viewItems');
-          },
-        );
-      }
+      throw FormatException('[ItemRepository.viewItems]: Invalid data format received from endpoint: $endpoint');
+    } catch (e, stackTrace) {
+      _captureSentryError('viewItems', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
   }
 
   Future<InsertItemDetailsModel> addItemDetails({required String itemCode, required String mImg, required String wImg}) async {
+    const String endpoint = ApiConstants.insertItemDetailsApiEndpoint;
     final String trimmedItemCode = itemCode.trim();
     final String trimmedMImg = mImg.trim();
     final String trimmedWImg = wImg.trim();
@@ -51,44 +38,80 @@ class ItemRepository {
       throw ArgumentError('Item code cannot be empty.');
     }
 
-    final Map<String, dynamic> payload = {'I_Code': trimmedItemCode, 'w_img': trimmedWImg, 'm_img': trimmedMImg};
+    final Map<String, dynamic> payload = <String, dynamic>{'I_Code': trimmedItemCode, 'w_img': trimmedWImg, 'm_img': trimmedMImg};
+
     try {
-      final response = await _apiClient.dio.post(ApiConstants.insertItemDetailsApiEndpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         return InsertItemDetailsModel.fromJson(response.data as Map<String, dynamic>);
       }
 
-      throw const FormatException('Invalid response format received from addItemDetails.');
+      throw FormatException('[ItemRepository.addItemDetails]: Invalid response format received from $endpoint');
     } catch (e, stackTrace) {
-      Sentry.addBreadcrumb(
-        Breadcrumb(
-          message: 'Failed executing item image association',
-          category: 'ItemRepository.addItem',
-          level: SentryLevel.error,
-          data: {'I_Code': itemCode, 'has_w_img': wImg.isNotEmpty, 'has_m_img': mImg.isNotEmpty},
-        ),
-      );
-
-      Sentry.captureException(
-        e,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('repository', 'ItemRepository');
-          scope.setContexts('item_association', {'I_Code': itemCode});
-        },
-      );
-
+      _captureSentryError('addItemDetails', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
   }
 
   Future<ViewItemByTypeDatum> updateItem({required String itemCode, int? status}) async {
-    final String endpoint = ApiConstants.updateItemApiEndpoint;
-    final Map<String, dynamic> payload = {'itemCode': itemCode.trim()};
-    if (status != null) payload['status'] = status;
+    const String endpoint = ApiConstants.updateItemApiEndpoint;
+    final String trimmedCode = itemCode.trim();
 
-    final response = await _apiClient.dio.post(endpoint, data: payload);
-    return ViewItemByTypeDatum.fromJson(response.data['data']);
+    if (trimmedCode.isEmpty) {
+      throw ArgumentError('Item code cannot be empty.');
+    }
+
+    final Map<String, dynamic> payload = <String, dynamic>{'itemCode': trimmedCode, 'status': ?status};
+
+    try {
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
+
+      if (response.data != null &&
+          response.data is Map<String, dynamic> &&
+          response.data['data'] != null &&
+          response.data['data'] is Map<String, dynamic>) {
+        return ViewItemByTypeDatum.fromJson(response.data['data'] as Map<String, dynamic>);
+      }
+
+      throw FormatException('[ItemRepository.updateItem]: Invalid response format received from endpoint: $endpoint');
+    } catch (e, stackTrace) {
+      _captureSentryError('updateItem', endpoint, e, stackTrace, payload: payload);
+      rethrow;
+    }
+  }
+
+  void _captureSentryError(String action, String endpoint, Object error, StackTrace stackTrace, {Map<String, dynamic>? payload}) {
+    Sentry.addBreadcrumb(
+      Breadcrumb(
+        message: 'ItemRepository.$action failed on $endpoint',
+        category: 'product.item.repository',
+        level: SentryLevel.error,
+        data: <String, dynamic>{
+          'action': action,
+          'endpoint': endpoint,
+          if (error is DioException) 'status_code': error.response?.statusCode,
+          'payload': ?payload,
+        },
+      ),
+    );
+
+    Sentry.captureException(
+      error,
+      stackTrace: stackTrace,
+      withScope: (Scope scope) {
+        scope.setTag('module', 'item');
+        scope.setTag('repository', 'ItemRepository');
+        scope.setTag('action', action);
+        scope.setContexts('network_context', <String, dynamic>{
+          'endpoint': endpoint,
+          if (error is DioException) ...<String, dynamic>{
+            'status_code': error.response?.statusCode,
+            'response_data': error.response?.data?.toString(),
+          },
+          'payload': ?payload,
+        });
+      },
+    );
   }
 }

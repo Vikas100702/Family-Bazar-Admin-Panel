@@ -22,6 +22,7 @@ class AppBannersRepository with CommonDeleteMixin {
       if (id != null && id > 0) 'id': id,
       if (bnrType != null && bnrType.trim().isNotEmpty) 'bnr_type': bnrType.trim(),
       'status': ?status,
+      'isAdmin': 1,
     };
 
     try {
@@ -98,7 +99,7 @@ class AppBannersRepository with CommonDeleteMixin {
   }
 
   Future<CommonDeleteModel> deleteBanner({required int bannerId}) {
-    return executeDelete(tableName: 'Banner', id: bannerId);
+    return executeDelete(tableName: 'AppBanners', id: bannerId);
   }
 
   void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {

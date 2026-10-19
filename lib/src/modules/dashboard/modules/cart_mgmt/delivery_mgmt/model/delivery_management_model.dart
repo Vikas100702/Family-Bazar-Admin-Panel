@@ -14,7 +14,7 @@ class DeliveryRulesResponseModel {
     }
 
     final dynamic rawStatus = json['status'] ?? json['success'];
-    final bool parsedStatus = rawStatus == true || rawStatus == 1 || rawStatus?.toString().trim().toLowerCase() == 'true';
+    final bool parsedStatus = _parseBool(rawStatus);
 
     return DeliveryRulesResponseModel(
       status: parsedStatus,
@@ -30,11 +30,11 @@ class DeliveryRulesResponseModel {
 
 @immutable
 class DeliveryRuleDataWrapper {
-  // Populated in list mode (without ID)
+  // Populated in list mode
   final List<DeliveryRuleItem> rules;
   final DeliveryRulePagination? pagination;
 
-  // Populated in detail mode (with ID)
+  // Populated in single detail mode
   final int? singleId;
   final String? singleRuleName;
   final String? singleRuleType;
@@ -66,7 +66,7 @@ class DeliveryRuleDataWrapper {
   factory DeliveryRuleDataWrapper.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const DeliveryRuleDataWrapper();
 
-    // Check if response is multiple rules list or single detail
+    // Parse list rules
     final dynamic rawRules = json['rules'];
     final List<DeliveryRuleItem> parsedRules = <DeliveryRuleItem>[];
     if (rawRules is List) {
@@ -77,7 +77,7 @@ class DeliveryRuleDataWrapper {
       }
     }
 
-    // Detail mode collections
+    // Parse detail pin codes
     final List<RuleAssignedPincodeItem> parsedPins = <RuleAssignedPincodeItem>[];
     if (json['pincodes'] is List) {
       for (final item in json['pincodes'] as List) {
@@ -87,6 +87,7 @@ class DeliveryRuleDataWrapper {
       }
     }
 
+    // Parse detail slabs
     final List<DeliveryRuleSlabItem> parsedSlabs = <DeliveryRuleSlabItem>[];
     final dynamic rawSlabs = json['delivery_rules'] ?? json['distance_rules'];
     if (rawSlabs is List) {
@@ -103,9 +104,9 @@ class DeliveryRuleDataWrapper {
           ? DeliveryRulePagination.fromJson(json['pagination'] as Map<String, dynamic>)
           : null,
       singleId: _parseNullableInt(json['id']),
-      singleRuleName: json['rule_name']?.toString().trim(),
-      singleRuleType: json['rule_type']?.toString().trim(),
-      singleDescription: json['description']?.toString().trim(),
+      singleRuleName: _parseCleanString(json['rule_name']),
+      singleRuleType: _parseCleanString(json['rule_type']),
+      singleDescription: _parseCleanString(json['description']),
       singlePriority: _parseNullableInt(json['priority']),
       singleStatus: _parseNullableInt(json['status']),
       singleCreatedAt: _parseDate(json['created_at']),
@@ -116,7 +117,7 @@ class DeliveryRuleDataWrapper {
   }
 
   Map<String, dynamic> toJson() => {
-    if (rules.isNotEmpty) 'rules': rules.map((x) => x.toJson()).toList(),
+    if (rules.isNotEmpty) 'rules': rules.map((x) => x.toJson()).toList(growable: false),
     if (pagination != null) 'pagination': pagination?.toJson(),
     if (singleId != null) 'id': singleId,
     if (singleRuleName != null) 'rule_name': singleRuleName,
@@ -124,8 +125,8 @@ class DeliveryRuleDataWrapper {
     if (singleDescription != null) 'description': singleDescription,
     if (singlePriority != null) 'priority': singlePriority,
     if (singleStatus != null) 'status': singleStatus,
-    if (pincodes.isNotEmpty) 'pincodes': pincodes.map((x) => x.toJson()).toList(),
-    if (deliveryRules.isNotEmpty) 'delivery_rules': deliveryRules.map((x) => x.toJson()).toList(),
+    if (pincodes.isNotEmpty) 'pincodes': pincodes.map((x) => x.toJson()).toList(growable: false),
+    if (deliveryRules.isNotEmpty) 'delivery_rules': deliveryRules.map((x) => x.toJson()).toList(growable: false),
   };
 }
 
@@ -162,9 +163,9 @@ class DeliveryRuleItem {
 
     return DeliveryRuleItem(
       id: _parseInt(json['id']),
-      ruleName: json['rule_name']?.toString().trim() ?? '',
-      ruleType: json['rule_type']?.toString().trim() ?? 'amount',
-      description: json['description']?.toString().trim() ?? '',
+      ruleName: _parseCleanString(json['rule_name']),
+      ruleType: _parseCleanString(json['rule_type'], fallback: 'amount'),
+      description: _parseCleanString(json['description']),
       priority: _parseInt(json['priority'], defaultValue: 1),
       status: _parseInt(json['status'], defaultValue: 1),
       pincodeCount: _parseInt(json['pincode_count']),
@@ -200,10 +201,11 @@ class RuleAssignedPincodeItem {
     if (json == null) {
       return const RuleAssignedPincodeItem(id: 0, pincodeId: 0, pincode: '', priority: 1, status: 1);
     }
+
     return RuleAssignedPincodeItem(
       id: _parseInt(json['id']),
       pincodeId: _parseInt(json['pincode_id']),
-      pincode: json['pincode']?.toString().trim() ?? '',
+      pincode: _parseCleanString(json['pincode']),
       priority: _parseInt(json['priority'], defaultValue: 1),
       status: _parseInt(json['status'], defaultValue: 1),
     );
@@ -254,10 +256,6 @@ class DeliveryRuleSlabItem {
 
   Map<String, dynamic> toSavePayloadJson({required String ruleType}) {
     final String cleanType = ruleType.trim().toLowerCase();
-
-    // TYPE 1: DISTANCE => min_amount: 0, max_amount: 0
-    // TYPE 2: AMOUNT => min_distance: 0, max_distance: 0, per_km_charge: 0
-    // TYPE 3: BOTH / DISTANCE_AMOUNT => Send all actual fields
     final bool isDistanceOnly = cleanType == 'distance';
     final bool isAmountOnly = cleanType == 'amount';
 
@@ -298,6 +296,7 @@ class DeliveryRulePagination {
     if (json == null) {
       return const DeliveryRulePagination(page: 1, limit: 20, total: 0, totalPages: 1);
     }
+
     return DeliveryRulePagination(
       page: _parseInt(json['page'], defaultValue: 1),
       limit: _parseInt(json['limit'], defaultValue: 20),
@@ -309,7 +308,6 @@ class DeliveryRulePagination {
   Map<String, dynamic> toJson() => {'page': page, 'limit': limit, 'total': total, 'total_pages': totalPages};
 }
 
-// 2. PINCODES LOOKUP ENVELOPE (With & Without rule_id)
 @immutable
 class DeliveryRulePincodeListResponse {
   final bool status;
@@ -324,10 +322,8 @@ class DeliveryRulePincodeListResponse {
     }
 
     final dynamic rawStatus = json['status'] ?? json['success'];
-    final bool parsedStatus = rawStatus == true || rawStatus == 1 || rawStatus?.toString().trim().toLowerCase() == 'true';
-
     return DeliveryRulePincodeListResponse(
-      status: parsedStatus,
+      status: _parseBool(rawStatus),
       message: json['message']?.toString().trim() ?? '',
       data: json['data'] != null && json['data'] is Map<String, dynamic>
           ? DeliveryRulePincodeData.fromJson(json['data'] as Map<String, dynamic>)
@@ -370,7 +366,7 @@ class DeliveryRulePincodeData {
 
     return DeliveryRulePincodeData(
       ruleId: _parseNullableInt(json['rule_id']),
-      ruleName: json['rule_name']?.toString().trim(),
+      ruleName: _parseCleanString(json['rule_name']),
       totalCount: _parseInt(json['total_count']),
       selectedCount: _parseInt(json['selected_count']),
       freeCount: _parseInt(json['free_count']),
@@ -384,7 +380,7 @@ class DeliveryRulePincodeData {
     'total_count': totalCount,
     'selected_count': selectedCount,
     'free_count': freeCount,
-    'pincodes': pincodes.map((e) => e.toJson()).toList(),
+    'pincodes': pincodes.map((e) => e.toJson()).toList(growable: false),
   };
 }
 
@@ -437,21 +433,15 @@ class DeliveryRulePincodeItem {
       return const DeliveryRulePincodeItem(id: 0, pincode: '', firmName: '', isSelected: false, isAvailable: true);
     }
 
-    final dynamic rawSelected = json['is_selected'];
-    final bool parsedSelected = rawSelected == true || rawSelected == 1 || rawSelected?.toString().trim().toLowerCase() == 'true';
-
-    final dynamic rawAvailable = json['is_available'];
-    final bool parsedAvailable = rawAvailable == true || rawAvailable == 1 || rawAvailable?.toString().trim().toLowerCase() == 'true';
-
     return DeliveryRulePincodeItem(
       id: _parseInt(json['id']),
-      pincode: json['pincode']?.toString().trim() ?? '',
-      firmName: json['firm_name']?.toString().trim() ?? '',
-      isSelected: parsedSelected,
-      isAvailable: parsedAvailable,
+      pincode: _parseCleanString(json['pincode']),
+      firmName: _parseCleanString(json['firm_name']),
+      isSelected: _parseBool(json['is_selected']),
+      isAvailable: _parseBool(json['is_available'] ?? true),
       assignedRuleId: _parseNullableInt(json['assigned_rule_id']),
-      assignedRuleName: json['assigned_rule_name']?.toString().trim(),
-      assignedRuleType: json['assigned_rule_type']?.toString().trim(),
+      assignedRuleName: _parseCleanString(json['assigned_rule_name']),
+      assignedRuleType: _parseCleanString(json['assigned_rule_type']),
     );
   }
 
@@ -467,7 +457,6 @@ class DeliveryRulePincodeItem {
   };
 }
 
-// 3. SAVE RULE RESPONSE MODEL
 @immutable
 class SaveDeliveryRuleResponseModel {
   final bool status;
@@ -482,10 +471,8 @@ class SaveDeliveryRuleResponseModel {
     }
 
     final dynamic rawStatus = json['status'] ?? json['success'];
-    final bool parsedStatus = rawStatus == true || rawStatus == 1 || rawStatus?.toString().trim().toLowerCase() == 'true';
-
     return SaveDeliveryRuleResponseModel(
-      status: parsedStatus,
+      status: _parseBool(rawStatus),
       message: json['message']?.toString().trim() ?? '',
       data: json['data'] != null && json['data'] is Map<String, dynamic> ? SaveDeliveryRuleData.fromJson(json['data'] as Map<String, dynamic>) : null,
     );
@@ -542,9 +529,9 @@ class SaveDeliveryRuleData {
 
     return SaveDeliveryRuleData(
       ruleId: _parseInt(json['rule_id'] ?? json['id']),
-      ruleName: json['rule_name']?.toString().trim() ?? '',
-      ruleType: json['rule_type']?.toString().trim() ?? 'amount',
-      description: json['description']?.toString().trim() ?? '',
+      ruleName: _parseCleanString(json['rule_name']),
+      ruleType: _parseCleanString(json['rule_type'], fallback: 'amount'),
+      description: _parseCleanString(json['description']),
       priority: _parseInt(json['priority'], defaultValue: 1),
       status: _parseInt(json['status'], defaultValue: 1),
       pincodeCount: _parseInt(json['pincode_count']),
@@ -562,11 +549,19 @@ class SaveDeliveryRuleData {
     'status': status,
     'pincode_count': pincodeCount,
     'pincode_ids': pincodeIds,
-    'delivery_rules': deliveryRules.map((e) => e.toJson()).toList(),
+    'delivery_rules': deliveryRules.map((e) => e.toJson()).toList(growable: false),
   };
 }
 
-// HELPER CONVERTERS
+// PARSING HELPER UTILITIES
+bool _parseBool(dynamic value) {
+  if (value == null) return false;
+  if (value is bool) return value;
+  if (value is num) return value == 1;
+  final String str = value.toString().trim().toLowerCase();
+  return str == '1' || str == 'true' || str == 'active' || str == 'y';
+}
+
 int _parseInt(dynamic value, {int defaultValue = 0}) {
   if (value == null) return defaultValue;
   if (value is int) return value;
@@ -582,7 +577,9 @@ int? _parseNullableInt(dynamic value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   final String str = value.toString().trim();
-  if (str.isEmpty || str.toLowerCase() == 'null') return null;
+  if (str.isEmpty || str.toLowerCase() == 'null' || str.toLowerCase() == 'undefined') {
+    return null;
+  }
   final num? parsedNum = num.tryParse(str);
   if (parsedNum != null) return parsedNum.toInt();
   return null;
@@ -601,8 +598,17 @@ double? _parseNullableDouble(dynamic value) {
   if (value is double) return value;
   if (value is num) return value.toDouble();
   final String str = value.toString().trim();
-  if (str.isEmpty || str.toLowerCase() == 'null') return null;
+  if (str.isEmpty || str.toLowerCase() == 'null' || str.toLowerCase() == 'undefined') {
+    return null;
+  }
   return double.tryParse(str);
+}
+
+String _parseCleanString(dynamic value, {String fallback = ''}) {
+  if (value == null) return fallback;
+  final String str = value.toString().trim();
+  if (str.isEmpty || str == 'null' || str == 'undefined') return fallback;
+  return str;
 }
 
 DateTime? _parseDate(dynamic value) {
@@ -611,7 +617,7 @@ DateTime? _parseDate(dynamic value) {
     return value.year >= 1970 ? value : null;
   }
   final String dateStr = value.toString().trim();
-  if (dateStr.isEmpty || dateStr.startsWith('0000-00-00')) {
+  if (dateStr.isEmpty || dateStr.startsWith('0000-00-00') || dateStr == 'null') {
     return null;
   }
   final DateTime? parsed = DateTime.tryParse(dateStr);

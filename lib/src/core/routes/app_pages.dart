@@ -11,7 +11,9 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/time_slot/view/time_slot_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/binding/coupon_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/view/coupon_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/binding/customer_dashboard_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/binding/customer_details_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/view/customer_dashboard_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/view/customer_details_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/binding/firm_setup_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
@@ -166,6 +168,15 @@ class AppPages {
       name: AppRoutes.orderDetails,
       page: () => const OrdersView(),
       binding: OrdersBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+
+    /// ########################################
+    GetPage(
+      name: AppRoutes.customerDashboard,
+      page: () => const CustomerDashboardView(),
+      binding: CustomerDashboardBinding(),
       transition: Transition.noTransition,
       middlewares: [AuthMiddleware()],
     ),

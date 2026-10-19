@@ -39,7 +39,8 @@ class MiscChargesView extends GetView<MiscChargesController> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryRed,
                 foregroundColor: AppColors.onPrimaryWhite,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 16), vertical: context.responsiveHeight(12, 14)),
+                shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
               ),
             ),
           ],
@@ -70,7 +71,7 @@ class MiscChargesView extends GetView<MiscChargesController> {
                 Expanded(
                   child: RepaintBoundary(
                     child: DataTableWidget<MiscChargeItem>(
-                      items: controller.pagedList.toList(),
+                      items: controller.pagedList,
                       horizontalScrollController: controller.horizontalScrollController,
                       verticalScrollController: controller.verticalScrollController,
                       emptyTitle: 'No Misc Charges Found',
@@ -114,19 +115,19 @@ class MiscChargesView extends GetView<MiscChargesController> {
     return DataRow(
       cells: [
         DataCell(SelectableText(charge.id > 0 ? '#${charge.id}' : '—', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
-        DataCell(Text('₹ ${charge.handlingFee.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+        DataCell(Text('₹${charge.handlingFee.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
         DataCell(
           Text(
-            '₹ ${charge.smallCartCharge.toStringAsFixed(2)}',
+            '₹${charge.smallCartCharge.toStringAsFixed(2)}',
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.primaryRed),
           ),
         ),
         DataCell(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: AppColors.accentAzureBlue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+            decoration: BoxDecoration(color: AppColors.accentAzureBlue.withValues(alpha: 0.1), borderRadius: context.responsiveRadius(4, 6)),
             child: Text(
-              'Under ₹ ${charge.smallCartMinAmount.toStringAsFixed(2)}',
+              'Under ₹${charge.smallCartMinAmount.toStringAsFixed(2)}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.accentAzureBlue),
             ),
           ),
@@ -216,9 +217,9 @@ class MiscChargesView extends GetView<MiscChargesController> {
           title: '1. Identification & Rates',
           items: [
             DetailItem(label: 'Config ID', value: charge.id.toString(), isCopyable: true),
-            DetailItem(label: 'Handling Fee', value: '₹ ${charge.handlingFee.toStringAsFixed(2)}'),
-            DetailItem(label: 'Small Cart Surcharge', value: '₹ ${charge.smallCartCharge.toStringAsFixed(2)}'),
-            DetailItem(label: 'Min Cart Threshold', value: '₹ ${charge.smallCartMinAmount.toStringAsFixed(2)}'),
+            DetailItem(label: 'Handling Fee', value: '₹${charge.handlingFee.toStringAsFixed(2)}'),
+            DetailItem(label: 'Small Cart Surcharge', value: '₹${charge.smallCartCharge.toStringAsFixed(2)}'),
+            DetailItem(label: 'Min Cart Threshold', value: '₹${charge.smallCartMinAmount.toStringAsFixed(2)}'),
             DetailItem(label: 'Policy Status', value: charge.isActive ? 'Active (Operational)' : 'Inactive (Disabled)'),
           ],
         ),
@@ -254,7 +255,7 @@ class MiscChargesView extends GetView<MiscChargesController> {
           padding: EdgeInsets.all(context.responsiveSize(16, 24)),
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: context.responsiveRadius(12, 14),
             border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
           ),
           child: Obx(() {
@@ -263,7 +264,7 @@ class MiscChargesView extends GetView<MiscChargesController> {
             return PopScope(
               canPop: !isSubmitting,
               child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
+                physics: const ClampingScrollPhysics(),
                 child: Form(
                   key: controller.addEditFormKey,
                   child: Column(
@@ -288,7 +289,6 @@ class MiscChargesView extends GetView<MiscChargesController> {
                         label: 'Handling Fee (₹) *',
                         controller: controller.handlingFeeController,
                         hint: 'e.g. 10.00',
-                        isDark: isDark,
                         enabled: !isSubmitting,
                       ),
                       SizedBox(height: context.responsiveHeight(14, 16)),
@@ -297,7 +297,6 @@ class MiscChargesView extends GetView<MiscChargesController> {
                         label: 'Small Cart Surcharge (₹) *',
                         controller: controller.smallCartChargeController,
                         hint: 'e.g. 20.00',
-                        isDark: isDark,
                         enabled: !isSubmitting,
                       ),
                       SizedBox(height: context.responsiveHeight(14, 16)),
@@ -306,7 +305,6 @@ class MiscChargesView extends GetView<MiscChargesController> {
                         label: 'Small Cart Threshold Amount (₹) *',
                         controller: controller.smallCartMinAmountController,
                         hint: 'Apply surcharge if cart total is below this',
-                        isDark: isDark,
                         enabled: !isSubmitting,
                       ),
                       if (isEdit) ...[
@@ -315,7 +313,7 @@ class MiscChargesView extends GetView<MiscChargesController> {
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
                             color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: context.responsiveRadius(6, 8),
                             border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
                           ),
                           child: Row(
@@ -358,7 +356,12 @@ class MiscChargesView extends GetView<MiscChargesController> {
                           TextButton(onPressed: isSubmitting ? null : () => Get.back(), child: const Text('Cancel')),
                           const SizedBox(width: 12),
                           ElevatedButton.icon(
-                            onPressed: isSubmitting ? null : () => controller.submitCharges(),
+                            onPressed: isSubmitting
+                                ? null
+                                : () async {
+                                    final bool success = await controller.submitCharges();
+                                    if (success) Get.back();
+                                  },
                             icon: isSubmitting
                                 ? const SizedBox(
                                     width: 16,
@@ -373,7 +376,8 @@ class MiscChargesView extends GetView<MiscChargesController> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryRed,
                               foregroundColor: AppColors.onPrimaryWhite,
-                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                              padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(18, 22), vertical: context.responsiveHeight(10, 12)),
+                              shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                             ),
                           ),
                         ],
@@ -395,7 +399,6 @@ class MiscChargesView extends GetView<MiscChargesController> {
     required String label,
     required TextEditingController controller,
     required String hint,
-    required bool isDark,
     required bool enabled,
   }) {
     return Column(
@@ -418,19 +421,7 @@ class MiscChargesView extends GetView<MiscChargesController> {
             }
             return null;
           },
-          style: TextStyle(
-            fontSize: context.responsiveSize(13, 14),
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : AppColors.textPrimarySlate,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            prefixText: '₹ ',
-            filled: true,
-            fillColor: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          ),
+          decoration: InputDecoration(hintText: hint, prefixText: '₹ ', isDense: true),
         ),
       ],
     );

@@ -7,17 +7,15 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class TimeSlotRepository {
   final ApiClient _apiClient;
-
   const TimeSlotRepository({required this._apiClient});
 
   Future<TimeSlotResponseModel> getTimeSlots({int page = 1, int limit = 20, String? searchValue}) async {
     const String endpoint = ApiConstants.getTimeSlotsApiEndpoint;
     final String cleanSearch = searchValue?.trim() ?? '';
-
-    final Map<String, dynamic> payload = {"searchvalue": cleanSearch, "page": page, "limit": limit};
+    final Map<String, dynamic> payload = <String, dynamic>{'searchvalue': cleanSearch, 'page': page, 'limit': limit};
 
     try {
-      final Response response = await _apiClient.dio.post(endpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         return TimeSlotResponseModel.fromJson(response.data as Map<String, dynamic>);
@@ -32,10 +30,14 @@ class TimeSlotRepository {
 
   Future<TimeSlotResponseModel> addOrUpdateSlot({int? id, required String startTimeSlot, required String endTimeSlot}) async {
     const String endpoint = ApiConstants.addUpdateTimeSlotApiEndpoint;
-    final Map<String, dynamic> payload = <String, dynamic>{'id': ?id, 'starttimeslot': startTimeSlot.trim(), 'endtimeslot': endTimeSlot.trim()};
+    final Map<String, dynamic> payload = <String, dynamic>{
+      if (id != null && id > 0) 'id': id,
+      'starttimeslot': startTimeSlot.trim(),
+      'endtimeslot': endTimeSlot.trim(),
+    };
 
     try {
-      final Response response = await _apiClient.dio.post(endpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         return TimeSlotResponseModel.fromJson(response.data as Map<String, dynamic>);
@@ -48,12 +50,12 @@ class TimeSlotRepository {
     }
   }
 
-  Future<CommonDeleteModel> deleteTimeSlot({required String slotId}) async {
+  Future<CommonDeleteModel> deleteTimeSlot({required int slotId}) async {
     const String endpoint = ApiConstants.softDeleteTimeSlotsApiEndpoint;
-    final Map<String, dynamic> payload = {'id': slotId};
+    final Map<String, dynamic> payload = <String, dynamic>{'id': slotId.toString()};
 
     try {
-      final response = await _apiClient.dio.post(endpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         return CommonDeleteModel.fromJson(response.data as Map<String, dynamic>);
@@ -69,25 +71,34 @@ class TimeSlotRepository {
   void _captureSentryError(String action, String endpoint, Object error, StackTrace stackTrace, {Map<String, dynamic>? payload}) {
     Sentry.addBreadcrumb(
       Breadcrumb(
-        message: 'TimeSlotRepository.$action failed',
-        category: 'time_slot.repository.network',
+        message: 'TimeSlotRepository.$action failed on $endpoint',
+        category: 'cart_mgmt.time_slot.repository',
         level: SentryLevel.error,
-        data: {'action': action, 'endpoint': endpoint, 'error': error.toString(), 'payload': ?payload},
+        data: <String, dynamic>{
+          'action': action,
+          'endpoint': endpoint,
+          if (error is DioException) 'status_code': error.response?.statusCode,
+          'payload': ?payload,
+        },
       ),
     );
 
-    if (error is! DioException) {
-      Sentry.captureException(
-        error,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('repository', 'TimeSlotRepository');
-          scope.setTag('action', action);
-          if (payload != null) {
-            scope.setContexts('request_payload', payload);
-          }
-        },
-      );
-    }
+    Sentry.captureException(
+      error,
+      stackTrace: stackTrace,
+      withScope: (Scope scope) {
+        scope.setTag('module', 'time_slot');
+        scope.setTag('repository', 'TimeSlotRepository');
+        scope.setTag('action', action);
+        scope.setContexts('network_context', <String, dynamic>{
+          'endpoint': endpoint,
+          if (error is DioException) ...<String, dynamic>{
+            'status_code': error.response?.statusCode,
+            'response_data': error.response?.data?.toString(),
+          },
+          'payload': ?payload,
+        });
+      },
+    );
   }
 }

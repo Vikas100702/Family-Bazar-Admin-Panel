@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:family_bazar_admin_panel/src/core/base_controller/base_server_table_controller.dart';
 import 'package:family_bazar_admin_panel/src/core/models/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/model/add_coupon_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/model/view_coupon_filter_type_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/model/view_coupon_list_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/repository/coupon_repository.dart';
@@ -17,28 +18,30 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class CouponController extends BaseServerTableController<ViewCouponListDatum> {
   final CouponRepository _couponRepository;
-  late final DashboardGroupRepository _groupRepository;
-  late final BrandRepository _brandRepository;
+  final DashboardGroupRepository _groupRepository;
+  final BrandRepository _brandRepository;
 
-  CouponController({required CouponRepository couponRepository}) : _couponRepository = couponRepository {
-    final apiClient = Get.find<ApiClient>();
-    _groupRepository = DashboardGroupRepository(apiClient: apiClient);
-    _brandRepository = BrandRepository(apiClient: apiClient);
-  }
+  CouponController({required this._couponRepository, DashboardGroupRepository? groupRepository, BrandRepository? brandRepository})
+    : _groupRepository =
+          groupRepository ??
+          DashboardGroupRepository(
+            apiClient: Get.isRegistered<ApiClient>() ? Get.find<ApiClient>() : Get.put<ApiClient>(ApiClient(), permanent: true),
+          ),
+      _brandRepository =
+          brandRepository ??
+          BrandRepository(apiClient: Get.isRegistered<ApiClient>() ? Get.find<ApiClient>() : Get.put<ApiClient>(ApiClient(), permanent: true));
 
-  // Loading States
+  bool _isActionLocked = false;
+
+  // LOADING & SUBMISSION STATES
   final RxBool isSubmitting = false.obs;
   final RxBool isMetaLoading = false.obs;
   final RxBool isFilterTypeLoading = false.obs;
 
-  // View Modal Inline Edit States
-  final RxBool isEditingInViewDialog = false.obs;
+  // FORM KEYS & CONTROLLERS
+  final GlobalKey<FormState> couponFormKey = GlobalKey<FormState>();
   final Rxn<int> editingCouponId = Rxn<int>();
   final Rxn<ViewCouponListDatum> activeViewingCoupon = Rxn<ViewCouponListDatum>();
-
-  // Form Key and Text Controllers
-  final GlobalKey<FormState> addCouponFormKey = GlobalKey<FormState>();
-  final GlobalKey<FormState> editCouponFormKey = GlobalKey<FormState>();
 
   late final TextEditingController codeController;
   late final TextEditingController titleController;
@@ -50,13 +53,14 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
   late final TextEditingController startAtController;
   late final TextEditingController endAtController;
 
-  // Dropdown States
+  // Drop down States
   final RxnString selectedDiscountType = RxnString();
   final RxList<Map<String, String>> discountTypeOptions = <Map<String, String>>[].obs;
   final RxnString selectedUserType = RxnString();
   final RxList<Map<String, String>> userTypeOptions = <Map<String, String>>[].obs;
   final RxnString selectedPaymentType = RxnString();
   final RxList<Map<String, String>> paymentTypeOptions = <Map<String, String>>[].obs;
+
   final RxInt couponStatus = 1.obs;
   final RxInt applicableAll = 1.obs;
 
@@ -95,8 +99,14 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
   Future<void> fetchServerData() async {
     await runWithLoading(() async {
       try {
-        final response = await _couponRepository.viewCouponList(page: currentPage.value, limit: itemsPerPage.value, searchValue: searchQuery.value);
+        final ViewCouponListModel response = await _couponRepository.viewCouponList(
+          page: currentPage.value,
+          limit: itemsPerPage.value,
+          searchValue: searchQuery.value,
+        );
+
         if (isClosed) return;
+
         if (response.status) {
           setServerData(
             data: response.data,
@@ -107,8 +117,14 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
           throw Exception(response.message.isNotEmpty ? response.message : 'Failed to fetch coupon list.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'fetchServerData', {'page': currentPage.value, 'limit': itemsPerPage.value, 'search': searchQuery.value});
-        errorMessage(message: 'An unexpected error occurred while fetching coupons.');
+        _logException(e, stackTrace, 'fetchServerData', <String, dynamic>{
+          'page': currentPage.value,
+          'limit': itemsPerPage.value,
+          'search': searchQuery.value,
+        });
+        if (!isClosed) {
+          errorMessage(message: 'An unexpected error occurred while fetching coupons.');
+        }
       }
     });
   }
@@ -119,39 +135,41 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
     try {
       isMetaLoading.value = true;
       isFilterTypeLoading.value = true;
+
       final results = await Future.wait([
         _groupRepository.viewGroups(),
         _brandRepository.viewBrands(page: 1, limit: 1000),
         _couponRepository.getCouponFilterType(),
       ]);
+
       if (isClosed) return;
 
       if (results[0] is ViewDashboardGroupModel) {
-        final groupModel = results[0] as ViewDashboardGroupModel;
+        final ViewDashboardGroupModel groupModel = results[0] as ViewDashboardGroupModel;
         allGroups.assignAll(groupModel.data);
         filteredGroups.assignAll(groupModel.data);
       }
 
       if (results[1] is ViewBrandModel) {
-        final brandModel = results[1] as ViewBrandModel;
+        final ViewBrandModel brandModel = results[1] as ViewBrandModel;
         allBrands.assignAll(brandModel.data);
         filteredBrands.assignAll(brandModel.data);
       }
 
       if (results[2] is ViewCouponFilterTypeModel) {
-        final filterModel = results[2] as ViewCouponFilterTypeModel;
+        final ViewCouponFilterTypeModel filterModel = results[2] as ViewCouponFilterTypeModel;
         if (filterModel.status && filterModel.data != null) {
           final data = filterModel.data!;
           if (data.discountType.isNotEmpty) {
-            discountTypeOptions.assignAll(data.discountType.map((t) => {'label': t.name.toUpperCase(), 'value': t.value}).toList());
+            discountTypeOptions.assignAll(data.discountType.map((t) => {'label': t.name.toUpperCase(), 'value': t.value}).toList(growable: false));
             selectedDiscountType.value ??= discountTypeOptions.first['value'];
           }
           if (data.userType.isNotEmpty) {
-            userTypeOptions.assignAll(data.userType.map((t) => {'label': t.name.toUpperCase(), 'value': t.value}).toList());
+            userTypeOptions.assignAll(data.userType.map((t) => {'label': t.name.toUpperCase(), 'value': t.value}).toList(growable: false));
             selectedUserType.value ??= userTypeOptions.first['value'];
           }
           if (data.paymentType.isNotEmpty) {
-            paymentTypeOptions.assignAll(data.paymentType.map((t) => {'label': t.name.toUpperCase(), 'value': t.value}).toList());
+            paymentTypeOptions.assignAll(data.paymentType.map((t) => {'label': t.name.toUpperCase(), 'value': t.value}).toList(growable: false));
             selectedPaymentType.value ??= paymentTypeOptions.first['value'];
           }
         }
@@ -166,8 +184,11 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
     }
   }
 
-  /// Sets up form controllers using coupon details for in-dialog editing
-  void prefillFormForEdit(ViewCouponListDatum coupon) {
+  void openCreateDialog() {
+    resetForm();
+  }
+
+  void openEditDialog(ViewCouponListDatum coupon) {
     editingCouponId.value = coupon.id;
     activeViewingCoupon.value = coupon;
 
@@ -182,7 +203,6 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
     startAtController.text = coupon.startAt != null ? DateFormat('yyyy-MM-dd HH:mm:ss').format(coupon.startAt!.toLocal()) : '';
     endAtController.text = coupon.endAt != null ? DateFormat('yyyy-MM-dd HH:mm:ss').format(coupon.endAt!.toLocal()) : '';
 
-    // Match or fallback dropdowns
     final String dt = coupon.discountType.toLowerCase().trim();
     final matchDt = discountTypeOptions.firstWhereOrNull((opt) => opt['value']?.toLowerCase() == dt);
     selectedDiscountType.value = matchDt?['value'] ?? (discountTypeOptions.isNotEmpty ? discountTypeOptions.first['value'] : dt);
@@ -196,102 +216,16 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
     selectedPaymentType.value = matchPt?['value'] ?? (paymentTypeOptions.isNotEmpty ? paymentTypeOptions.first['value'] : pt);
 
     couponStatus.value = coupon.status;
-    final int appAll = int.tryParse(coupon.applicableAll.toString().trim()) ?? 1;
+    final int appAll = int.tryParse(coupon.applicableAll.trim()) ?? 1;
     applicableAll.value = appAll;
 
-    selectedGroupCodes.assignAll(coupon.applicableGroup.map((e) => e.toString().trim()).where((e) => e.isNotEmpty));
-    selectedBrandCodes.assignAll(coupon.applicableBrand.map((e) => e.toString().trim()).where((e) => e.isNotEmpty));
-
-    isEditingInViewDialog.value = false;
-  }
-
-  void toggleViewDialogEditMode() {
-    isEditingInViewDialog.value = !isEditingInViewDialog.value;
-  }
-
-  void toggleApplicableAll(bool isChecked) {
-    applicableAll.value = isChecked ? 1 : 0;
-    if (isChecked) {
-      selectedGroupCodes.clear();
-      selectedBrandCodes.clear();
-    }
-  }
-
-  void filterGroups(String query) {
-    final clean = query.trim().toLowerCase();
-    if (clean.isEmpty) {
-      filteredGroups.assignAll(allGroups);
-    } else {
-      filteredGroups.assignAll(
-        allGroups
-            .where((g) => g.dgName.toLowerCase().contains(clean) || g.dgCode.toLowerCase().contains(clean) || g.id.toString().contains(clean))
-            .toList(),
-      );
-    }
-  }
-
-  void toggleGroupSelection(String groupCode) {
-    if (applicableAll.value == 1) return;
-    final trimmed = groupCode.trim();
-    if (trimmed.isEmpty) return;
-    if (selectedGroupCodes.contains(trimmed)) {
-      selectedGroupCodes.remove(trimmed);
-    } else {
-      selectedGroupCodes.add(trimmed);
-    }
-  }
-
-  void filterBrands(String query) {
-    final clean = query.trim().toLowerCase();
-    if (clean.isEmpty) {
-      filteredBrands.assignAll(allBrands);
-    } else {
-      filteredBrands.assignAll(
-        allBrands.where((b) => b.mcCompName.toLowerCase().contains(clean) || b.mcCompCode.toLowerCase().contains(clean)).toList(),
-      );
-    }
-  }
-
-  void toggleBrandSelection(String brandCode) {
-    if (applicableAll.value == 1) return;
-    final trimmed = brandCode.trim();
-    if (trimmed.isEmpty) return;
-    if (selectedBrandCodes.contains(trimmed)) {
-      selectedBrandCodes.remove(trimmed);
-    } else {
-      selectedBrandCodes.add(trimmed);
-    }
-  }
-
-  Future<void> pickDateTime({required BuildContext context, required bool isStart}) async {
-    final DateTime initialDate = DateTime.now();
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: isStart ? initialDate : initialDate.add(const Duration(days: 7)),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2040),
-    );
-    if (pickedDate == null || !context.mounted) return;
-
-    final TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: isStart ? const TimeOfDay(hour: 0, minute: 0) : const TimeOfDay(hour: 23, minute: 59),
-    );
-    if (pickedTime == null) return;
-
-    final DateTime combined = DateTime(pickedDate.year, pickedDate.month, pickedDate.day, pickedTime.hour, pickedTime.minute, isStart ? 0 : 59);
-    final String formatted = DateFormat('yyyy-MM-dd HH:mm:ss').format(combined);
-    if (isStart) {
-      startAtController.text = formatted;
-    } else {
-      endAtController.text = formatted;
-    }
+    selectedGroupCodes.assignAll(coupon.applicableGroup.map((e) => e.trim()).where((e) => e.isNotEmpty));
+    selectedBrandCodes.assignAll(coupon.applicableBrand.map((e) => e.trim()).where((e) => e.isNotEmpty));
   }
 
   void resetForm() {
     editingCouponId.value = null;
     activeViewingCoupon.value = null;
-    isEditingInViewDialog.value = false;
 
     codeController.clear();
     titleController.clear();
@@ -306,6 +240,7 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
     selectedDiscountType.value = discountTypeOptions.isNotEmpty ? discountTypeOptions.first['value'] : null;
     selectedUserType.value = userTypeOptions.isNotEmpty ? userTypeOptions.first['value'] : null;
     selectedPaymentType.value = paymentTypeOptions.isNotEmpty ? paymentTypeOptions.first['value'] : null;
+
     couponStatus.value = 1;
     applicableAll.value = 1;
     selectedGroupCodes.clear();
@@ -316,26 +251,77 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
     filteredBrands.assignAll(allBrands);
   }
 
-  Future<bool> submitAddCoupon() async {
-    if (!addCouponFormKey.currentState!.validate()) return false;
-    return _sendCouponPayload(id: null);
+  void toggleApplicableAll(bool isChecked) {
+    applicableAll.value = isChecked ? 1 : 0;
+    if (isChecked) {
+      selectedGroupCodes.clear();
+      selectedBrandCodes.clear();
+    }
   }
 
-  Future<bool> submitUpdateCoupon() async {
-    final int? id = editingCouponId.value;
-    if (id == null || id <= 0) {
-      errorMessage(message: 'Coupon ID missing for update.');
+  void filterGroups(String query) {
+    final String clean = query.trim().toLowerCase();
+    if (clean.isEmpty) {
+      filteredGroups.assignAll(allGroups);
+    } else {
+      filteredGroups.assignAll(
+        allGroups.where((g) => g.dgName.toLowerCase().contains(clean) || g.dgCode.toLowerCase().contains(clean) || g.id.toString().contains(clean)),
+      );
+    }
+  }
+
+  void toggleGroupSelection(String groupCode) {
+    if (applicableAll.value == 1) return;
+    final String trimmed = groupCode.trim();
+    if (trimmed.isEmpty) return;
+
+    if (selectedGroupCodes.contains(trimmed)) {
+      selectedGroupCodes.remove(trimmed);
+    } else {
+      selectedGroupCodes.add(trimmed);
+    }
+  }
+
+  void filterBrands(String query) {
+    final String clean = query.trim().toLowerCase();
+    if (clean.isEmpty) {
+      filteredBrands.assignAll(allBrands);
+    } else {
+      filteredBrands.assignAll(allBrands.where((b) => b.mcCompName.toLowerCase().contains(clean) || b.mcCompCode.toLowerCase().contains(clean)));
+    }
+  }
+
+  void toggleBrandSelection(String brandCode) {
+    if (applicableAll.value == 1) return;
+    final String trimmed = brandCode.trim();
+    if (trimmed.isEmpty) return;
+
+    if (selectedBrandCodes.contains(trimmed)) {
+      selectedBrandCodes.remove(trimmed);
+    } else {
+      selectedBrandCodes.add(trimmed);
+    }
+  }
+
+  void setDateTime({required String formattedDateTime, required bool isStart}) {
+    if (isStart) {
+      startAtController.text = formattedDateTime;
+    } else {
+      endAtController.text = formattedDateTime;
+    }
+  }
+
+  Future<bool> submitCoupon() async {
+    if (isSubmitting.value || _isActionLocked) return false;
+    if (couponFormKey.currentState == null || !couponFormKey.currentState!.validate()) {
       return false;
     }
-    if (!editCouponFormKey.currentState!.validate()) return false;
-    return _sendCouponPayload(id: id);
-  }
 
-  Future<bool> _sendCouponPayload({int? id}) async {
     if (selectedDiscountType.value == null || selectedUserType.value == null || selectedPaymentType.value == null) {
       errorMessage(message: 'Please select all required type options.');
       return false;
     }
+
     if (applicableAll.value == 0) {
       if (selectedGroupCodes.isEmpty && selectedBrandCodes.isEmpty) {
         errorMessage(message: 'Please select at least one Applicable Group or Brand, or enable "Applicable to All".');
@@ -343,25 +329,45 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
       }
     }
 
+    final String start = startAtController.text.trim();
+    final String end = endAtController.text.trim();
+    if (start.isNotEmpty && end.isNotEmpty) {
+      final DateTime? startDate = DateTime.tryParse(start);
+      final DateTime? endDate = DateTime.tryParse(end);
+      if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+        errorMessage(message: 'Start date cannot be after end date.');
+        return false;
+      }
+    }
+
+    final num discountValue = num.tryParse(discountValueController.text.trim()) ?? 0;
+    if (discountValue <= 0) {
+      errorMessage(message: 'Discount value must be greater than zero.');
+      return false;
+    }
+
+    _isActionLocked = true;
     isSubmitting.value = true;
+
     try {
-      final response = await _couponRepository.addCoupon(
+      final int? id = editingCouponId.value;
+      final AddCouponModel response = await _couponRepository.addCoupon(
         id: id,
         code: codeController.text.trim(),
         discountType: selectedDiscountType.value!,
         title: titleController.text.trim(),
-        discountValue: num.tryParse(discountValueController.text.trim()) ?? 0,
+        discountValue: discountValue,
         maxDiscount: num.tryParse(maxDiscountController.text.trim()) ?? 0,
         minOrderAmount: num.tryParse(minOrderAmountController.text.trim()) ?? 0,
         usageLimit: int.tryParse(usageLimitController.text.trim()) ?? 0,
         usagePerCustomer: int.tryParse(usagePerCustomerController.text.trim()) ?? 0,
         applicableAll: applicableAll.value,
-        applicableGroups: applicableAll.value == 1 ? [] : selectedGroupCodes.toList(),
-        applicableBrands: applicableAll.value == 1 ? [] : selectedBrandCodes.toList(),
+        applicableGroups: applicableAll.value == 1 ? [] : selectedGroupCodes.toList(growable: false),
+        applicableBrands: applicableAll.value == 1 ? [] : selectedBrandCodes.toList(growable: false),
         userType: selectedUserType.value!,
         paymentType: selectedPaymentType.value!,
-        startAt: startAtController.text.trim(),
-        endAt: endAtController.text.trim(),
+        startAt: start,
+        endAt: end,
         status: couponStatus.value,
       );
 
@@ -370,13 +376,7 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
       if (response.status) {
         final String actionVerb = id != null ? 'updated' : 'added';
         successMessage(title: 'Success', message: response.message.isNotEmpty ? response.message : 'Coupon $actionVerb successfully.');
-
-        if (id != null) {
-          isEditingInViewDialog.value = false;
-        } else {
-          resetForm();
-        }
-
+        resetForm();
         await refreshCoupons();
         return true;
       } else {
@@ -384,10 +384,13 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
         return false;
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, id != null ? 'submitUpdateCoupon' : 'submitAddCoupon');
-      errorMessage(message: 'Failed to process coupon. Please check parameters.');
+      _logException(e, stackTrace, 'submitCoupon');
+      if (!isClosed) {
+        errorMessage(message: 'Failed to process coupon. Please check parameters.');
+      }
       return false;
     } finally {
+      _isActionLocked = false;
       if (!isClosed) {
         isSubmitting.value = false;
       }
@@ -399,11 +402,17 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
       errorMessage(message: 'Invalid coupon ID.');
       return false;
     }
+
+    if (_isActionLocked) return false;
+    _isActionLocked = true;
+
     bool isSuccess = false;
     await runWithLoading(() async {
       try {
-        final CommonDeleteModel response = await _couponRepository.deleteCoupon(couponId: coupon.id.toString());
+        final CommonDeleteModel response = await _couponRepository.deleteCoupon(couponId: coupon.id);
+
         if (isClosed) return;
+
         if (response.success) {
           isSuccess = true;
           successMessage(title: 'Deleted', message: response.message.isNotEmpty ? response.message : 'Coupon deleted successfully.');
@@ -412,10 +421,12 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to delete coupon.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'deleteCoupon', {'coupon_id': coupon.id, 'coupon_code': coupon.code});
+        _logException(e, stackTrace, 'deleteCoupon', <String, dynamic>{'coupon_id': coupon.id, 'coupon_code': coupon.code});
         errorMessage(message: 'An error occurred while deleting the coupon.');
       }
     });
+
+    _isActionLocked = false;
     return isSuccess;
   }
 
@@ -423,9 +434,10 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
     Sentry.captureException(
       exception,
       stackTrace: stackTrace,
-      withScope: (scope) {
+      withScope: (Scope scope) {
         scope.setTag('controller', 'CouponController');
-        scope.setContexts('coupon_action', {'action': action, 'current_page': currentPage.value, ...?extra});
+        scope.setTag('module', 'coupon_mgmt');
+        scope.setContexts('coupon_action', <String, dynamic>{'action': action, 'current_page': currentPage.value, ...?extra});
       },
     );
   }
@@ -443,11 +455,17 @@ class CouponController extends BaseServerTableController<ViewCouponListDatum> {
     endAtController.dispose();
     groupSearchController.dispose();
     brandSearchController.dispose();
+
     selectedGroupCodes.clear();
     selectedBrandCodes.clear();
     discountTypeOptions.clear();
     userTypeOptions.clear();
     paymentTypeOptions.clear();
+    allGroups.clear();
+    filteredGroups.clear();
+    allBrands.clear();
+    filteredBrands.clear();
+
     super.onClose();
   }
 }

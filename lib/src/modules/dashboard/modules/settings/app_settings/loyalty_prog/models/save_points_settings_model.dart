@@ -14,17 +14,17 @@ class SavePointsSettingsModel {
 
   factory SavePointsSettingsModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
-      return const SavePointsSettingsModel(success: false, message: 'Empty payload received');
+      return const SavePointsSettingsModel(success: false, message: 'Empty payload received from server.', data: null);
     }
 
     return SavePointsSettingsModel(
-      success: json['success'] == true || json['status'] == 1 || json['status'] == true,
-      message: json['message']?.toString().trim() ?? '',
+      success: _parseBool(json['success'] ?? json['status']),
+      message: _parseCleanString(json['message']),
       data: json['data'] != null && json['data'] is Map<String, dynamic> ? PointsSettingsData.fromJson(json['data'] as Map<String, dynamic>) : null,
     );
   }
 
-  Map<String, dynamic> toJson() => {'success': success, 'message': message, 'data': data?.toJson()};
+  Map<String, dynamic> toJson() => {'success': success, 'message': message, if (data != null) 'data': data?.toJson()};
 
   @override
   String toString() => 'SavePointsSettingsModel(success: $success, message: $message, data: $data)';
@@ -50,6 +50,10 @@ class PointsSettingsData {
     this.updatedAt,
   });
 
+  bool get isCategoryPrecedence => loyaltyConflictPriority.toLowerCase() == 'category';
+
+  bool get isBrandPrecedence => loyaltyConflictPriority.toLowerCase() == 'brand';
+
   PointsSettingsData copyWith({
     int? id,
     double? rupeesPerPoint,
@@ -73,22 +77,24 @@ class PointsSettingsData {
   factory PointsSettingsData.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return const PointsSettingsData(
-        rupeesPerPoint: 0.0,
-        pointsPerRupee: 0.0,
+        id: null,
+        rupeesPerPoint: 0.50,
+        pointsPerRupee: 2.00,
         loyaltyConflictPriority: 'category',
-        newCustReward: 0,
-        custReffReward: 0,
+        newCustReward: 100,
+        custReffReward: 50,
+        updatedAt: null,
       );
     }
 
     return PointsSettingsData(
       id: _parseNullableInt(json['id']),
-      rupeesPerPoint: _parseDouble(json['rupees_per_point']),
-      pointsPerRupee: _parseDouble(json['points_per_rupee']),
-      loyaltyConflictPriority: json['loyalty_conflict_priority']?.toString().trim() ?? 'category',
-      newCustReward: _parseNum(json['new_cust_reward']),
-      custReffReward: _parseNum(json['cust_reff_reward']),
-      updatedAt: _parseDateTime(json['updated_at']),
+      rupeesPerPoint: _parseDouble(json['rupees_per_point'], defaultValue: 0.50),
+      pointsPerRupee: _parseDouble(json['points_per_rupee'], defaultValue: 2.00),
+      loyaltyConflictPriority: _parseCleanString(json['loyalty_conflict_priority'], fallback: 'category'),
+      newCustReward: _parseNum(json['new_cust_reward'], defaultValue: 100),
+      custReffReward: _parseNum(json['cust_reff_reward'], defaultValue: 50),
+      updatedAt: _parseDate(json['updated_at'] ?? json['updatedAt']),
     );
   }
 
@@ -99,39 +105,67 @@ class PointsSettingsData {
     'loyalty_conflict_priority': loyaltyConflictPriority,
     'new_cust_reward': newCustReward,
     'cust_reff_reward': custReffReward,
-    if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
+    if (updatedAt != null) 'updated_at': updatedAt?.toIso8601String(),
   };
 
   @override
   String toString() =>
-      'PointsSettingsData(id: $id, rupeesPerPoint: $rupeesPerPoint, pointsPerRupee: $pointsPerRupee, priority: $loyaltyConflictPriority, newCustReward: $newCustReward, custReffReward: $custReffReward)';
+      'PointsSettingsData(id: $id, rupeesPerPoint: $rupeesPerPoint, pointsPerRupee: $pointsPerRupee, priority: $loyaltyConflictPriority, newCust: $newCustReward, referral: $custReffReward)';
 }
 
-int? _parseNullableInt(dynamic value) {
-  if (value == null) return null;
-  if (value is int) return value;
-  if (value is num) return value.toInt();
-  final String str = value.toString().trim();
+bool _parseBool(dynamic val) {
+  if (val == null) return false;
+  if (val is bool) return val;
+  if (val is num) return val == 1;
+  final String str = val.toString().trim().toLowerCase();
+  return str == '1' || str == 'true' || str == 'active' || str == 'y';
+}
+
+int? _parseNullableInt(dynamic val) {
+  if (val == null) return null;
+  if (val is int) return val;
+  if (val is num) return val.toInt();
+  final String str = val.toString().trim();
   if (str.isEmpty || str.toLowerCase() == 'null') return null;
   return int.tryParse(str);
 }
 
-double _parseDouble(dynamic value) {
-  if (value == null) return 0.0;
-  if (value is double) return value;
-  if (value is num) return value.toDouble();
-  return double.tryParse(value.toString().trim()) ?? 0.0;
+double _parseDouble(dynamic val, {double defaultValue = 0.0}) {
+  if (val == null) return defaultValue;
+  if (val is double) return val;
+  if (val is num) return val.toDouble();
+  final String str = val.toString().trim();
+  final double? parsed = double.tryParse(str);
+  return parsed ?? defaultValue;
 }
 
-num _parseNum(dynamic value) {
-  if (value == null) return 0;
-  if (value is num) return value;
-  return num.tryParse(value.toString().trim()) ?? 0;
+num _parseNum(dynamic val, {num defaultValue = 0}) {
+  if (val == null) return defaultValue;
+  if (val is num) return val;
+  final String str = val.toString().trim();
+  final num? parsed = num.tryParse(str);
+  return parsed ?? defaultValue;
 }
 
-DateTime? _parseDateTime(dynamic value) {
-  if (value == null) return null;
-  final String str = value.toString().trim();
-  if (str.isEmpty || str.startsWith('0000')) return null;
-  return DateTime.tryParse(str);
+String _parseCleanString(dynamic val, {String fallback = ''}) {
+  if (val == null) return fallback;
+  final String str = val.toString().trim();
+  if (str.isEmpty || str == 'null' || str == 'undefined') return fallback;
+  return str;
+}
+
+DateTime? _parseDate(dynamic val) {
+  if (val == null) return null;
+  if (val is DateTime) {
+    return val.year >= 1970 ? val : null;
+  }
+  final String dateStr = val.toString().trim();
+  if (dateStr.isEmpty || dateStr.startsWith('0000-00-00') || dateStr == 'null' || dateStr == 'undefined') {
+    return null;
+  }
+  final DateTime? parsed = DateTime.tryParse(dateStr);
+  if (parsed == null || parsed.year < 1970) {
+    return null;
+  }
+  return parsed;
 }

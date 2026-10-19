@@ -15,7 +15,7 @@ class FirmView extends GetView<FirmController> {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: .stretch,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TableHeaderWidget(
           searchHintText: 'Search firm code, GSTIN, name...',
@@ -51,7 +51,7 @@ class FirmView extends GetView<FirmController> {
                 Expanded(
                   child: RepaintBoundary(
                     child: DataTableWidget<ViewFirmDatum>(
-                      items: controller.pagedList.toList(),
+                      items: controller.pagedList,
                       horizontalScrollController: controller.horizontalScrollController,
                       verticalScrollController: controller.verticalScrollController,
                       emptyTitle: 'No Registered Firms Found',
@@ -60,9 +60,7 @@ class FirmView extends GetView<FirmController> {
                       columns: const [
                         DataColumn(label: Text('FIRM CODE')),
                         DataColumn(label: Text('FIRM NAME')),
-                        DataColumn(label: Text('GSTIN / UIN')),
-                        DataColumn(label: Text('LOCATION')),
-                        DataColumn(label: Text('UNIT ACC')),
+                        DataColumn(label: Text('GSTIN')),
                         DataColumn(label: Text('FULL ADDRESS')),
                         DataColumn(label: Text('ACTIONS')),
                       ],
@@ -89,20 +87,20 @@ class FirmView extends GetView<FirmController> {
   }
 
   DataRow _buildDataRow(BuildContext context, ViewFirmDatum firm) {
-    final isDark = context.isDark;
-    final address = [firm.fFirmAdd1, firm.fFirmAdd2, firm.fFirmAdd3].where((part) => part.trim().isNotEmpty).join(', ');
+    final bool isDark = context.isDark;
+    final String address = [firm.fFirmAdd1, firm.fFirmAdd2, firm.fFirmAdd3].where((part) => part.trim().isNotEmpty).join(', ');
 
     return DataRow(
       cells: [
-        DataCell(SelectableText(firm.fFirmCode.isEmpty ? 'N/A' : firm.fFirmCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+        DataCell(SelectableText(firm.fFirmCode.isEmpty ? '—' : firm.fFirmCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
         DataCell(
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 220),
             child: Tooltip(
-              message: firm.fFirmName.isEmpty ? 'N/A' : firm.fFirmName,
+              message: firm.fFirmName.isEmpty ? '—' : firm.fFirmName,
               waitDuration: const Duration(milliseconds: 400),
               child: Text(
-                firm.fFirmName.isEmpty ? 'N/A' : firm.fFirmName,
+                firm.fFirmName.isEmpty ? '—' : firm.fFirmName,
                 style: const TextStyle(fontWeight: FontWeight.w500),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -112,19 +110,17 @@ class FirmView extends GetView<FirmController> {
         ),
         DataCell(
           SelectableText(
-            firm.fGstNumber.isEmpty ? 'N/A' : firm.fGstNumber,
+            firm.fGstNumber.isEmpty ? '—' : firm.fGstNumber,
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
-        DataCell(Text(firm.fLocationCode.isEmpty ? 'N/A' : firm.fLocationCode)),
-        DataCell(Text(firm.fUnitAccCode.isEmpty ? 'N/A' : firm.fUnitAccCode)),
         DataCell(
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 240),
             child: Tooltip(
-              message: address.isEmpty ? 'N/A' : address,
+              message: address.isEmpty ? '—' : address,
               waitDuration: const Duration(milliseconds: 400),
-              child: Text(address.isEmpty ? 'N/A' : address, maxLines: 3, overflow: TextOverflow.ellipsis, style: context.captionStyle),
+              child: Text(address.isEmpty ? '—' : address, maxLines: 5, overflow: TextOverflow.ellipsis, style: context.captionStyle),
             ),
           ),
         ),
@@ -155,49 +151,31 @@ class FirmView extends GetView<FirmController> {
       headerIcon: Icons.domain_rounded,
       sections: [
         DetailSection(
-          title: '1. Legal & Identity Information',
+          title: 'Basic Information',
           items: [
             DetailItem(label: 'Firm Code', value: firm.fFirmCode, isCopyable: true),
-            DetailItem(label: 'Firm Name', value: firm.fFirmName),
-            DetailItem(label: 'GSTIN / UIN', value: firm.fGstNumber, isCopyable: true),
+            DetailItem(label: 'Firm Name', value: firm.fFirmName, isCopyable: true),
+            DetailItem(label: 'GST Number', value: firm.fGstNumber, isCopyable: true),
             DetailItem(label: 'CE Reg No', value: firm.fCeRegNo, isCopyable: true),
-            DetailItem(label: 'Unit Acc Code', value: firm.fUnitAccCode, isCopyable: true),
-            DetailItem(label: 'Location Code', value: firm.fLocationCode),
-            DetailItem(label: 'Jurisdiction City', value: firm.fFirmJurisdictionCity),
+            DetailItem(label: 'Pin Code', value: firm.fPinCode, isCopyable: true),
+            if (firm.fCity != null && firm.fCity.toString().isNotEmpty) DetailItem(label: 'City', value: firm.fCity),
           ],
         ),
         DetailSection(
-          title: '2. Operational & Regulatory Flags',
-          flags: [
-            DetailFlag(label: 'Sale Allowed', value: firm.fSaleAllow),
-            DetailFlag(label: 'Show Stock', value: firm.fShowStock),
-            DetailFlag(label: 'Is Head Office', value: firm.fIsHo),
-            DetailFlag(label: 'TCS Applicable', value: firm.fTcsApplicable),
-            DetailFlag(label: 'No Invoice Print', value: firm.fNotInvoicePrint),
-          ],
-          items: [
-            DetailItem(label: 'Business Type', value: firm.fBussinessType),
-            DetailItem(label: 'SW License No', value: firm.fSwLicenseNo),
-            DetailItem(label: 'Pin Code', value: firm.fPinCode),
-            DetailItem(label: 'EU Code', value: firm.fEuCode),
-            DetailItem(label: 'MU Code', value: firm.fMuCode),
-          ],
-        ),
-        DetailSection(
-          title: '3. Registered Physical Address',
+          title: 'Address Details',
           items: [
             DetailItem(label: 'Address Line 1', value: firm.fFirmAdd1),
             DetailItem(label: 'Address Line 2', value: firm.fFirmAdd2),
-            DetailItem(label: 'Address Line 3', value: firm.fFirmAdd3),
+            if (firm.fFirmAdd3.toString().isNotEmpty) DetailItem(label: 'Address Line 3', value: firm.fFirmAdd3),
           ],
         ),
         DetailSection(
-          title: '4. E-Way Bill & Compliance Settings',
+          title: 'History Details',
           items: [
-            DetailItem(label: 'Eway API User', value: firm.fEwayApiUser),
-            DetailItem(label: 'Parent Firm Code', value: firm.fPFirmCode),
-            DetailItem(label: 'Base Firm Code', value: firm.fBFirmCode),
-            DetailItem(label: 'Order Firm Code', value: firm.fOFirmCode),
+            DetailItem(label: 'Created At', value: firm.fCreatedTimeStamp),
+            DetailItem(label: 'Created By', value: firm.fCreatedBy),
+            DetailItem(label: 'Modified At', value: firm.fModifyTimeStamp),
+            DetailItem(label: 'Modified By', value: firm.fModifyBy),
           ],
         ),
       ],

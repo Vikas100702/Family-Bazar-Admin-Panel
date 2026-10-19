@@ -8,13 +8,11 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class TimeSlotController extends BaseServerTableController<TimeSlotItem> {
   final TimeSlotRepository _slotRepository;
+  TimeSlotController({required this._slotRepository});
 
-  TimeSlotController({required TimeSlotRepository repository}) : _slotRepository = repository;
+  bool _isActionLocked = false;
 
-  // Master Cache for local fallback pagination & search
-  final RxList<TimeSlotItem> _allSlotsCache = <TimeSlotItem>[].obs;
-
-  // Form Management & Editing State
+  // FORM MANAGEMENT & EDITING STATE
   final GlobalKey<FormState> addEditFormKey = GlobalKey<FormState>();
   final Rxn<int> editingSlotId = Rxn<int>();
   final Rxn<TimeSlotItem> activeViewingSlot = Rxn<TimeSlotItem>();
@@ -48,88 +46,23 @@ class TimeSlotController extends BaseServerTableController<TimeSlotItem> {
         if (isClosed) return;
 
         if (response.status) {
-          _allSlotsCache.assignAll(response.data);
-
-          if (response.pagination != null) {
-            setServerData(data: response.data, totalCount: response.pagination!.total, pageCount: response.pagination!.totalPages);
-          } else {
-            _applyLocalSearchAndPagination();
-          }
+          final int total = response.pagination?.total ?? response.data.length;
+          final int? totalPages = response.pagination?.totalPages;
+          setServerData(data: response.data, totalCount: total, pageCount: totalPages);
         } else {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch time slots.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'fetchServerData', {'page': currentPage.value, 'limit': itemsPerPage.value, 'search': searchQuery.value});
+        _logException(e, stackTrace, 'fetchServerData', <String, dynamic>{
+          'page': currentPage.value,
+          'limit': itemsPerPage.value,
+          'search': searchQuery.value,
+        });
         if (!isClosed) {
           errorMessage(message: 'An unexpected error occurred while fetching time slots.');
         }
       }
     });
-  }
-
-  void _applyLocalSearchAndPagination() {
-    List<TimeSlotItem> filtered = _allSlotsCache.toList();
-    final String query = searchQuery.value.trim().toLowerCase();
-
-    if (query.isNotEmpty) {
-      filtered = filtered.where((slot) {
-        final String idStr = slot.id.toString();
-        final String start = slot.startTimeSlot.toLowerCase();
-        final String end = slot.endTimeSlot.toLowerCase();
-        return idStr.contains(query) || start.contains(query) || end.contains(query);
-      }).toList();
-    }
-
-    final int total = filtered.length;
-    final int limit = itemsPerPage.value;
-    final int page = currentPage.value;
-    final int startIndex = (page - 1) * limit;
-
-    List<TimeSlotItem> pageSlice = <TimeSlotItem>[];
-    if (startIndex < total) {
-      final int endIndex = (startIndex + limit) > total ? total : (startIndex + limit);
-      pageSlice = filtered.sublist(startIndex, endIndex);
-    }
-
-    setServerData(data: pageSlice, totalCount: total, pageCount: (total / limit).ceil() > 0 ? (total / limit).ceil() : 1);
-  }
-
-  @override
-  void onSearchChanged(String query) {
-    searchQuery.value = query.trim();
-    currentPage.value = 1;
-    fetchServerData();
-  }
-
-  @override
-  void onSearchSubmitted(String query) {
-    searchQuery.value = query.trim();
-    currentPage.value = 1;
-    fetchServerData();
-  }
-
-  @override
-  void clearSearch() {
-    searchQuery.value = '';
-    currentPage.value = 1;
-    fetchServerData();
-  }
-
-  @override
-  void changePage(int newPage) {
-    if (newPage < 1 || (totalPages.value > 0 && newPage > totalPages.value) || isLoading.value) {
-      return;
-    }
-    currentPage.value = newPage;
-    fetchServerData();
-  }
-
-  @override
-  void changePageSize(int newSize) {
-    if (newSize == itemsPerPage.value || isLoading.value) return;
-    itemsPerPage.value = newSize;
-    currentPage.value = 1;
-    fetchServerData();
   }
 
   Future<void> refreshTimeSlots() async => refreshData();
@@ -168,9 +101,11 @@ class TimeSlotController extends BaseServerTableController<TimeSlotItem> {
   }
 
   Future<bool> submitSlot() async {
-    if (isSubmitting.value) return false;
+    if (isSubmitting.value || _isActionLocked) return false;
 
-    if (!addEditFormKey.currentState!.validate()) return false;
+    if (addEditFormKey.currentState == null || !addEditFormKey.currentState!.validate()) {
+      return false;
+    }
 
     final TimeOfDay? start = selectedStartTime.value;
     final TimeOfDay? end = selectedEndTime.value;
@@ -188,6 +123,7 @@ class TimeSlotController extends BaseServerTableController<TimeSlotItem> {
       return false;
     }
 
+    _isActionLocked = true;
     isSubmitting.value = true;
 
     try {
@@ -203,13 +139,8 @@ class TimeSlotController extends BaseServerTableController<TimeSlotItem> {
       if (isClosed) return false;
 
       if (response.status) {
-        if (Get.isDialogOpen ?? false) {
-          Get.back();
-        }
-
         final String actionVerb = editingSlotId.value != null ? 'updated' : 'added';
         successMessage(title: 'Success', message: response.message.isNotEmpty ? response.message : 'Time slot $actionVerb successfully.');
-
         openCreateDialog();
         await fetchServerData();
         return true;
@@ -218,12 +149,13 @@ class TimeSlotController extends BaseServerTableController<TimeSlotItem> {
         return false;
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'submitSlot', {'editing_id': editingSlotId.value});
+      _logException(e, stackTrace, 'submitSlot', <String, dynamic>{'editing_id': editingSlotId.value});
       if (!isClosed) {
         errorMessage(message: 'An error occurred while saving the time slot.');
       }
       return false;
     } finally {
+      _isActionLocked = false;
       if (!isClosed) {
         isSubmitting.value = false;
       }
@@ -236,10 +168,13 @@ class TimeSlotController extends BaseServerTableController<TimeSlotItem> {
       return false;
     }
 
+    if (_isActionLocked) return false;
+    _isActionLocked = true;
+
     bool isSuccess = false;
     await runWithLoading(() async {
       try {
-        final CommonDeleteModel response = await _slotRepository.deleteTimeSlot(slotId: slot.id.toString());
+        final CommonDeleteModel response = await _slotRepository.deleteTimeSlot(slotId: slot.id);
 
         if (isClosed) return;
 
@@ -251,11 +186,16 @@ class TimeSlotController extends BaseServerTableController<TimeSlotItem> {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to delete time slot.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'deleteTimeSlot', {'slot_id': slot.id, 'start_time': slot.startTimeSlot, 'end_time': slot.endTimeSlot});
+        _logException(e, stackTrace, 'deleteTimeSlot', <String, dynamic>{
+          'slot_id': slot.id,
+          'start_time': slot.startTimeSlot,
+          'end_time': slot.endTimeSlot,
+        });
         errorMessage(message: 'An error occurred while deleting the time slot.');
       }
     });
 
+    _isActionLocked = false;
     return isSuccess;
   }
 
@@ -282,16 +222,17 @@ class TimeSlotController extends BaseServerTableController<TimeSlotItem> {
     final int hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
     final String minute = time.minute.toString().padLeft(2, '0');
     final String period = time.period == DayPeriod.am ? 'AM' : 'PM';
-    return '${hour.toString().padLeft(2, '0')}:$minute$period';
+    return '${hour.toString().padLeft(2, '0')}:$minute $period';
   }
 
   void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {
     Sentry.captureException(
       exception,
       stackTrace: stackTrace,
-      withScope: (scope) {
+      withScope: (Scope scope) {
         scope.setTag('controller', 'TimeSlotController');
-        scope.setContexts('time_slot_action', {'action': action, 'current_page': currentPage.value, ...?extra});
+        scope.setTag('module', 'time_slot');
+        scope.setContexts('time_slot_action', <String, dynamic>{'action': action, 'current_page': currentPage.value, ...?extra});
       },
     );
   }
@@ -300,7 +241,6 @@ class TimeSlotController extends BaseServerTableController<TimeSlotItem> {
   void onClose() {
     startTimeDisplayController.dispose();
     endTimeDisplayController.dispose();
-    _allSlotsCache.clear();
     super.onClose();
   }
 }

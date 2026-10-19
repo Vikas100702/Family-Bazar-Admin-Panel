@@ -36,7 +36,8 @@ class TimeSlotView extends GetView<TimeSlotController> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryRed,
                 foregroundColor: AppColors.onPrimaryWhite,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 16), vertical: context.responsiveHeight(12, 14)),
+                shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
               ),
             ),
           ],
@@ -67,7 +68,7 @@ class TimeSlotView extends GetView<TimeSlotController> {
                 Expanded(
                   child: RepaintBoundary(
                     child: DataTableWidget<TimeSlotItem>(
-                      items: controller.pagedList.toList(),
+                      items: controller.pagedList,
                       horizontalScrollController: controller.horizontalScrollController,
                       verticalScrollController: controller.verticalScrollController,
                       emptyTitle: 'No Time Slots Found',
@@ -103,6 +104,7 @@ class TimeSlotView extends GetView<TimeSlotController> {
     );
   }
 
+  // 1. DATA ROW BUILDER
   DataRow _buildDataRow(BuildContext context, TimeSlotItem slot) {
     final bool isDark = context.isDark;
 
@@ -129,10 +131,15 @@ class TimeSlotView extends GetView<TimeSlotController> {
             ],
           ),
         ),
-        DataCell(Text(slot.createdAt != null ? slot.createdAt!.toLocal().toString().split('.').first : '—', style: const TextStyle(fontSize: 12))),
         DataCell(
           Text(
-            (slot.updatedAt != null && slot.updatedAt!.year > 1970) ? slot.updatedAt!.toLocal().toString().split('.').first : '—',
+            slot.createdAt != null && slot.createdAt!.year >= 1970 ? slot.createdAt!.toLocal().toString().split('.').first : '—',
+            style: const TextStyle(fontSize: 12),
+          ),
+        ),
+        DataCell(
+          Text(
+            slot.updatedAt != null && slot.updatedAt!.year >= 1970 ? slot.updatedAt!.toLocal().toString().split('.').first : '—',
             style: const TextStyle(fontSize: 12),
           ),
         ),
@@ -186,7 +193,7 @@ class TimeSlotView extends GetView<TimeSlotController> {
           padding: EdgeInsets.all(context.responsiveSize(16, 24)),
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: context.responsiveRadius(12, 14),
             border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
           ),
           child: Obx(() {
@@ -195,7 +202,7 @@ class TimeSlotView extends GetView<TimeSlotController> {
             return PopScope(
               canPop: !isSubmitting,
               child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
+                physics: const ClampingScrollPhysics(),
                 child: Form(
                   key: controller.addEditFormKey,
                   child: Column(
@@ -222,7 +229,6 @@ class TimeSlotView extends GetView<TimeSlotController> {
                           label: 'Start Time *',
                           controller: controller.startTimeDisplayController,
                           hint: 'Choose start time',
-                          isDark: isDark,
                           enabled: !isSubmitting,
                           onTap: () => _pickTime(context, isStart: true),
                         ),
@@ -231,7 +237,6 @@ class TimeSlotView extends GetView<TimeSlotController> {
                           label: 'End Time *',
                           controller: controller.endTimeDisplayController,
                           hint: 'Choose end time',
-                          isDark: isDark,
                           enabled: !isSubmitting,
                           onTap: () => _pickTime(context, isStart: false),
                         ),
@@ -243,7 +248,12 @@ class TimeSlotView extends GetView<TimeSlotController> {
                           TextButton(onPressed: isSubmitting ? null : () => Get.back(), child: const Text('Cancel')),
                           const SizedBox(width: 12),
                           ElevatedButton.icon(
-                            onPressed: isSubmitting ? null : () => controller.submitSlot(),
+                            onPressed: isSubmitting
+                                ? null
+                                : () async {
+                                    final bool success = await controller.submitSlot();
+                                    if (success) Get.back();
+                                  },
                             icon: isSubmitting
                                 ? const SizedBox(
                                     width: 16,
@@ -258,7 +268,8 @@ class TimeSlotView extends GetView<TimeSlotController> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryRed,
                               foregroundColor: AppColors.onPrimaryWhite,
-                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                              padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(18, 22), vertical: context.responsiveHeight(10, 12)),
+                              shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                             ),
                           ),
                         ],
@@ -280,7 +291,6 @@ class TimeSlotView extends GetView<TimeSlotController> {
     required String label,
     required TextEditingController controller,
     required String hint,
-    required bool isDark,
     required bool enabled,
     required VoidCallback onTap,
   }) {
@@ -291,7 +301,7 @@ class TimeSlotView extends GetView<TimeSlotController> {
         const SizedBox(height: 6),
         InkWell(
           onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: context.responsiveRadius(6, 8),
           child: TextFormField(
             controller: controller,
             readOnly: true,
@@ -302,14 +312,10 @@ class TimeSlotView extends GetView<TimeSlotController> {
               }
               return null;
             },
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textPrimarySlate),
             decoration: InputDecoration(
               hintText: hint,
-              filled: true,
-              fillColor: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
+              isDense: true,
               suffixIcon: Icon(Icons.access_time_rounded, size: 18, color: enabled ? AppColors.primaryRed : Colors.grey),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
           ),
         ),

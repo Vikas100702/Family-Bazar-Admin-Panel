@@ -1,7 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_image_cell_widget.dart';
@@ -32,61 +32,33 @@ class BrandView extends GetView<BrandController> {
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Brands...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<ViewBrandDatum>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Brands Found',
-                      emptySubtitle: 'Sync with server or add a new brand.',
-                      emptyIcon: Icons.branding_watermark_outlined,
-                      columns: const [
-                        DataColumn(label: Text('CODE')),
-                        DataColumn(label: Text('IMAGES')),
-                        DataColumn(label: Text('BRAND NAME')),
-                        DataColumn(label: Text('FEATURED')),
-                        DataColumn(label: Text('STATUS')),
-                        DataColumn(label: Text('VIEW ITEMS')),
-                      ],
-                      rowBuilder: (context, brand) => _buildDataRow(context, brand),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<ViewBrandDatum>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Brands...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Brands Found',
+              emptySubtitle: 'Sync with server or add a new brand.',
+              emptyIcon: Icons.branding_watermark_outlined,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('CODE')),
+                DataColumn(label: Text('IMAGES')),
+                DataColumn(label: Text('BRAND NAME')),
+                DataColumn(label: Text('FEATURED')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('VIEW ITEMS')),
               ],
-            );
-          }),
+              rowBuilder: (context, brand) => _buildDataRow(context, brand),
+            ),
+          ),
         ),
       ],
     );
@@ -96,7 +68,11 @@ class BrandView extends GetView<BrandController> {
     return DataRow(
       cells: [
         DataCell(
-          SelectableText(brand.mcCompCode.isEmpty ? '—' : brand.mcCompCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          AppTableCellText(
+            text: brand.mcCompCode,
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
         ),
         DataCell(
           TableImageCellWidget(
@@ -112,18 +88,10 @@ class BrandView extends GetView<BrandController> {
           ),
         ),
         DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: Tooltip(
-              message: brand.mcCompName.trim().isEmpty ? '—' : brand.mcCompName,
-              waitDuration: const Duration(milliseconds: 400),
-              child: Text(
-                brand.mcCompName.trim().isEmpty ? '—' : brand.mcCompName,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          AppTableCellText(
+            text: brand.mcCompName,
+            maxWidth: 220,
+            style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
         DataCell(
@@ -185,41 +153,42 @@ class BrandView extends GetView<BrandController> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 18, 18, 16),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: context.responsiveRadius(6, 8)),
-                          child: const Icon(Icons.branding_watermark_rounded, size: 22, color: AppColors.primaryRed),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              brand.mcCompName.trim().isNotEmpty ? brand.mcCompName.trim() : 'Brand Catalog',
-                              style: context.titleStyleActive.copyWith(fontSize: context.responsiveSize(14, 16)),
-                              maxLines: 2,
-                              softWrap: true,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Code: ${brand.mcCompCode}',
-                              style: context.subTitleStyle.copyWith(
-                                fontSize: 12,
-                                color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: context.responsiveRadius(6, 8)),
+                      child: const Icon(Icons.branding_watermark_rounded, size: 22, color: AppColors.primaryRed),
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            brand.mcCompName.withDashFallback,
+                            style: context.titleStyleActive.copyWith(fontSize: context.responsiveSize(14, 16), fontWeight: FontWeight.bold),
+                            maxLines: 2,
+                            softWrap: true,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Code: ${brand.mcCompCode.withDashFallback}',
+                            style: context.subTitleStyle.copyWith(
+                              fontSize: context.responsiveSize(11, 12),
+                              color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Obx(
                           () => Container(
@@ -227,11 +196,11 @@ class BrandView extends GetView<BrandController> {
                             decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                             child: Text(
                               '${controller.filteredBrandItems.length} Items',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
+                              style: TextStyle(fontSize: context.responsiveSize(11, 12), fontWeight: FontWeight.bold, color: AppColors.primaryRed),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         IconButton(icon: const Icon(Icons.close_rounded, size: 20), splashRadius: 18, onPressed: () => Get.back()),
                       ],
                     ),
@@ -239,6 +208,8 @@ class BrandView extends GetView<BrandController> {
                 ),
               ),
               Divider(height: 1, color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+
+              // Search Toolbar
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
                 child: Row(
@@ -278,6 +249,8 @@ class BrandView extends GetView<BrandController> {
                   ],
                 ),
               ),
+
+              // Items Data Table Body
               Expanded(
                 child: Obx(() {
                   if (controller.isItemsLoading.value) {
@@ -356,9 +329,7 @@ class BrandView extends GetView<BrandController> {
                               ),
                             ],
                             rows: controller.filteredBrandItems
-                                .map((item) {
-                                  return _buildModalDataRow(context, item, brand, isDark);
-                                })
+                                .map((item) => _buildModalDataRow(context, item, brand, isDark))
                                 .toList(growable: false),
                           ),
                         ),
@@ -368,6 +339,8 @@ class BrandView extends GetView<BrandController> {
                 }),
               ),
               Divider(height: 1, color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+
+              // Modal Footer
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Row(
@@ -401,9 +374,17 @@ class BrandView extends GetView<BrandController> {
   }
 
   DataRow _buildModalDataRow(BuildContext context, ViewItemByTypeDatum item, ViewBrandDatum brand, bool isDark) {
+    final int stock = item.sbSaleableStock.toString().toSafeInt();
+
     return DataRow(
       cells: [
-        DataCell(SelectableText(item.iCode.isEmpty ? '—' : item.iCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+        DataCell(
+          AppTableCellText(
+            text: item.iCode,
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          ),
+        ),
         DataCell(
           TableImageCellWidget(
             webImageUrl: item.imImageWeb,
@@ -422,52 +403,42 @@ class BrandView extends GetView<BrandController> {
           ),
         ),
         DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: Tooltip(
-              message: item.iName.trim().isEmpty ? '—' : item.iName,
-              child: Text(
-                item.iName.trim().isEmpty ? '—' : item.iName,
-                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          AppTableCellText(
+            text: item.iName,
+            maxWidth: 220,
+            maxLines: 2,
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
           ),
         ),
         DataCell(
-          Text(
-            item.itemGroupName.isEmpty ? '—' : item.itemGroupName,
+          AppTableCellText(
+            text: item.itemGroupName,
+            maxWidth: 140,
             style: TextStyle(fontSize: 12, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
         DataCell(
-          Text(
-            (item.otherGroupName.toString()).trim().isEmpty ? '—' : item.otherGroupName.toString().trim(),
+          AppTableCellText(
+            text: item.otherGroupName.toString(),
+            maxWidth: 140,
             style: TextStyle(fontSize: 12, color: isDark ? AppColors.accentGoldAmber : AppColors.statusAmberWarning),
           ),
         ),
-        DataCell(Text('₹${_formatPrice(item.sbMRate)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
+        DataCell(Text(item.sbMRate.toString().toPrice(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
         DataCell(
           Text(
-            '₹${_formatPrice(item.sbRateA)}',
+            item.sbRateA.toString().toPrice(),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
         DataCell(
-          Builder(
-            builder: (_) {
-              final double rawStock = double.tryParse(item.sbSaleableStock.toString()) ?? 0;
-              final int stock = rawStock.toInt();
-              return Text(
-                '$stock',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: stock > 0 ? (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate) : AppColors.statusRedError,
-                ),
-              );
-            },
+          Text(
+            '$stock',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: stock > 0 ? (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate) : AppColors.statusRedError,
+            ),
           ),
         ),
         DataCell(StatusBadge(statusValue: item.iStatus, activeLabel: 'Active', inactiveLabel: 'Inactive')),
@@ -486,12 +457,12 @@ class BrandView extends GetView<BrandController> {
 
   void _showItemDetails(BuildContext context, ViewItemByTypeDatum item, ViewBrandDatum brand) {
     final bool isActiveItem = item.iStatus == '1' || item.iStatus.toLowerCase() == 'active' || item.iStatus.toLowerCase() == 'true';
-    final double rawStock = double.tryParse(item.sbSaleableStock.toString()) ?? 0;
-    final int stockCount = rawStock.toInt();
+    final int stockCount = item.sbSaleableStock.toString().toSafeInt();
+
     EntityDetailsDialogHelper.show(
       context: context,
       title: item.iName.isNotEmpty ? item.iName.trim() : 'Item Details',
-      subtitle: 'Code: ${item.iCode}',
+      subtitle: 'Code: ${item.iCode.withDashFallback}',
       headerIcon: Icons.inventory_2_rounded,
       sections: [
         DetailSection(
@@ -502,10 +473,7 @@ class BrandView extends GetView<BrandController> {
             DetailItem(label: 'EAN Code', value: item.iBarCode),
             DetailItem(label: 'Batch Number', value: item.batchNo),
             DetailItem(label: 'Brand Code', value: item.iMfgComp),
-            DetailItem(
-              label: 'Brand Name',
-              value: item.brandName.isNotEmpty ? item.brandName : (brand.mcCompName.isNotEmpty ? brand.mcCompName : brand.mcCompCode),
-            ),
+            DetailItem(label: 'Brand Name', value: item.brandName.isNotEmpty ? item.brandName : brand.mcCompName.withDashFallback),
           ],
         ),
         DetailSection(
@@ -515,10 +483,7 @@ class BrandView extends GetView<BrandController> {
             DetailItem(label: 'Category Code', value: item.iItemGroup),
             DetailItem(label: 'Category Name', value: item.itemGroupName, isCopyable: true),
             DetailItem(label: 'Sub-Category Code', value: item.iOtherGroup, isCopyable: true),
-            DetailItem(
-              label: 'Sub-Category Name',
-              value: (item.otherGroupName.toString()).trim().isNotEmpty ? item.otherGroupName.toString().trim() : '—',
-            ),
+            DetailItem(label: 'Sub-Category Name', value: item.otherGroupName?.toString().withDashFallback ?? '—'),
             DetailItem(label: 'Firm Code', value: item.iFirmCode, isCopyable: true),
           ],
         ),
@@ -526,18 +491,12 @@ class BrandView extends GetView<BrandController> {
           title: 'Pricing & Stock Details',
           flags: [DetailFlag(label: 'In Stock', value: stockCount > 0)],
           items: [
-            DetailItem(label: 'MRP Rate', value: '₹${_formatPrice(item.sbMRate)}'),
-            DetailItem(label: 'Sale Rate', value: '₹${_formatPrice(item.sbRateA)}'),
+            DetailItem(label: 'MRP Rate', value: item.sbMRate.toString().toPrice()),
+            DetailItem(label: 'Sale Rate', value: item.sbRateA.toString().toPrice()),
             DetailItem(label: 'Saleable Stock Units', value: '$stockCount'),
           ],
         ),
       ],
     );
-  }
-
-  String _formatPrice(dynamic price) {
-    if (price == null) return '0.00';
-    final double? parsed = double.tryParse(price.toString().trim());
-    return (parsed ?? 0.0).toStringAsFixed(2);
   }
 }

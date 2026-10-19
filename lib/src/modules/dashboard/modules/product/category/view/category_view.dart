@@ -1,7 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_image_cell_widget.dart';
@@ -22,80 +22,57 @@ class CategoryView extends GetView<CategoryController> {
         TableHeaderWidget(
           searchHintText: 'Search category code, name, EU code...',
           onSearchChanged: controller.onSearchChanged,
+          onSearchSubmitted: controller.onSearchSubmitted,
           onSearchClear: controller.clearSearch,
-          onRefresh: controller.refreshCategories,
+          onRefresh: controller.refreshData,
           rxIsRefreshing: controller.isLoading,
           refreshTooltip: 'Refresh Categories',
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Product Categories...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<ViewCategoryDatum>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Product Categories Found',
-                      emptySubtitle: 'Sync with server or add a new category.',
-                      emptyIcon: Icons.category_outlined,
-                      columns: const [
-                        DataColumn(label: Text('CODE')),
-                        DataColumn(label: Text('IMAGES')),
-                        DataColumn(label: Text('CATEGORY NAME')),
-                        DataColumn(label: Text('EU CODE')),
-                        DataColumn(label: Text('STAUS')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, category) => _buildDataRow(context, category),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<ViewCategoryDatum>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Product Categories...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Product Categories Found',
+              emptySubtitle: 'Sync with server or add a new category.',
+              emptyIcon: Icons.category_outlined,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('CODE')),
+                DataColumn(label: Text('IMAGES')),
+                DataColumn(label: Text('CATEGORY NAME')),
+                DataColumn(label: Text('EU CODE')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, category) => _buildDataRow(context, category),
+            ),
+          ),
         ),
       ],
     );
   }
 
   DataRow _buildDataRow(BuildContext context, ViewCategoryDatum category) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return DataRow(
       cells: [
         DataCell(
-          SelectableText(category.igCode.isEmpty ? 'N/A' : category.igCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          AppTableCellText(
+            text: category.igCode,
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
         ),
         DataCell(
           TableImageCellWidget(
@@ -104,28 +81,20 @@ class CategoryView extends GetView<CategoryController> {
             uploadType: 'category',
             entityCode: category.igCode,
             entityTitle: category.igName,
-            onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
+            onLinkEntity: ({required String entityCode, required String webImageUrl, required String mobileImageUrl}) async {
               return await controller.updateCategory(igCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
             },
-            onSuccess: controller.refreshCategories,
+            onSuccess: controller.refreshData,
           ),
         ),
         DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: Tooltip(
-              message: category.igName.trim().isEmpty ? 'N/A' : category.igName,
-              waitDuration: const Duration(milliseconds: 400),
-              child: Text(
-                category.igName.trim().isEmpty ? 'N/A' : category.igName,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          AppTableCellText(
+            text: category.igName,
+            maxWidth: 220,
+            style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
-        DataCell(Text(category.igEucode.trim().isEmpty ? 'N/A' : category.igEucode)),
+        DataCell(AppTableCellText(text: category.igEucode, maxWidth: 140)),
         DataCell(
           StatusBadge(
             isEditable: true,
@@ -153,22 +122,33 @@ class CategoryView extends GetView<CategoryController> {
   void _showCategoryDetails(BuildContext context, ViewCategoryDatum category) {
     EntityDetailsDialogHelper.show(
       context: context,
-      title: category.igName.isNotEmpty ? category.igName.trim() : "Category",
+      title: category.igName.isNotEmpty ? category.igName.trim() : 'Category Details',
+      subtitle: 'Code: ${category.igCode}',
       headerIcon: Icons.category_rounded,
       sections: [
         DetailSection(
-          title: '',
+          title: 'Basic Information',
           items: [
             DetailItem(label: 'Category Code', value: category.igCode, isCopyable: true),
             DetailItem(label: 'Category Name', value: category.igName),
-            DetailItem(label: 'CM Code', value: category.igCmCode, isCopyable: true),
           ],
         ),
         DetailSection(
-          title: '',
+          title: 'System Information',
+          flags: [DetailFlag(label: 'Active Status', value: category.isStatusActive)],
           items: [
+            DetailItem(label: 'CM Code', value: category.igCmCode, isCopyable: true),
             DetailItem(label: 'EU Code', value: category.igEucode),
             DetailItem(label: 'MU Code', value: category.igMucode),
+          ],
+        ),
+        DetailSection(
+          title: 'History Details',
+          items: [
+            DetailItem(label: 'Created By', value: category.igCreatedBy),
+            DetailItem(label: 'Created At', value: category.igCreatedTimeStamp),
+            DetailItem(label: 'Modified By', value: category.igModifyBy),
+            DetailItem(label: 'Modified At', value: category.igModifyTimeStamp),
           ],
         ),
       ],

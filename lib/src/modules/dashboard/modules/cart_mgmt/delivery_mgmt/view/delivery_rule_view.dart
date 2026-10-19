@@ -21,7 +21,6 @@ class DeliveryView extends GetView<DeliveryController> {
         return const DeliveryRuleStudioView();
       }
 
-      // 2. STANDARD RULES LIST TABLE VIEW
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -41,7 +40,8 @@ class DeliveryView extends GetView<DeliveryController> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryRed,
                   foregroundColor: AppColors.onPrimaryWhite,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 20), vertical: context.responsiveHeight(12, 14)),
+                  shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                 ),
               ),
             ],
@@ -72,7 +72,7 @@ class DeliveryView extends GetView<DeliveryController> {
                   Expanded(
                     child: RepaintBoundary(
                       child: DataTableWidget<DeliveryRuleItem>(
-                        items: controller.pagedList.toList(),
+                        items: controller.pagedList,
                         horizontalScrollController: controller.horizontalScrollController,
                         verticalScrollController: controller.verticalScrollController,
                         emptyTitle: 'No Delivery Rules Configured',
@@ -137,7 +137,7 @@ class DeliveryView extends GetView<DeliveryController> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: context.responsiveRadius(4, 6),
               border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
             ),
             child: Text(
@@ -149,7 +149,7 @@ class DeliveryView extends GetView<DeliveryController> {
         DataCell(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: AppColors.accentAzureBlue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+            decoration: BoxDecoration(color: AppColors.accentAzureBlue.withValues(alpha: 0.12), borderRadius: context.responsiveRadius(4, 6)),
             child: Text(
               'P${rule.priority}',
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.accentAzureBlue),
@@ -237,21 +237,23 @@ class DeliveryView extends GetView<DeliveryController> {
           title: '2. Serviceable Pincodes (${pincodes.length})',
           items: pincodes.isEmpty
               ? [const DetailItem(label: 'Assigned Postal Codes', value: 'No postal codes linked')]
-              : pincodes.map((p) => DetailItem(label: 'Pincode ID #${p.pincodeId}', value: p.pincode, isCopyable: true)).toList(),
+              : pincodes.map((p) => DetailItem(label: 'Pincode ID #${p.pincodeId}', value: p.pincode, isCopyable: true)).toList(growable: false),
         ),
         DetailSection(
           title: '3. Charge Slabs Matrix (${slabs.length})',
           items: slabs.isEmpty
               ? [const DetailItem(label: 'Configured Slabs', value: 'No delivery fee slabs configured')]
-              : slabs.map((slab) {
-                  final String distStr = '${slab.minDistanceKm.toStringAsFixed(0)} - ${slab.maxDistanceKm.toStringAsFixed(0)} KM';
-                  final String cartStr =
-                      '₹ ${slab.minOrderAmount.toStringAsFixed(0)} - ${slab.maxOrderAmount != null && slab.maxOrderAmount! > 0 ? "₹ ${slab.maxOrderAmount!.toStringAsFixed(0)}" : "Open"}';
-                  return DetailItem(
-                    label: 'Slab P${slab.priority}',
-                    value: 'Base: ₹ ${slab.baseCharge.toStringAsFixed(0)} | Cart: $cartStr | Dist: $distStr',
-                  );
-                }).toList(),
+              : slabs
+                    .map((slab) {
+                      final String distStr = '${slab.minDistanceKm.toStringAsFixed(0)} - ${slab.maxDistanceKm.toStringAsFixed(0)} KM';
+                      final String cartStr =
+                          '₹${slab.minOrderAmount.toStringAsFixed(0)} - ${slab.maxOrderAmount != null && slab.maxOrderAmount! > 0 ? "₹${slab.maxOrderAmount!.toStringAsFixed(0)}" : "Open"}';
+                      return DetailItem(
+                        label: 'Slab P${slab.priority}',
+                        value: 'Base: ₹${slab.baseCharge.toStringAsFixed(0)} | Cart: $cartStr | Dist: $distStr',
+                      );
+                    })
+                    .toList(growable: false),
         ),
         DetailSection(
           title: '4. Audit Timestamps',

@@ -1,14 +1,15 @@
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/empty_state_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_image_cell_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/model/firm_setup_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/controller/dashboard_group_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
@@ -49,7 +50,6 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
               rxIsRefreshing: controller.isLoading,
               refreshTooltip: 'Refresh Group & Items',
               extraActions: [
-                // Add Group Button
                 ElevatedButton.icon(
                   onPressed: () => _openAddGroupDialog(context),
                   icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
@@ -57,11 +57,10 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryRed,
                     foregroundColor: AppColors.onPrimaryWhite,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 16), vertical: context.responsiveHeight(12, 14)),
+                    shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                   ),
                 ),
-
-                // Add Items Button
                 ElevatedButton.icon(
                   onPressed: () => _openAddGroupItemsModal(context),
                   icon: const Icon(Icons.playlist_add_rounded, size: 18),
@@ -71,7 +70,8 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                     foregroundColor: context.isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
                     elevation: 0,
                     side: BorderSide(color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 16), vertical: context.responsiveHeight(12, 14)),
+                    shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                   ),
                 ),
               ],
@@ -86,13 +86,13 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
   }
 
   Widget _buildHorizontalGroupTabs(BuildContext context) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: context.responsiveRadius(8, 10),
         border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -100,12 +100,14 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: Obx(
             () => Row(
-              children: controller.groupList.map((group) {
-                return _buildTabItem(context, group, isDark);
-              }).toList(),
+              children: controller.groupList
+                  .map((ViewDashboardGroupDatum group) {
+                    return _buildTabItem(context, group, isDark);
+                  })
+                  .toList(growable: false),
             ),
           ),
         ),
@@ -115,8 +117,8 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
 
   Widget _buildTabItem(BuildContext context, ViewDashboardGroupDatum group, bool isDark) {
     return Obx(() {
-      final isSelected = controller.selectedGroupId.value == group.id;
-      final String mobImg = (group.imImageMob).trim();
+      final bool isSelected = controller.selectedGroupId.value == group.id;
+      final String mobImg = group.imImageMob.trim();
 
       return Padding(
         padding: const EdgeInsets.only(right: 8.0),
@@ -124,7 +126,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
           color: Colors.transparent,
           child: InkWell(
             onTap: () => controller.selectGroup(group),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.responsiveRadius(6, 8),
             mouseCursor: SystemMouseCursors.click,
             hoverColor: AppColors.primaryRed.withValues(alpha: 0.05),
             child: AnimatedContainer(
@@ -133,7 +135,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primaryRed : (isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: context.responsiveRadius(6, 8),
                 border: Border.all(
                   color: isSelected ? AppColors.primaryRed : (isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
                   width: 1,
@@ -148,11 +150,11 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   if (mobImg.isNotEmpty)
                     ClipOval(
                       child: Image.network(
-                        mobImg.startsWith('http') ? mobImg : '${ApiConstants.baseUrl}${mobImg.startsWith('/') ? '' : '/'}$mobImg',
+                        ApiConstants.resolveImageUrl(mobImg),
                         width: 18,
                         height: 18,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Icon(
+                        errorBuilder: (_, __, ___) => Icon(
                           Icons.category_rounded,
                           size: 15,
                           color: isSelected ? Colors.white : (isDark ? AppColors.textSecondaryMuted : AppColors.textSecondarySlate),
@@ -193,7 +195,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                           padding: const EdgeInsets.all(3),
                           splashRadius: 12,
                           tooltip: 'Edit Group',
-                          color: isSelected ? Colors.white : (isDark ? AppColors.textPrimaryWhite : AppColors.textSecondarySlate),
+                          color: isSelected ? Colors.white : (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate),
                           onPressed: () => _openEditGroupDialog(context, group),
                         ),
                         const SizedBox(width: 3),
@@ -226,89 +228,64 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
   }
 
   Widget _buildItemsTableSection(BuildContext context) {
-    return Obx(() {
-      if (controller.isItemsLoading.value && controller.pagedGroupItems.isEmpty) {
-        return Center(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: context.defaultDecoration,
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                SizedBox(height: 16),
-                Text('Loading Group Items...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-              ],
-            ),
-          ),
-        );
-      }
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: RepaintBoundary(
-              child: DataTableWidget<ViewItemByTypeDatum>(
-                items: controller.pagedGroupItems.toList(),
-                horizontalScrollController: controller.horizontalScrollController,
-                verticalScrollController: controller.verticalScrollController,
-                emptyTitle: 'No Items Assigned to This Group',
-                emptySubtitle: 'Click "Add Items" above to assign catalog inventory.',
-                emptyIcon: Icons.inventory_2_outlined,
-                columns: const [
-                  DataColumn(label: Text('ITEM CODE')),
-                  DataColumn(label: Text('FIRM CODE')),
-                  DataColumn(label: Text('IMAGES')),
-                  DataColumn(label: Text('ITEM NAME')),
-                  DataColumn(label: Text('CATEGORY')),
-                  DataColumn(label: Text('SUB-CATEGORY')),
-                  DataColumn(label: Text('ITEM MRP')),
-                  DataColumn(label: Text('SALES PRICE')),
-                  DataColumn(label: Text('STOCK')),
-                  DataColumn(label: Text('STATUS')),
-                  DataColumn(label: Text('ACTIONS')),
-                ],
-                rowBuilder: (context, item) => _buildDataRow(context, item),
-              ),
-            ),
-          ),
-          SizedBox(height: context.responsiveHeight(12, 16)),
-          CustomPaginationWidget(
-            currentPage: controller.currentPage.value,
-            totalItems: controller.totalRecords.value,
-            itemsPerPage: controller.itemsPerPage.value,
-            itemsPerPageOptions: controller.pageSizeOptions,
-            isLoading: controller.isItemsLoading.value,
-            onPageChanged: controller.changePage,
-            onItemsPerPageChanged: controller.changePageSize,
-          ),
+    return Obx(
+      () => PaginatedTableContainer<ViewItemByTypeDatum>(
+        isLoading: controller.isItemsLoading.value,
+        loadingMessage: 'Loading Group Items...',
+        items: controller.pagedGroupItems,
+        horizontalScrollController: controller.horizontalScrollController,
+        verticalScrollController: controller.verticalScrollController,
+        emptyTitle: 'No Items Assigned to This Group',
+        emptySubtitle: 'Click "Add Items" above to assign catalog inventory.',
+        emptyIcon: Icons.inventory_2_outlined,
+        currentPage: controller.currentPage.value,
+        totalItems: controller.totalRecords.value,
+        itemsPerPage: controller.itemsPerPage.value,
+        itemsPerPageOptions: controller.pageSizeOptions,
+        onPageChanged: controller.changePage,
+        onItemsPerPageChanged: controller.changePageSize,
+        columns: const [
+          DataColumn(label: Text('ITEM CODE')),
+          DataColumn(label: Text('FIRM CODE')),
+          DataColumn(label: Text('IMAGES')),
+          DataColumn(label: Text('ITEM NAME')),
+          DataColumn(label: Text('CATEGORY')),
+          DataColumn(label: Text('SUB-CATEGORY')),
+          DataColumn(label: Text('ITEM MRP')),
+          DataColumn(label: Text('SALES PRICE')),
+          DataColumn(label: Text('STOCK')),
+          DataColumn(label: Text('STATUS')),
+          DataColumn(label: Text('ACTIONS')),
         ],
-      );
-    });
+        rowBuilder: (context, item) => _buildDataRow(context, item),
+      ),
+    );
   }
 
   DataRow _buildDataRow(BuildContext context, ViewItemByTypeDatum item) {
-    final isDark = context.isDark;
-    // final int stock = int.tryParse(item.sbSaleableStock.toString() ?? '0') ?? 0;
-    final double rawStock = double.tryParse(item.sbSaleableStock?.toString() ?? '0') ?? 0.0;
-    final int stock = rawStock.toInt();
+    final bool isDark = context.isDark;
 
     return DataRow(
       cells: [
-        DataCell(SelectableText(item.iCode.isEmpty ? 'N/A' : item.iCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
-        DataCell(Text(item.iFirmCode.isEmpty ? 'N/A' : item.iFirmCode)),
+        DataCell(
+          AppTableCellText(
+            text: item.iCode,
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+        ),
+        DataCell(AppTableCellText(text: item.iFirmCode, maxWidth: 100)),
         DataCell(
           TableImageCellWidget(
-            webImageUrl: (item.imImageWeb).toString().trim(),
-            mobileImageUrl: (item.imImageMob).toString().trim(),
+            webImageUrl: item.imImageWeb.trim(),
+            mobileImageUrl: item.imImageMob.trim(),
             secondaryImageUrl: item.imSecondryImage,
             informationImageUrl: item.imImformation,
             uploadType: 'item',
             entityCode: item.iCode,
             entityTitle: item.iName,
-            onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
-              final repo = Get.find<ItemRepository>();
+            onLinkEntity: ({required String entityCode, required String webImageUrl, required String mobileImageUrl}) async {
+              final ItemRepository repo = Get.find<ItemRepository>();
               final res = await repo.addItemDetails(itemCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
               return res.success;
             },
@@ -316,35 +293,34 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
           ),
         ),
         DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: Tooltip(
-              message: item.iName.trim().isEmpty ? 'N/A' : item.iName,
-              child: Text(
-                item.iName.trim().isEmpty ? 'N/A' : item.iName,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          AppTableCellText(
+            text: item.iName,
+            maxWidth: 220,
+            maxLines: 2,
+            style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
-        DataCell(Text(item.iItemGroup.trim().isEmpty ? '—' : item.iItemGroup)),
-        DataCell(Text(item.iOtherGroup.trim().isEmpty ? '—' : item.iOtherGroup)),
-        DataCell(Text('₹${_formatPrice(item.sbMRate)}', style: context.titleStyleRegular)),
+        DataCell(AppTableCellText(text: item.iItemGroup, maxWidth: 130)),
+        DataCell(AppTableCellText(text: item.iOtherGroup, maxWidth: 130)),
+        DataCell(Text(item.sbMRate.toString().toPrice(), style: context.titleStyleRegular)),
         DataCell(
           Text(
-            '₹${_formatPrice(item.sbRateA)}',
+            item.sbRateA.toString().toPrice(),
             style: context.titleStyleRegular.copyWith(color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
         DataCell(
-          Text(
-            '$stock',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: stock > 0 ? (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate) : AppColors.statusRedError,
-            ),
+          Builder(
+            builder: (_) {
+              final int stock = item.sbSaleableStock.toString().toSafeInt();
+              return Text(
+                '$stock',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: stock > 0 ? (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate) : AppColors.statusRedError,
+                ),
+              );
+            },
           ),
         ),
         DataCell(StatusBadge(statusValue: item.iStatus, activeLabel: 'Active', inactiveLabel: 'Inactive')),
@@ -384,7 +360,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
 
   void _openAddGroupDialog(BuildContext context) {
     controller.groupNameController.clear();
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     Get.dialog(
       Dialog(
@@ -392,10 +368,10 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         elevation: 0,
         child: Container(
           width: 440,
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(context.responsiveSize(20, 24)),
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: context.responsiveRadius(12, 14),
             border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
           ),
           child: Form(
@@ -420,13 +396,11 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                 TextFormField(
                   controller: controller.groupNameController,
                   autofocus: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Group Name *',
                     hintText: 'e.g. Food, Kids, Household',
-                    prefixIcon: const Icon(Icons.category_rounded, size: 18),
-                    filled: true,
-                    fillColor: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                    prefixIcon: Icon(Icons.category_rounded, size: 18),
+                    isDense: true,
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -435,7 +409,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                     return null;
                   },
                   onFieldSubmitted: (_) async {
-                    final success = await controller.createGroup();
+                    final bool success = await controller.createGroup();
                     if (success) {
                       Get.back();
                       controller.successMessage(title: 'Success', message: 'Group added successfully.');
@@ -453,7 +427,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                         onPressed: controller.isLoading.value
                             ? null
                             : () async {
-                                final success = await controller.createGroup();
+                                final bool success = await controller.createGroup();
                                 if (success) {
                                   Get.back();
                                   controller.successMessage(title: 'Success', message: 'Group added successfully.');
@@ -462,7 +436,8 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryRed,
                           foregroundColor: AppColors.onPrimaryWhite,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(18, 20), vertical: context.responsiveHeight(10, 12)),
+                          shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                         ),
                         child: controller.isLoading.value
                             ? const SizedBox(
@@ -486,7 +461,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
 
   void _openAddGroupItemsModal(BuildContext context) {
     controller.openAddItems();
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     Get.dialog(
       Dialog(
@@ -497,7 +472,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
           constraints: BoxConstraints(maxWidth: 720, maxHeight: MediaQuery.sizeOf(context).height * 0.85),
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: context.responsiveRadius(12, 14),
             border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
           ),
           child: Column(
@@ -556,9 +531,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                         controller.filterMasterItems('');
                       },
                     ),
-                    filled: true,
-                    fillColor: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                    isDense: true,
                   ),
                   onChanged: controller.filterMasterItems,
                 ),
@@ -600,15 +573,16 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   return ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     itemCount: controller.filteredMasterItemList.length,
-                    separatorBuilder: (_, _) => Divider(
+                    separatorBuilder: (_, __) => Divider(
                       height: 1,
                       color: isDark ? AppColors.borderSubtleDark.withValues(alpha: 0.4) : AppColors.borderSubtleSlate.withValues(alpha: 0.4),
                     ),
                     itemBuilder: (context, index) {
-                      final item = controller.filteredMasterItemList[index];
+                      final ViewItemByTypeDatum item = controller.filteredMasterItemList[index];
                       final String itemCode = item.iCode.trim();
+
                       return Obx(() {
-                        final isSelected = controller.selectedItemCodeToAdd.contains(itemCode);
+                        final bool isSelected = controller.selectedItemCodeToAdd.contains(itemCode);
 
                         return CheckboxListTile(
                           value: isSelected,
@@ -621,7 +595,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                             'Code: ${item.iCode} | Firm: ${item.iFirmCode} | EAN: ${item.iBarCode}',
                             style: TextStyle(fontSize: 11, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
                           ),
-                          secondary: Text('₹${_formatPrice(item.sbRateA)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          secondary: Text(item.sbRateA.toString().toPrice(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         );
                       });
                     },
@@ -641,13 +615,14 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                         onPressed: controller.isSubmittingItems.value
                             ? null
                             : () async {
-                                final success = await controller.submitGroupItems();
+                                final bool success = await controller.submitGroupItems();
                                 if (success) Get.back();
                               },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryRed,
                           foregroundColor: AppColors.onPrimaryWhite,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(18, 20), vertical: context.responsiveHeight(10, 12)),
+                          shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                         ),
                         child: controller.isSubmittingItems.value
                             ? const SizedBox(
@@ -670,16 +645,16 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
   }
 
   void _showItemDetails(BuildContext context, ViewItemByTypeDatum item) {
-    final int stock = int.tryParse(item.sbSaleableStock?.toString().trim() ?? '') ?? 0;
+    final int stock = item.sbSaleableStock.toString().toSafeInt();
 
     EntityDetailsDialogHelper.show(
       context: context,
-      title: item.iName.isNotEmpty ? item.iName.trim() : "Item Details",
+      title: item.iName.isNotEmpty ? item.iName.trim() : 'Item Details',
       subtitle: 'Inventory details for item code: ${item.iCode}',
       headerIcon: Icons.inventory_2_rounded,
       sections: [
         DetailSection(
-          title: '1. Identification & Nomenclature',
+          title: 'Basic Information',
           items: [
             DetailItem(label: 'Item Code', value: item.iCode, isCopyable: true),
             DetailItem(label: 'Item Name', value: item.iName),
@@ -688,17 +663,19 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
           ],
         ),
         DetailSection(
-          title: '2. Group & Category Associations',
+          title: 'System Information',
           items: [
-            DetailItem(label: 'Category Group (I_ItemGroup)', value: item.iItemGroup),
-            DetailItem(label: 'Sub-Category Group (I_OtherGroup)', value: item.iOtherGroup),
+            DetailItem(label: 'Category Code', value: item.iItemGroup),
+            DetailItem(label: 'Category Name', value: item.itemGroupName),
+            DetailItem(label: 'Sub-Category Code', value: item.iOtherGroup),
+            DetailItem(label: 'Sub-Category Name', value: item.otherGroupName),
           ],
         ),
         DetailSection(
-          title: '3. Pricing & Stock Quantities',
+          title: 'Pricing & Stock Quantities',
           items: [
-            DetailItem(label: 'MRP Rate', value: '₹${_formatPrice(item.sbMRate, 2)}'),
-            DetailItem(label: 'Sale Rate (Rate A)', value: '₹${_formatPrice(item.sbRateA, 2)}'),
+            DetailItem(label: 'MRP Rate', value: item.sbMRate.toString().toPrice()),
+            DetailItem(label: 'Sale Rate (Rate A)', value: item.sbRateA.toString().toPrice()),
             DetailItem(label: 'Saleable Stock Units', value: '$stock'),
           ],
         ),
@@ -708,7 +685,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
 
   void _openEditGroupDialog(BuildContext context, ViewDashboardGroupDatum group) {
     controller.prepareEditGroup(group);
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     Get.dialog(
       Dialog(
@@ -717,10 +694,10 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         insetPadding: EdgeInsets.symmetric(horizontal: context.responsiveSize(16, 24), vertical: context.responsiveSize(16, 24)),
         child: Container(
           width: 480,
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(context.responsiveSize(20, 24)),
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: context.responsiveRadius(12, 14),
             border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
           ),
           child: Form(
@@ -729,7 +706,6 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -743,17 +719,9 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   style: context.subTitleStyle.copyWith(fontSize: 12, color: isDark ? AppColors.textMutedDark : AppColors.textSecondarySlate),
                 ),
                 const SizedBox(height: 20),
-
-                // Group Name Field
                 TextFormField(
                   controller: controller.editGroupNameController,
-                  decoration: InputDecoration(
-                    labelText: 'Group Name',
-                    prefixIcon: const Icon(Icons.category_rounded, size: 18),
-                    filled: true,
-                    fillColor: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Group Name', prefixIcon: Icon(Icons.category_rounded, size: 18), isDense: true),
                   validator: (value) => (value == null || value.trim().isEmpty) ? 'Group name cannot be empty' : null,
                 ),
                 const SizedBox(height: 16),
@@ -762,7 +730,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.responsiveRadius(6, 8),
                       border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
                     ),
                     child: Row(
@@ -790,9 +758,9 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                           webImageUrl: controller.editGImgW.value,
                           mobileImageUrl: controller.editGImgM.value,
                           uploadType: 'group',
-                          entityCode: group.dgCode.toString(),
+                          entityCode: group.dgCode,
                           entityTitle: group.dgName,
-                          onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
+                          onLinkEntity: ({required String entityCode, required String webImageUrl, required String mobileImageUrl}) async {
                             controller.editGImgW.value = webImageUrl;
                             controller.editGImgM.value = mobileImageUrl;
                             return true;
@@ -804,8 +772,6 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   );
                 }),
                 const SizedBox(height: 16),
-
-                // Status Toggle
                 Obx(() {
                   final bool isActive = controller.editStatus.value == 1;
 
@@ -813,7 +779,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.responsiveRadius(6, 8),
                       border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
                     ),
                     child: Row(
@@ -860,8 +826,6 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                   );
                 }),
                 const SizedBox(height: 24),
-
-                // Action Buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -872,13 +836,14 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                         onPressed: controller.isLoading.value
                             ? null
                             : () async {
-                                final success = await controller.submitEditGroup();
+                                final bool success = await controller.submitEditGroup();
                                 if (success) Get.back();
                               },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryRed,
                           foregroundColor: AppColors.onPrimaryWhite,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(18, 20), vertical: context.responsiveHeight(10, 12)),
+                          shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                         ),
                         child: controller.isLoading.value
                             ? const SizedBox(
@@ -901,31 +866,33 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
   }
 
   Widget _buildFirmDropdown(BuildContext context) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Obx(() {
       if (controller.isFirmLoading.value && controller.firmList.isEmpty) {
         return const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryRed));
       }
 
-      // Remove duplicate or empty firm codes
-      final seenCodes = <String>{'ALL'};
-      final uniqueFirms = controller.firmList.where((firm) {
-        final code = firm.fFirmCode.trim();
-        if (code.isEmpty || seenCodes.contains(code)) return false;
-        seenCodes.add(code);
-        return true;
-      }).toList();
+      final Set<String> seenCodes = <String>{'ALL'};
+      final List<ViewFirmDatum> uniqueFirms = controller.firmList
+          .where((ViewFirmDatum firm) {
+            final String code = firm.fFirmCode.trim();
+            if (code.isEmpty || seenCodes.contains(code)) return false;
+            seenCodes.add(code);
+            return true;
+          })
+          .toList(growable: false);
 
       final String currentValue = controller.selectedFirmCode.value.trim();
-      final bool valueExists = currentValue == 'ALL' || uniqueFirms.any((f) => f.fFirmCode.trim().toLowerCase() == currentValue.toLowerCase());
+      final bool valueExists =
+          currentValue == 'ALL' || uniqueFirms.any((ViewFirmDatum f) => f.fFirmCode.trim().toLowerCase() == currentValue.toLowerCase());
 
       return Container(
         height: 38,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: context.responsiveRadius(6, 8),
           border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
         ),
         child: DropdownButtonHideUnderline(
@@ -933,7 +900,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
             value: valueExists ? currentValue : 'ALL',
             icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
             dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.responsiveRadius(6, 8),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate),
             onChanged: controller.isMasterItemsLoading.value ? null : controller.onFirmFilterChanged,
             items: [
@@ -941,9 +908,9 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                 value: 'ALL',
                 child: Text('All Firms', style: TextStyle(fontWeight: FontWeight.w600)),
               ),
-              ...uniqueFirms.map((firm) {
-                final code = firm.fFirmCode.trim();
-                final name = firm.fFirmName.trim();
+              ...uniqueFirms.map((ViewFirmDatum firm) {
+                final String code = firm.fFirmCode.trim();
+                final String name = firm.fFirmName.trim();
                 return DropdownMenuItem<String>(
                   value: code,
                   child: ConstrainedBox(
@@ -957,14 +924,5 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         ),
       );
     });
-  }
-
-  String _formatPrice(dynamic price, [int fractionDigits = 0]) {
-    if (price == null) {
-      return fractionDigits > 0 ? (0.0).toStringAsFixed(fractionDigits) : '0';
-    }
-    final double? parsed = double.tryParse(price.toString().trim());
-    if (parsed == null) return '0';
-    return parsed.toStringAsFixed(fractionDigits);
   }
 }

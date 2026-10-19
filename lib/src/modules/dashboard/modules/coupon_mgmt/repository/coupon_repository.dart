@@ -9,34 +9,23 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class CouponRepository {
   final ApiClient _apiClient;
-  const CouponRepository({required ApiClient apiClient}) : _apiClient = apiClient;
+  const CouponRepository({required this._apiClient});
 
   Future<ViewCouponListModel> viewCouponList({int page = 1, int limit = 20, String? searchValue}) async {
+    const String endpoint = ApiConstants.viewCouponListApiEndpoint;
     final String cleanSearch = searchValue?.trim() ?? '';
-    final Map<String, dynamic> payload = {"searchvalue": cleanSearch, "isAdmin": 1, "page": page, "limit": limit};
+    final Map<String, dynamic> payload = <String, dynamic>{'searchvalue': cleanSearch, 'isAdmin': 1, 'page': page, 'limit': limit};
+
     try {
-      final response = await _apiClient.dio.post(ApiConstants.viewCouponListApiEndpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
+
       if (response.data != null && response.data is Map<String, dynamic>) {
-        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
-        return ViewCouponListModel.fromJson(responseData);
+        return ViewCouponListModel.fromJson(response.data as Map<String, dynamic>);
       }
-      throw FormatException(
-        '[CouponRepository.viewCouponList]: Invalid data format received from endpoint: ${ApiConstants.viewCouponListApiEndpoint}',
-      );
+
+      throw FormatException('[CouponRepository.viewCouponList]: Invalid data format received from $endpoint');
     } catch (e, stackTrace) {
-      Sentry.addBreadcrumb(
-        Breadcrumb(message: 'Failed to fetch or parse Coupon list', category: 'CouponRepository.viewCouponList', level: SentryLevel.error),
-      );
-      if (e is! DioException) {
-        Sentry.captureException(
-          e,
-          stackTrace: stackTrace,
-          withScope: (scope) {
-            scope.setTag('repository', 'CouponRepository');
-            scope.setTag('action', 'viewCouponList');
-          },
-        );
-      }
+      _captureSentryError('viewCouponList', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
   }
@@ -63,6 +52,7 @@ class CouponRepository {
     const String endpoint = ApiConstants.addCouponListApiEndpoint;
     final String trimmedCode = code.trim();
     final String trimmedTitle = title.trim();
+
     if (trimmedCode.isEmpty) {
       throw ArgumentError('Coupon code cannot be empty.');
     }
@@ -70,8 +60,8 @@ class CouponRepository {
       throw ArgumentError('Coupon title cannot be empty.');
     }
 
-    final Map<String, dynamic> payload = {
-      if (id != null) 'id': id,
+    final Map<String, dynamic> payload = <String, dynamic>{
+      if (id != null && id > 0) 'id': id,
       'code': trimmedCode,
       'discount_type': discountType.trim(),
       'title': trimmedTitle,
@@ -91,61 +81,87 @@ class CouponRepository {
     };
 
     try {
-      final response = await _apiClient.dio.post(endpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
+
       if (response.data != null && response.data is Map<String, dynamic>) {
-        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
-        return AddCouponModel.fromJson(responseData);
+        return AddCouponModel.fromJson(response.data as Map<String, dynamic>);
       }
-      throw FormatException('[CouponRepository.addCoupon]: Invalid response format from endpoint: $endpoint');
+
+      throw FormatException('[CouponRepository.addCoupon]: Invalid response format from $endpoint');
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'addCoupon', {'endpoint': endpoint, 'payload': payload});
+      _captureSentryError('addCoupon', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
   }
 
   Future<ViewCouponFilterTypeModel> getCouponFilterType() async {
-    String endpoint = ApiConstants.getCouponFilterTypeApiEndpoint;
+    const String endpoint = ApiConstants.getCouponFilterTypeApiEndpoint;
     try {
-      final response = await _apiClient.dio.post(endpoint);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint);
+
       if (response.data != null && response.data is Map<String, dynamic>) {
-        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
-        return ViewCouponFilterTypeModel.fromJson(responseData);
+        return ViewCouponFilterTypeModel.fromJson(response.data as Map<String, dynamic>);
       }
+
       throw const FormatException('[CouponRepository.getCouponFilterType]: Invalid data format received.');
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'getCouponFilterType', {'endpoint': endpoint});
+      _captureSentryError('getCouponFilterType', endpoint, e, stackTrace);
       rethrow;
     }
   }
 
-  Future<CommonDeleteModel> deleteCoupon({required String couponId}) async {
-    const String endpoint = ApiConstants.deleteApiEndpoint;
+  Future<CommonDeleteModel> deleteCoupon({required int couponId}) async {
+    if (couponId <= 0) {
+      throw ArgumentError('[CouponRepository.deleteCoupon]: Invalid coupon ID: $couponId');
+    }
+
+    final Map<String, dynamic> payload = <String, dynamic>{'id': couponId.toString()};
+
     try {
-      final response = await _apiClient.dio.post(endpoint, data: {'tablename': "Coupons", 'id': couponId});
+      final Response<dynamic> response = await _apiClient.dio.post(ApiConstants.deleteCouponApiEndpoint, data: payload);
+
       if (response.data != null && response.data is Map<String, dynamic>) {
-        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
-        return CommonDeleteModel.fromJson(responseData);
+        return CommonDeleteModel.fromJson(response.data as Map<String, dynamic>);
       }
-      throw FormatException('[CouponRepository.deleteCoupon]: Invalid response format received from endpoint: $endpoint');
+
+      throw FormatException('[CouponRepository.deleteCoupon]: Invalid response format from ${ApiConstants.deleteCouponApiEndpoint}');
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'deleteCoupon', {'endpoint': endpoint, 'coupon_id': couponId});
+      _captureSentryError('deleteCoupon', ApiConstants.deleteCouponApiEndpoint, e, stackTrace, payload: payload);
       rethrow;
     }
   }
 
-  void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {
+  void _captureSentryError(String action, String endpoint, Object error, StackTrace stackTrace, {Map<String, dynamic>? payload}) {
     Sentry.addBreadcrumb(
-      Breadcrumb(message: 'CouponRepository error in $action', category: 'coupon.repository.network', level: SentryLevel.error, data: extra),
-    );
-    if (exception is! DioException) {
-      Sentry.captureException(
-        exception,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('repository', 'CouponRepository');
-          scope.setContexts('coupon_repository_action', {'action': action, ...?extra});
+      Breadcrumb(
+        message: 'CouponRepository.$action failed on $endpoint',
+        category: 'coupon.repository.network',
+        level: SentryLevel.error,
+        data: <String, dynamic>{
+          'action': action,
+          'endpoint': endpoint,
+          if (error is DioException) 'status_code': error.response?.statusCode,
+          'payload': ?payload,
         },
-      );
-    }
+      ),
+    );
+
+    Sentry.captureException(
+      error,
+      stackTrace: stackTrace,
+      withScope: (Scope scope) {
+        scope.setTag('module', 'coupon_mgmt');
+        scope.setTag('repository', 'CouponRepository');
+        scope.setTag('action', action);
+        scope.setContexts('network_context', <String, dynamic>{
+          'endpoint': endpoint,
+          if (error is DioException) ...<String, dynamic>{
+            'status_code': error.response?.statusCode,
+            'response_data': error.response?.data?.toString(),
+          },
+          'payload': ?payload,
+        });
+      },
+    );
   }
 }

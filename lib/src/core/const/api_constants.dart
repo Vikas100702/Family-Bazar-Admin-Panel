@@ -4,7 +4,8 @@ import 'package:flutter/foundation.dart';
 abstract final class ApiConstants {
   const ApiConstants._();
 
-  static const String baseUrl = "https://abctest.animationmedia.org";
+  // static const String baseUrl = "https://abctest.animationmedia.org";
+  static const String baseUrl = "https://ftest.animationmedia.org";
   // static const String baseUrl = "http://192.168.1.10:8087";
   // static const String baseUrl = "http://172.20.10.10:8087";
   // static const String baseUrl = "http://10.57.50.67:8087";
@@ -72,6 +73,7 @@ abstract final class ApiConstants {
   static const String getCouponFilterTypeApiEndpoint = "$baseUrl/api/coupons/getCouponFilterType";
   static const String viewCouponListApiEndpoint = "$baseUrl/api/coupons/couponList";
   static const String addCouponListApiEndpoint = "$baseUrl/api/coupons/addCoupon";
+  static const String deleteCouponApiEndpoint = "$baseUrl/api/coupons/deleteCoupon";
 
   /// Delivery APIs
   static const String viewDeliveryRulesApiEndpoint = "$baseUrl/api/delivery-rule/list";
