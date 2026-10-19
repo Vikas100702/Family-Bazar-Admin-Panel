@@ -76,8 +76,7 @@ abstract final class ApiConstants {
   /// Delivery APIs
   static const String viewDeliveryRulesApiEndpoint = "$baseUrl/api/delivery-rule/list";
   static const String addDeliveryRulesApiEndpoint = "$baseUrl/api/delivery-rule/saveRule";
-  static const String saveDistanceSlabApiEndpoint = "$baseUrl/api/delivery-rule/distanceRuleSave";
-  static const String pincodeListDeliveryRulesApiEndpoint = "$baseUrl/api/delivery-rule/distanceRuleSave";
+  static const String pincodeListDeliveryRulesApiEndpoint = "$baseUrl/api/delivery-rule/pincodeList";
 
   /// Time Slot APIs
   static const String addUpdateTimeSlotApiEndpoint = "$baseUrl/api/delivery-rule/addUpdateSlot";
@@ -94,13 +93,16 @@ abstract final class ApiConstants {
   static const String addBannersApiEndpoint = "$baseUrl/api/banner/saveBanner";
 
   /// Customer Details and Wallet History APIs
-  static const String viewCustDetailsWalletApiEndpoint = "$baseUrl/api/customermanagement/customerDetails";
+  static const String viewCustomerDetailsApiEndpoint = "$baseUrl/api/customermanagement/customerDetails";
 
   /// Loyalty Program
-  static const String getAvailableItemsEndpoint = '$baseUrl/api/loyalty/getAvailableItems';
-  static const String saveRuleEndpoint = '$baseUrl/api/loyalty/saveRule';
-  static const String getRulesEndpoint = '$baseUrl/api/loyalty/getRules';
-  static const String savePointsSettingsEndpoint = '$baseUrl/api/loyalty/savePointsSettings';
+  static const String getAvailableItemsApiEndpoint = '$baseUrl/api/loyalty/getAvailableItems';
+  static const String saveRuleApiEndpoint = '$baseUrl/api/loyalty/saveRule';
+  static const String getRulesApiEndpoint = '$baseUrl/api/loyalty/getRules';
+  static const String savePointsSettingsApiEndpoint = '$baseUrl/api/loyalty/savePointsSettings';
+
+  /// Order Management APIs
+  static const String viewOrdersApiEndpoint = '$baseUrl/api/admin/orders';
 
   /// Misc Charges APIs
 
