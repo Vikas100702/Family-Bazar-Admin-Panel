@@ -8,8 +8,12 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class BrandController extends BaseServerTableController<ViewBrandDatum> {
   final BrandRepository _brandRepository;
+
   BrandController({required this._brandRepository});
 
+  bool _isActionLocked = false;
+
+  // BRAND ASSOCIATED ITEMS MODAL STATE
   final RxBool isItemsLoading = false.obs;
   final RxList<ViewItemByTypeDatum> allBrandItems = <ViewItemByTypeDatum>[].obs;
   final RxList<ViewItemByTypeDatum> filteredBrandItems = <ViewItemByTypeDatum>[].obs;
@@ -26,7 +30,12 @@ class BrandController extends BaseServerTableController<ViewBrandDatum> {
   Future<void> fetchServerData() async {
     await runWithLoading(() async {
       try {
-        final response = await _brandRepository.viewBrands(page: currentPage.value, limit: itemsPerPage.value, searchValue: searchQuery.value);
+        final ViewBrandModel response = await _brandRepository.viewBrands(
+          page: currentPage.value,
+          limit: itemsPerPage.value,
+          searchValue: searchQuery.value,
+        );
+
         if (isClosed) return;
 
         if (response.success) {
@@ -39,30 +48,44 @@ class BrandController extends BaseServerTableController<ViewBrandDatum> {
           throw Exception(response.message.isNotEmpty ? response.message : 'Failed to fetch the brand list from server.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'fetchServerData', {'page': currentPage.value, 'limit': itemsPerPage.value, 'search': searchQuery.value});
-        errorMessage(message: 'An unexpected error occurred while fetching brands.');
+        _logException(e, stackTrace, 'fetchServerData', <String, dynamic>{
+          'page': currentPage.value,
+          'limit': itemsPerPage.value,
+          'search': searchQuery.value,
+        });
+        if (!isClosed) {
+          errorMessage(message: 'An unexpected error occurred while fetching brands.');
+        }
       }
     });
   }
 
-  Future<void> refreshBrands() async => refreshData();
-
   Future<bool> updateBrand({required String mcCompCode, int? featuredBrand, int? status, String? mImg, String? wImg}) async {
+    if (_isActionLocked) return false;
+    _isActionLocked = true;
+
     bool isSuccess = false;
     await runWithLoading(() async {
       try {
-        final updatedDatum = await _brandRepository.updateBrand(mcCompCode: mcCompCode, featuredBrand: featuredBrand, status: status);
+        final ViewBrandDatum updatedDatum = await _brandRepository.updateBrand(mcCompCode: mcCompCode, featuredBrand: featuredBrand, status: status);
+
+        if (isClosed) return;
 
         if (updatedDatum.mcCompCode.isNotEmpty) {
           isSuccess = true;
-          successMessage(title: 'Success', message: '${updatedDatum.mcCompName} updated successfully');
-          await refreshBrands();
+          successMessage(title: 'Success', message: '${updatedDatum.mcCompName} updated successfully.');
+          await refreshData();
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'updateBrand', {'mcCompCode': mcCompCode});
-        errorMessage(message: 'Failed to update brand');
+        _logException(e, stackTrace, 'updateBrand', <String, dynamic>{'mcCompCode': mcCompCode, 'featuredBrand': featuredBrand, 'status': status});
+        if (!isClosed) {
+          errorMessage(message: 'Failed to update brand parameters.');
+        }
+      } finally {
+        _isActionLocked = false;
       }
     });
+
     return isSuccess;
   }
 
@@ -88,12 +111,8 @@ class BrandController extends BaseServerTableController<ViewBrandDatum> {
       allBrandItems.clear();
       filteredBrandItems.clear();
 
-      final ViewItemByTypeModel response = await _brandRepository.viewBrandItems(
-        brandCode: trimmedCode,
-        page: currentPage.value,
-        limit: itemsPerPage.value,
-        searchValue: searchQuery.value,
-      );
+      final ViewItemByTypeModel response = await _brandRepository.viewBrandItems(brandCode: trimmedCode, page: 1, limit: 1000, searchValue: '');
+
       if (isClosed) return;
 
       if (response.success) {
@@ -107,47 +126,52 @@ class BrandController extends BaseServerTableController<ViewBrandDatum> {
         }
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'fetchBrandItems', {'brand_code': trimmedCode});
+      _logException(e, stackTrace, 'fetchBrandItems', <String, dynamic>{'brand_code': trimmedCode});
       allBrandItems.clear();
       filteredBrandItems.clear();
-      errorMessage(message: 'Failed to retrieve catalog items for the selected brand.');
+      if (!isClosed) {
+        errorMessage(message: 'Failed to retrieve catalog items for the selected brand.');
+      }
     } finally {
       if (!isClosed) isItemsLoading.value = false;
     }
   }
 
   void filterBrandItems(String query) {
-    final cleanQuery = query.trim().toLowerCase();
+    final String cleanQuery = query.trim().toLowerCase();
     if (cleanQuery.isEmpty) {
       filteredBrandItems.assignAll(allBrandItems);
     } else {
       filteredBrandItems.assignAll(
-        allBrandItems.where((item) {
-          final String ean = item.iBarCode.toLowerCase();
-          final String category = item.itemGroupName.toLowerCase();
-          final String subCategory = (item.otherGroupName?.toString() ?? '').toLowerCase();
-          return item.iName.toLowerCase().contains(cleanQuery) ||
-              item.iCode.toLowerCase().contains(cleanQuery) ||
-              item.iFirmCode.toLowerCase().contains(cleanQuery) ||
-              ean.contains(cleanQuery) ||
-              category.contains(cleanQuery) ||
-              subCategory.contains(cleanQuery);
-        }).toList(),
+        allBrandItems
+            .where((ViewItemByTypeDatum item) {
+              final String ean = item.iBarCode.toLowerCase();
+              final String category = item.itemGroupName.toLowerCase();
+              final String subCategory = (item.otherGroupName?.toString() ?? '').toLowerCase();
+              return item.iName.toLowerCase().contains(cleanQuery) ||
+                  item.iCode.toLowerCase().contains(cleanQuery) ||
+                  item.iFirmCode.toLowerCase().contains(cleanQuery) ||
+                  ean.contains(cleanQuery) ||
+                  category.contains(cleanQuery) ||
+                  subCategory.contains(cleanQuery);
+            })
+            .toList(growable: false),
       );
     }
   }
 
   void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {
     Sentry.addBreadcrumb(
-      Breadcrumb(message: 'BrandController error in $action', category: 'brand.controller', level: SentryLevel.error, data: extra),
+      Breadcrumb(message: 'BrandController error in $action', category: 'product.brand.controller', level: SentryLevel.error, data: extra),
     );
 
     Sentry.captureException(
       exception,
       stackTrace: stackTrace,
-      withScope: (scope) {
+      withScope: (Scope scope) {
+        scope.setTag('module', 'brand');
         scope.setTag('controller', 'BrandController');
-        scope.setContexts('brand_action', {'action': action, ...?extra});
+        scope.setContexts('brand_action', <String, dynamic>{'action': action, 'current_page': currentPage.value, ...?extra});
       },
     );
   }
