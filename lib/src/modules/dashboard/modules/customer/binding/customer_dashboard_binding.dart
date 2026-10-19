@@ -19,7 +19,7 @@ class CustomerDashboardBinding extends Bindings {
         stackTrace: stackTrace,
         withScope: (Scope scope) {
           scope.setTag('layer', 'CustomerDashboardBinding');
-          scope.setTag('module', 'customer_360');
+          scope.setTag('module', 'customer_dashboard');
         },
       );
       rethrow;

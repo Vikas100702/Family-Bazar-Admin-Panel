@@ -49,7 +49,7 @@ class CustomerDashboardController extends BaseController {
         if (response.status && response.data != null) {
           dashboardData.value = response.data;
         } else {
-          errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to retrieve Customer 360 metrics.');
+          errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to retrieve Customer dashboard metrics.');
         }
       } catch (e, stackTrace) {
         _logException(e, stackTrace, 'fetchCustomerDashboard');
@@ -73,7 +73,7 @@ class CustomerDashboardController extends BaseController {
       exception,
       stackTrace: stackTrace,
       withScope: (Scope scope) {
-        scope.setTag('module', 'customer_360');
+        scope.setTag('module', 'customer_dashboard');
         scope.setTag('controller', 'CustomerDashboardController');
         scope.setContexts('customer_context', <String, dynamic>{'action': action, 'customerId': customerId.value});
       },

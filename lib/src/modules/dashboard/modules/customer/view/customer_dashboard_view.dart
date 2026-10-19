@@ -28,7 +28,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
               children: [
                 CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
                 SizedBox(height: 16),
-                Text('Loading Customer 360 Insights...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                Text('Loading Customer dashboard Insights...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -43,7 +43,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
             children: [
               const Icon(Icons.person_off_outlined, size: 48, color: Colors.grey),
               const SizedBox(height: 12),
-              const Text('No Customer 360 Data Available', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('No Customer dashboard Data Available', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               Row(
                 mainAxisSize: MainAxisSize.min,
