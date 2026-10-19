@@ -11,9 +11,12 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/time_slot/view/time_slot_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/binding/coupon_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/view/coupon_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/binding/customer_details_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/view/customer_details_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/binding/firm_setup_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/view/firm_setup_view.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/order_mgmt/binding/orders_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/order_mgmt/view/orders_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/binding/pincode_settings_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/view/pincode_settings_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/brand/binding/brand_binding.dart';
@@ -155,7 +158,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.customerDetails,
       page: () => const CustomerDetailsView(),
-      binding: AppBannersBinding(),
+      binding: CustomerDetailsBinding(),
+      transition: Transition.noTransition,
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: AppRoutes.orderDetails,
+      page: () => const OrdersView(),
+      binding: OrdersBinding(),
       transition: Transition.noTransition,
       middlewares: [AuthMiddleware()],
     ),

@@ -19,4 +19,5 @@ abstract class AppRoutes {
   static const String loyaltyProgram = '/loyalty-program';
   static const String appBanners = '/app-banners';
   static const String customerDetails = '/customer-details';
+  static const String orderDetails = '/order-details';
 }
