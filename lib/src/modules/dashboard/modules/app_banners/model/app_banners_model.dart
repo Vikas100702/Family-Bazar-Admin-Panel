@@ -126,8 +126,8 @@ class AppBannerDatum {
       bnrType: bnrType ?? this.bnrType,
       bnrImg: bnrImg ?? this.bnrImg,
       status: status ?? this.status,
-      startDate: startAt ?? this.startDate,
-      endDate: endAt ?? this.endDate,
+      startDate: startAt ?? startDate,
+      endDate: endAt ?? endDate,
       created: created ?? this.created,
       updated: updated ?? this.updated,
     );
