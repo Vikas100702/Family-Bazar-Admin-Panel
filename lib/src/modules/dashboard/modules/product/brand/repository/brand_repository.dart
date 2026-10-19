@@ -7,94 +7,108 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class BrandRepository {
   final ApiClient _apiClient;
-
   const BrandRepository({required this._apiClient});
 
   Future<ViewBrandModel> viewBrands({int page = 1, int limit = 20, String? searchValue}) async {
+    const String endpoint = ApiConstants.viewBrandsApiEndpoint;
     final String cleanSearch = searchValue?.trim() ?? '';
-    final Map<String, dynamic> payload = {"searchvalue": cleanSearch, "isAdmin": 1, "page": page, "limit": limit};
+    final Map<String, dynamic> payload = <String, dynamic>{'searchvalue': cleanSearch, 'isAdmin': 1, 'page': page, 'limit': limit};
 
     try {
-      final response = await _apiClient.dio.post(ApiConstants.viewBrandsApiEndpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return ViewBrandModel.fromJson(responseData);
       }
-      throw FormatException('[BrandRepository.viewBrands]: Invalid data format received from endpoint: ${ApiConstants.viewBrandsApiEndpoint}');
+
+      throw FormatException('[BrandRepository.viewBrands]: Invalid data format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
-      Sentry.addBreadcrumb(
-        Breadcrumb(message: 'Failed to fetch or parse Brand list', category: 'BrandRepository.viewBrands', level: SentryLevel.error),
-      );
-      if (e is! DioException) {
-        Sentry.captureException(
-          e,
-          stackTrace: stackTrace,
-          withScope: (scope) {
-            scope.setTag('repository', 'BrandRepository');
-            scope.setTag('action', 'viewBrands');
-          },
-        );
-      }
+      _captureSentryError('viewBrands', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
   }
 
   Future<ViewBrandDatum> updateBrand({required String mcCompCode, int? featuredBrand, int? status}) async {
-    final String endpoint = ApiConstants.updateBrandApiEndpoint;
-    final Map<String, dynamic> payload = {'MC_CompCode': mcCompCode.trim()};
-    if (featuredBrand != null) payload['featured_brand'] = featuredBrand;
-    if (status != null) payload['status'] = status;
+    const String endpoint = ApiConstants.updateBrandApiEndpoint;
+    final Map<String, dynamic> payload = <String, dynamic>{'MC_CompCode': mcCompCode.trim(), 'featured_brand': ?featuredBrand, 'status': ?status};
 
-    final response = await _apiClient.dio.post(endpoint, data: payload);
-    return ViewBrandDatum.fromJson(response.data['data']);
+    try {
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
+
+      if (response.data != null &&
+          response.data is Map<String, dynamic> &&
+          response.data['data'] != null &&
+          response.data['data'] is Map<String, dynamic>) {
+        return ViewBrandDatum.fromJson(response.data['data'] as Map<String, dynamic>);
+      }
+
+      throw FormatException('[BrandRepository.updateBrand]: Invalid response payload received from endpoint: $endpoint');
+    } catch (e, stackTrace) {
+      _captureSentryError('updateBrand', endpoint, e, stackTrace, payload: payload);
+      rethrow;
+    }
   }
 
   Future<ViewItemByTypeModel> viewBrandItems({required String brandCode, int page = 1, int limit = 20, String? searchValue}) async {
     const String endpoint = ApiConstants.viewItemsByTypeApiEndpoint;
     final String trimmedCode = brandCode.trim();
     final String cleanSearch = searchValue?.trim() ?? '';
-    final Map<String, dynamic> payload = {
+    final Map<String, dynamic> payload = <String, dynamic>{
       '_id': trimmedCode,
       'type': 'BRAND',
-      "searchvalue": cleanSearch,
-      "isAdmin": '1',
-      "page": page,
-      "limit": limit,
+      'searchvalue': cleanSearch,
+      'isAdmin': '1',
+      'page': page,
+      'limit': limit,
     };
 
     try {
-      final response = await _apiClient.dio.post(endpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
+
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return ViewItemByTypeModel.fromJson(responseData);
       }
+
       throw FormatException('[BrandRepository.viewBrandItems]: Invalid item data format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
-      Sentry.addBreadcrumb(
-        Breadcrumb(
-          message: 'Failed to fetch items for brand Code: $trimmedCode',
-          category: 'brand.repository',
-          level: SentryLevel.error,
-          data: {'endpoint': endpoint, 'brand_code': trimmedCode, 'error': e.toString()},
-        ),
-      );
-      if (e is! DioException) {
-        Sentry.captureException(
-          e,
-          stackTrace: stackTrace,
-          withScope: (scope) {
-            scope.setTag('repository', 'BrandRepository');
-            scope.setTag('brand_code', trimmedCode);
-            scope.setContexts('network_action', {
-              'endpoint': endpoint,
-              'method': 'POST',
-              'query_params': {'brand_code': trimmedCode},
-            });
-          },
-        );
-      }
+      _captureSentryError('viewBrandItems', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
+  }
+
+  void _captureSentryError(String action, String endpoint, Object error, StackTrace stackTrace, {Map<String, dynamic>? payload}) {
+    Sentry.addBreadcrumb(
+      Breadcrumb(
+        message: 'BrandRepository.$action failed on $endpoint',
+        category: 'product.brand.repository',
+        level: SentryLevel.error,
+        data: <String, dynamic>{
+          'action': action,
+          'endpoint': endpoint,
+          if (error is DioException) 'status_code': error.response?.statusCode,
+          if (payload != null) 'payload': payload,
+        },
+      ),
+    );
+
+    Sentry.captureException(
+      error,
+      stackTrace: stackTrace,
+      withScope: (Scope scope) {
+        scope.setTag('module', 'brand');
+        scope.setTag('repository', 'BrandRepository');
+        scope.setTag('action', action);
+        scope.setContexts('network_context', <String, dynamic>{
+          'endpoint': endpoint,
+          if (error is DioException) ...<String, dynamic>{
+            'status_code': error.response?.statusCode,
+            'response_data': error.response?.data?.toString(),
+          },
+          if (payload != null) 'payload': payload,
+        });
+      },
+    );
   }
 }
