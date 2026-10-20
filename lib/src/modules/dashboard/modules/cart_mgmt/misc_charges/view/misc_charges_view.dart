@@ -93,10 +93,15 @@ class MiscChargesView extends GetView<MiscChargesController> {
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
           ),
         ),
-        DataCell(Text(charge.handlingFee.toCurrency(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
         DataCell(
-          Text(
-            charge.smallCartCharge.toCurrency(),
+          AppTableCellText(
+            text: charge.handlingFee.toCurrency(),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+        ),
+        DataCell(
+          AppTableCellText(
+            text: charge.smallCartCharge.toCurrency(),
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.primaryRed),
           ),
         ),
@@ -152,7 +157,7 @@ class MiscChargesView extends GetView<MiscChargesController> {
                 splashRadius: 18,
                 onPressed: () => DialogHelper.showDeleteDialog(
                   title: 'Delete Charge Configuration',
-                  itemName: '#${charge.id} (Handling: ₹${charge.handlingFee.toStringAsFixed(2)})',
+                  itemName: '#${charge.id} (Handling: ${charge.handlingFee.toCurrency()})',
                   message: 'Are you sure you want to delete miscellaneous charge config #${charge.id}?',
                   onConfirm: () => controller.deleteCharge(charge),
                 ),
@@ -174,10 +179,10 @@ class MiscChargesView extends GetView<MiscChargesController> {
         DetailSection(
           title: '1. Identification & Rates',
           items: [
-            DetailItem(label: 'Config ID', value: charge.id.toString(), isCopyable: true),
-            DetailItem(label: 'Handling Fee', value: '₹${charge.handlingFee.toStringAsFixed(2)}'),
-            DetailItem(label: 'Small Cart Surcharge', value: '₹${charge.smallCartCharge.toStringAsFixed(2)}'),
-            DetailItem(label: 'Min Cart Threshold', value: '₹${charge.smallCartMinAmount.toStringAsFixed(2)}'),
+            DetailItem(label: 'Config ID', value: '#${charge.id}', isCopyable: true),
+            DetailItem(label: 'Handling Fee', value: charge.handlingFee.toCurrency()),
+            DetailItem(label: 'Small Cart Surcharge', value: charge.smallCartCharge.toCurrency()),
+            DetailItem(label: 'Min Cart Threshold', value: charge.smallCartMinAmount.toCurrency()),
             DetailItem(label: 'Policy Status', value: charge.isActive ? 'Active (Operational)' : 'Inactive (Disabled)'),
           ],
         ),
