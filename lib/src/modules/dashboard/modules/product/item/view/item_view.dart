@@ -72,12 +72,12 @@ class ItemsView extends GetView<ItemController> {
       cells: [
         DataCell(
           AppTableCellText(
-            text: item.iCode,
+            text: item.iCode.withDashFallback,
             isSelectable: true,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
         ),
-        DataCell(AppTableCellText(text: item.iFirmCode, maxWidth: 100)),
+        DataCell(AppTableCellText(text: item.iFirmCode.withDashFallback, maxWidth: 100)),
         DataCell(
           TableImageCellWidget(
             webImageUrl: item.imImageWeb,
@@ -97,16 +97,21 @@ class ItemsView extends GetView<ItemController> {
         ),
         DataCell(
           AppTableCellText(
-            text: item.iName,
+            text: item.iName.withDashFallback,
             maxWidth: 240,
             maxLines: 2,
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
-        DataCell(Text(item.sbMRate.toString().toPrice(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
         DataCell(
-          Text(
-            item.sbRateA.toString().toPrice(),
+          AppTableCellText(
+            text: item.sbMRate.toString().toPrice(),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ),
+        DataCell(
+          AppTableCellText(
+            text: item.sbRateA.toString().toPrice(),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
@@ -153,29 +158,29 @@ class ItemsView extends GetView<ItemController> {
 
     EntityDetailsDialogHelper.show(
       context: context,
-      title: item.iName.isNotEmpty ? item.iName.trim() : 'Item Details',
-      subtitle: 'Code: ${item.iCode}',
+      title: item.iName.trim().isNotEmpty ? item.iName.trim() : 'Item Details',
+      subtitle: 'Code: ${item.iCode.withDashFallback}',
       headerIcon: Icons.inventory_2_rounded,
       sections: [
         DetailSection(
           title: 'Basic Information',
           items: [
-            DetailItem(label: 'Item Code', value: item.iCode, isCopyable: true),
-            DetailItem(label: 'Item Name', value: item.iName),
-            DetailItem(label: 'EAN Code', value: item.iBarCode, isCopyable: true),
-            DetailItem(label: 'Firm Code', value: item.iFirmCode, isCopyable: true),
-            DetailItem(label: 'Brand Name', value: item.brandName),
+            DetailItem(label: 'Item Code', value: item.iCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Item Name', value: item.iName.withDashFallback),
+            DetailItem(label: 'EAN Code', value: item.iBarCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Firm Code', value: item.iFirmCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Brand Name', value: item.brandName.withDashFallback),
           ],
         ),
         DetailSection(
           title: 'System Information',
           flags: [DetailFlag(label: 'Active Status', value: item.isStatusActive)],
           items: [
-            DetailItem(label: 'Category Name', value: item.itemGroupName),
-            DetailItem(label: 'Category Code', value: item.iItemGroup, isCopyable: true),
-            DetailItem(label: 'Sub-Category Name', value: item.otherGroupName),
-            DetailItem(label: 'Sub-Category Code', value: item.iOtherGroup, isCopyable: true),
-            DetailItem(label: 'Mfg Company Code', value: item.iMfgComp),
+            DetailItem(label: 'Category Name', value: item.itemGroupName.withDashFallback),
+            DetailItem(label: 'Category Code', value: item.iItemGroup.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Sub-Category Name', value: item.otherGroupName.toString().withDashFallback ?? '—'),
+            DetailItem(label: 'Sub-Category Code', value: item.iOtherGroup.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Mfg Company Code', value: item.iMfgComp.withDashFallback),
           ],
         ),
         DetailSection(
