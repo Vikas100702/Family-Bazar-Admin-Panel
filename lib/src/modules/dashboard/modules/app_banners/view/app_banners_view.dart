@@ -1,9 +1,9 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/app_single_image_picker_field.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/app_single_image_table_cell.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -48,63 +48,35 @@ class AppBannersView extends GetView<AppBannersController> {
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Banners...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<AppBannerDatum>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Banners Found',
-                      emptySubtitle: 'Click "Add Banner" to configure home sliders or promo banners.',
-                      emptyIcon: Icons.view_carousel_rounded,
-                      columns: const [
-                        DataColumn(label: Text('ID')),
-                        DataColumn(label: Text('IMAGE')),
-                        DataColumn(label: Text('TYPE')),
-                        DataColumn(label: Text('START DATE')),
-                        DataColumn(label: Text('END DATE')),
-                        DataColumn(label: Text('STATUS')),
-                        DataColumn(label: Text('CREATED AT')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, banner) => _buildDataRow(context, banner),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<AppBannerDatum>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Banners...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Banners Found',
+              emptySubtitle: 'Click "Add Banner" to configure home sliders or promo banners.',
+              emptyIcon: Icons.view_carousel_rounded,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('ID')),
+                DataColumn(label: Text('IMAGE')),
+                DataColumn(label: Text('TYPE')),
+                DataColumn(label: Text('START DATE')),
+                DataColumn(label: Text('END DATE')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('CREATED AT')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, banner) => _buildDataRow(context, banner),
+            ),
+          ),
         ),
       ],
     );
@@ -115,7 +87,13 @@ class AppBannersView extends GetView<AppBannersController> {
 
     return DataRow(
       cells: [
-        DataCell(SelectableText('#${banner.id}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
+        DataCell(
+          AppTableCellText(
+            text: '#${banner.id}',
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ),
         DataCell(
           AppSingleImageTableCell(
             imageUrl: banner.bnrImg,
@@ -131,11 +109,11 @@ class AppBannersView extends GetView<AppBannersController> {
               borderRadius: context.responsiveRadius(4, 6),
               border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
             ),
-            child: Text(banner.bnrType.isNotEmpty ? banner.bnrType : 'N/A', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            child: Text(banner.bnrType.withDashFallback, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ),
-        DataCell(Text((banner.startDate != null && banner.startDate!.isNotEmpty) ? banner.startDate! : '—', style: const TextStyle(fontSize: 12))),
-        DataCell(Text((banner.endDate != null && banner.endDate!.isNotEmpty) ? banner.endDate! : '—', style: const TextStyle(fontSize: 12))),
+        DataCell(Text(banner.startDate.withDashFallback, style: const TextStyle(fontSize: 12))),
+        DataCell(Text(banner.endDate.withDashFallback, style: const TextStyle(fontSize: 12))),
         DataCell(
           StatusBadge(
             isEditable: true,
@@ -145,7 +123,7 @@ class AppBannersView extends GetView<AppBannersController> {
             onToggle: (bool val) => controller.toggleBannerStatus(banner, val),
           ),
         ),
-        DataCell(Text(banner.created.isNotEmpty ? banner.created : '—', style: const TextStyle(fontSize: 11))),
+        DataCell(Text(banner.created.withDashFallback, style: const TextStyle(fontSize: 11))),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -193,30 +171,30 @@ class AppBannersView extends GetView<AppBannersController> {
     EntityDetailsDialogHelper.show(
       context: context,
       title: 'Banner #${banner.id}',
-      subtitle: 'Type: ${banner.bnrType.isNotEmpty ? banner.bnrType : 'N/A'}',
+      subtitle: 'Type: ${banner.bnrType.withDashFallback}',
       headerIcon: Icons.view_carousel_rounded,
       sections: [
         DetailSection(
-          title: '1. Identification & Type',
+          title: 'Basic Information',
+          flags: [DetailFlag(label: 'Active Status', value: banner.status == 1)],
           items: [
             DetailItem(label: 'Banner ID', value: '#${banner.id}', isCopyable: true),
             DetailItem(label: 'Banner Type', value: banner.bnrType, isCopyable: true),
             DetailItem(label: 'Image URL', value: banner.bnrImg.isNotEmpty ? banner.bnrImg : 'None Attached', isCopyable: banner.bnrImg.isNotEmpty),
           ],
-          flags: [DetailFlag(label: 'Active Status', value: banner.status == 1)],
         ),
         DetailSection(
-          title: '2. Scheduling & Display Rules',
+          title: 'Scheduling & Display Rules',
           items: [
-            DetailItem(label: 'Start Date', value: (banner.startDate != null && banner.startDate!.isNotEmpty) ? banner.startDate! : 'No Limit'),
-            DetailItem(label: 'End Date', value: (banner.endDate != null && banner.endDate!.isNotEmpty) ? banner.endDate! : 'No Limit'),
+            DetailItem(label: 'Start Date', value: banner.startDate!.withDashFallback),
+            DetailItem(label: 'End Date', value: banner.endDate!.withDashFallback),
           ],
         ),
         DetailSection(
-          title: '3. Audit Trail & Timestamps',
+          title: 'History Details',
           items: [
-            DetailItem(label: 'Created At', value: banner.created.isNotEmpty ? banner.created : '—'),
-            DetailItem(label: 'Updated At', value: banner.updated.isNotEmpty ? banner.updated : '—'),
+            DetailItem(label: 'Created At', value: banner.created.withDashFallback),
+            DetailItem(label: 'Updated At', value: banner.updated.withDashFallback),
           ],
         ),
       ],
