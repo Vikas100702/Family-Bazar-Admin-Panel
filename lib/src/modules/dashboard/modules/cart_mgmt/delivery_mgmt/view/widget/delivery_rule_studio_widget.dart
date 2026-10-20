@@ -530,7 +530,10 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: AppColors.accentAzureBlue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentAzureBlue.withValues(alpha: 0.12),
+                          borderRadius: context.responsiveRadius(4, 4),
+                        ),
                         child: Text(
                           'P${slab.priority}',
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.accentAzureBlue),
@@ -543,8 +546,10 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            if (showAmount) Text('Order Subtotal: $cartStr', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            if (showDistance) Text('Distance: $distStr', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                            if (showAmount)
+                              Text('Order Subtotal: $cartStr', style: context.bodyTextStyle.copyWith(fontSize: 13, fontWeight: FontWeight.bold)),
+                            if (showDistance)
+                              Text('Distance: $distStr', style: context.captionStyle.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
                             Text(
                               'Base Charge: ${slab.baseCharge.toCurrency(fractionDigits: 0)}',
                               style: const TextStyle(fontSize: 12, color: AppColors.primaryRed, fontWeight: FontWeight.bold),
@@ -561,12 +566,14 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                       const SizedBox(width: 10),
                       IconButton(
                         icon: const Icon(Icons.edit_outlined, size: 16),
+                        mouseCursor: SystemMouseCursors.click,
                         tooltip: 'Edit Slab',
                         splashRadius: 16,
                         onPressed: () => controller.openInlineSlabForm(slab: slab, index: index),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                        mouseCursor: SystemMouseCursors.click,
                         color: AppColors.primaryRed,
                         tooltip: 'Remove Slab',
                         splashRadius: 16,
