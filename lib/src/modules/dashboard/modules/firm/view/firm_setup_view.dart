@@ -66,26 +66,26 @@ class FirmView extends GetView<FirmController> {
       cells: [
         DataCell(
           AppTableCellText(
-            text: firm.fFirmCode,
+            text: firm.fFirmCode.withDashFallback,
             isSelectable: true,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
         ),
         DataCell(
           AppTableCellText(
-            text: firm.fFirmName,
+            text: firm.fFirmName.withDashFallback,
             maxWidth: 220,
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
         DataCell(
           AppTableCellText(
-            text: firm.fGstNumber,
+            text: firm.fGstNumber.withDashFallback,
             isSelectable: true,
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
-        DataCell(AppTableCellText(text: address, maxWidth: 240, maxLines: 2, style: context.captionStyle)),
+        DataCell(AppTableCellText(text: address.withDashFallback, maxWidth: 240, maxLines: 2, style: context.captionStyle)),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -115,29 +115,29 @@ class FirmView extends GetView<FirmController> {
         DetailSection(
           title: 'Basic Information',
           items: [
-            DetailItem(label: 'Firm Code', value: firm.fFirmCode, isCopyable: true),
-            DetailItem(label: 'Firm Name', value: firm.fFirmName, isCopyable: true),
-            DetailItem(label: 'GST Number', value: firm.fGstNumber, isCopyable: true),
-            DetailItem(label: 'CE Reg No', value: firm.fCeRegNo, isCopyable: true),
-            DetailItem(label: 'Pin Code', value: firm.fPinCode, isCopyable: true),
-            if (firm.fCity != null && firm.fCity.toString().isNotEmpty) DetailItem(label: 'City', value: firm.fCity),
+            DetailItem(label: 'Firm Code', value: firm.fFirmCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Firm Name', value: firm.fFirmName.withDashFallback, isCopyable: true),
+            DetailItem(label: 'GST Number', value: firm.fGstNumber.withDashFallback, isCopyable: true),
+            DetailItem(label: 'CE Reg No', value: firm.fCeRegNo.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Pin Code', value: firm.fPinCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'City', value: firm.fCity?.toString().withDashFallback ?? '—'),
           ],
         ),
         DetailSection(
           title: 'Address Details',
           items: [
-            DetailItem(label: 'Address Line 1', value: firm.fFirmAdd1),
-            DetailItem(label: 'Address Line 2', value: firm.fFirmAdd2),
-            if (firm.fFirmAdd3.toString().isNotEmpty) DetailItem(label: 'Address Line 3', value: firm.fFirmAdd3),
+            DetailItem(label: 'Address Line 1', value: firm.fFirmAdd1.withDashFallback),
+            DetailItem(label: 'Address Line 2', value: firm.fFirmAdd2.withDashFallback),
+            DetailItem(label: 'Address Line 3', value: firm.fFirmAdd3.withDashFallback),
           ],
         ),
         DetailSection(
           title: 'History Details',
           items: [
             DetailItem(label: 'Created At', value: firm.fCreatedTimeStamp),
-            DetailItem(label: 'Created By', value: firm.fCreatedBy),
+            DetailItem(label: 'Created By', value: firm.fCreatedBy.withDashFallback),
             DetailItem(label: 'Modified At', value: firm.fModifyTimeStamp),
-            DetailItem(label: 'Modified By', value: firm.fModifyBy),
+            DetailItem(label: 'Modified By', value: firm.fModifyBy.withDashFallback),
           ],
         ),
       ],
