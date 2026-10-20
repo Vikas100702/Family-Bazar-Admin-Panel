@@ -379,7 +379,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                   decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                   child: Text(
                     '${controller.selectedPincodeIds.length} of ${controller.allPincodes.length} Selected',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
+                    style: context.captionStyle.copyWith(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
                   ),
                 ),
               ),
@@ -514,8 +514,10 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                 final bool showAmount = type == 'amount' || type == 'distance_amount';
 
                 final String distStr = '${slab.minDistanceKm.toStringAsFixed(0)} - ${slab.maxDistanceKm.toStringAsFixed(0)} KM';
-                final String cartStr =
-                    '₹${slab.minOrderAmount.toStringAsFixed(0)} - ${slab.maxOrderAmount != null && slab.maxOrderAmount! > 0 ? "₹${slab.maxOrderAmount!.toStringAsFixed(0)}" : "Open"}';
+                final String maxCartStr = slab.maxOrderAmount != null && slab.maxOrderAmount! > 0
+                    ? slab.maxOrderAmount!.toCurrency(fractionDigits: 0)
+                    : "Open";
+                final String cartStr = '${slab.minOrderAmount.toCurrency(fractionDigits: 0)} - $maxCartStr';
 
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -544,12 +546,12 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                             if (showAmount) Text('Order Subtotal: $cartStr', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                             if (showDistance) Text('Distance: $distStr', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
                             Text(
-                              'Base Charge: ₹${slab.baseCharge.toStringAsFixed(0)}',
+                              'Base Charge: ${slab.baseCharge.toCurrency(fractionDigits: 0)}',
                               style: const TextStyle(fontSize: 12, color: AppColors.primaryRed, fontWeight: FontWeight.bold),
                             ),
                             if (showDistance && slab.perKmCharge > 0)
                               Text(
-                                'Per KM: ₹${slab.perKmCharge.toStringAsFixed(0)}',
+                                'Per KM: ${slab.perKmCharge.toCurrency(fractionDigits: 0)}',
                                 style: const TextStyle(fontSize: 12, color: AppColors.statusBlueInfo),
                               ),
                           ],
@@ -799,7 +801,14 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+        Text(
+          label,
+          style: context.captionStyle.copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+            color: context.isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+          ),
+        ),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
