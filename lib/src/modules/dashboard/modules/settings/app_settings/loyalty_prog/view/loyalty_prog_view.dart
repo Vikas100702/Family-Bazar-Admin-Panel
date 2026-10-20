@@ -1,6 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -9,7 +10,6 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 class LoyaltyProgView extends GetView<LoyaltyProgController> {
   const LoyaltyProgView({super.key});
@@ -109,63 +109,35 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
         ),
         SizedBox(height: context.responsiveHeight(12, 16)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Loyalty Rules...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<LoyaltyRuleDatum>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Loyalty Rules Found',
-                      emptySubtitle: 'Click "Add Loyalty Rule" above to create reward tiers.',
-                      emptyIcon: Icons.card_giftcard_outlined,
-                      columns: const [
-                        DataColumn(label: Text('RULE ID')),
-                        DataColumn(label: Text('RULE NAME')),
-                        DataColumn(label: Text('ORDER RANGE')),
-                        DataColumn(label: Text('POINTS VALUE')),
-                        DataColumn(label: Text('MAPPED BRANDS')),
-                        DataColumn(label: Text('EXPIRY DATE')),
-                        DataColumn(label: Text('STATUS')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, rule) => _buildDataRow(context, rule),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<LoyaltyRuleDatum>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Loyalty Rules...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Loyalty Rules Found',
+              emptySubtitle: 'Click "Add Loyalty Rule" above to create reward tiers.',
+              emptyIcon: Icons.card_giftcard_outlined,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('RULE ID')),
+                DataColumn(label: Text('RULE NAME')),
+                DataColumn(label: Text('ORDER RANGE')),
+                DataColumn(label: Text('POINTS VALUE')),
+                DataColumn(label: Text('MAPPED BRANDS')),
+                DataColumn(label: Text('EXPIRY DATE')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, rule) => _buildDataRow(context, rule),
+            ),
+          ),
         ),
       ],
     );
@@ -178,32 +150,30 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
 
     return DataRow(
       cells: [
-        DataCell(SelectableText('#${rule.id}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
         DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 180),
-            child: Tooltip(
-              message: rule.ruleName.trim().isEmpty ? '—' : rule.ruleName,
-              child: Text(
-                rule.ruleName.trim().isEmpty ? '—' : rule.ruleName,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          AppTableCellText(
+            text: '#${rule.id}',
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ),
+        DataCell(
+          AppTableCellText(
+            text: rule.ruleName,
+            maxWidth: 180,
+            maxLines: 1,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
         DataCell(Text(rangeStr, style: const TextStyle(fontSize: 12))),
         DataCell(
           Text(
-            '₹${rule.pointsValue.toStringAsFixed(2)}',
+            rule.pointsValue.toCurrency(),
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
           ),
         ),
         DataCell(Text('${rule.brands.length} Brands, ${rule.categories.length} Cats', style: const TextStyle(fontSize: 12))),
-        DataCell(
-          Text(rule.expiryDate != null ? DateFormat('dd MMM yyyy').format(rule.expiryDate!.toLocal()) : '—', style: const TextStyle(fontSize: 12)),
-        ),
+        DataCell(Text(EntityDetailsDialogHelper.formatDate(rule.expiryDate), style: const TextStyle(fontSize: 12))),
         DataCell(
           Obx(() {
             final bool isUpdating = controller.togglingStatusMap[rule.id] == true;
