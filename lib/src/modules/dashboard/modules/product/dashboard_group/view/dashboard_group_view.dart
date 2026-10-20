@@ -22,67 +22,64 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Obx(() {
-        if (controller.isLoading.value && controller.groupList.isEmpty) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.primaryRed, strokeWidth: 2.5));
-        }
+    return Obx(() {
+      if (controller.isLoading.value && controller.groupList.isEmpty) {
+        return const Center(child: CircularProgressIndicator(color: AppColors.primaryRed, strokeWidth: 2.5));
+      }
 
-        if (controller.groupList.isEmpty) {
-          return EmptyStateWidget(
-            title: 'No Dashboard Groups Found',
-            subtitle: 'No group listings are provisioned for this tenant store. Create a new group to get started.',
-            icon: Icons.folder_off_outlined,
-            actionLabel: '+ Add New Group',
-            onActionPressed: () => _openAddGroupDialog(context),
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TableHeaderWidget(
-              searchHintText: 'Search code, name, category, sub-category...',
-              onSearchChanged: controller.onSearchChanged,
-              onSearchClear: controller.clearSearch,
-              onRefresh: controller.refreshAll,
-              rxIsRefreshing: controller.isLoading,
-              refreshTooltip: 'Refresh Group & Items',
-              extraActions: [
-                ElevatedButton.icon(
-                  onPressed: () => _openAddGroupDialog(context),
-                  icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
-                  label: const Text('Add Group'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryRed,
-                    foregroundColor: AppColors.onPrimaryWhite,
-                    padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 16), vertical: context.responsiveHeight(12, 14)),
-                    shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _openAddGroupItemsModal(context),
-                  icon: const Icon(Icons.playlist_add_rounded, size: 18),
-                  label: const Text('Add Items'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: context.isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceSubtleGray,
-                    foregroundColor: context.isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
-                    elevation: 0,
-                    side: BorderSide(color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-                    padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 16), vertical: context.responsiveHeight(12, 14)),
-                    shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
-                  ),
-                ),
-              ],
-              bottomWidget: _buildHorizontalGroupTabs(context),
-            ),
-            SizedBox(height: context.responsiveHeight(14, 18)),
-            Expanded(child: _buildItemsTableSection(context)),
-          ],
+      if (controller.groupList.isEmpty) {
+        return EmptyStateWidget(
+          title: 'No Dashboard Groups Found',
+          subtitle: 'No group listings are provisioned for this tenant store. Create a new group to get started.',
+          icon: Icons.folder_off_outlined,
+          actionLabel: '+ Add New Group',
+          onActionPressed: () => _openAddGroupDialog(context),
         );
-      }),
-    );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TableHeaderWidget(
+            searchHintText: 'Search code, name, category, sub-category...',
+            onSearchChanged: controller.onSearchChanged,
+            onSearchClear: controller.clearSearch,
+            onRefresh: controller.refreshAll,
+            rxIsRefreshing: controller.isLoading,
+            refreshTooltip: 'Refresh Group & Items',
+            extraActions: [
+              ElevatedButton.icon(
+                onPressed: () => _openAddGroupDialog(context),
+                icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+                label: const Text('Add Group'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryRed,
+                  foregroundColor: AppColors.onPrimaryWhite,
+                  padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 16), vertical: context.responsiveHeight(12, 14)),
+                  shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _openAddGroupItemsModal(context),
+                icon: const Icon(Icons.playlist_add_rounded, size: 18),
+                label: const Text('Add Items'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: context.isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceSubtleGray,
+                  foregroundColor: context.isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+                  elevation: 0,
+                  side: BorderSide(color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+                  padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 16), vertical: context.responsiveHeight(12, 14)),
+                  shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
+                ),
+              ),
+            ],
+            bottomWidget: _buildHorizontalGroupTabs(context),
+          ),
+          SizedBox(height: context.responsiveHeight(14, 18)),
+          Expanded(child: _buildItemsTableSection(context)),
+        ],
+      );
+    });
   }
 
   Widget _buildHorizontalGroupTabs(BuildContext context) {
@@ -183,7 +180,7 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                       color: isSelected
                           ? Colors.white.withValues(alpha: 0.22)
                           : (isDark ? AppColors.canvasDarkSlate : AppColors.borderSubtleSlate.withValues(alpha: 0.45)),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: context.responsiveRadius(4, 6),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -269,12 +266,12 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
       cells: [
         DataCell(
           AppTableCellText(
-            text: item.iCode,
+            text: item.iCode.withDashFallback,
             isSelectable: true,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
         ),
-        DataCell(AppTableCellText(text: item.iFirmCode, maxWidth: 100)),
+        DataCell(AppTableCellText(text: item.iFirmCode.withDashFallback, maxWidth: 100)),
         DataCell(
           TableImageCellWidget(
             webImageUrl: item.imImageWeb.trim(),
@@ -294,19 +291,24 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         ),
         DataCell(
           AppTableCellText(
-            text: item.iName,
+            text: item.iName.withDashFallback,
             maxWidth: 220,
             maxLines: 2,
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
-        DataCell(AppTableCellText(text: item.iItemGroup, maxWidth: 130)),
-        DataCell(AppTableCellText(text: item.iOtherGroup, maxWidth: 130)),
-        DataCell(Text(item.sbMRate.toString().toPrice(), style: context.titleStyleRegular)),
+        DataCell(AppTableCellText(text: item.iItemGroup.withDashFallback, maxWidth: 130)),
+        DataCell(AppTableCellText(text: item.iOtherGroup.withDashFallback, maxWidth: 130)),
         DataCell(
-          Text(
-            item.sbRateA.toString().toPrice(),
-            style: context.titleStyleRegular.copyWith(color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
+          AppTableCellText(
+            text: item.sbMRate.toString().toPrice(),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ),
+        DataCell(
+          AppTableCellText(
+            text: item.sbRateA.toString().toPrice(),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
         DataCell(
