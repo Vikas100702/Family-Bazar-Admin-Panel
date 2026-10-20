@@ -69,7 +69,7 @@ class BrandView extends GetView<BrandController> {
       cells: [
         DataCell(
           AppTableCellText(
-            text: brand.mcCompCode,
+            text: brand.mcCompCode.withDashFallback,
             isSelectable: true,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
@@ -89,7 +89,7 @@ class BrandView extends GetView<BrandController> {
         ),
         DataCell(
           AppTableCellText(
-            text: brand.mcCompName,
+            text: brand.mcCompName.withDashFallback,
             maxWidth: 220,
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
@@ -424,16 +424,21 @@ class BrandView extends GetView<BrandController> {
             style: TextStyle(fontSize: 12, color: isDark ? AppColors.accentGoldAmber : AppColors.statusAmberWarning),
           ),
         ),
-        DataCell(Text(item.sbMRate.toString().toPrice(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
         DataCell(
-          Text(
-            item.sbRateA.toString().toPrice(),
+          AppTableCellText(
+            text: item.sbMRate.toString().toPrice(),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ),
+        DataCell(
+          AppTableCellText(
+            text: item.sbRateA.toString().toPrice(),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
         DataCell(
-          Text(
-            '$stock',
+          AppTableCellText(
+            text: '$stock',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -483,7 +488,7 @@ class BrandView extends GetView<BrandController> {
             DetailItem(label: 'Category Code', value: item.iItemGroup),
             DetailItem(label: 'Category Name', value: item.itemGroupName, isCopyable: true),
             DetailItem(label: 'Sub-Category Code', value: item.iOtherGroup, isCopyable: true),
-            DetailItem(label: 'Sub-Category Name', value: item.otherGroupName?.toString().withDashFallback ?? '—'),
+            DetailItem(label: 'Sub-Category Name', value: item.otherGroupName.toString().withDashFallback),
             DetailItem(label: 'Firm Code', value: item.iFirmCode, isCopyable: true),
           ],
         ),
