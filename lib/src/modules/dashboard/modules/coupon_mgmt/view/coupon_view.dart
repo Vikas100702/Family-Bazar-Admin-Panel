@@ -1,7 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -47,64 +47,36 @@ class CouponView extends GetView<CouponController> {
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Coupons...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<ViewCouponListDatum>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Coupons Found',
-                      emptySubtitle: 'Click "Add Coupon" above to configure promotional offers.',
-                      emptyIcon: Icons.discount_outlined,
-                      columns: const [
-                        DataColumn(label: Text('CODE')),
-                        DataColumn(label: Text('TITLE')),
-                        DataColumn(label: Text('TYPE')),
-                        DataColumn(label: Text('DISCOUNT')),
-                        DataColumn(label: Text('MIN ORDER')),
-                        DataColumn(label: Text('MAX DISCOUNT')),
-                        DataColumn(label: Text('VALIDITY')),
-                        DataColumn(label: Text('STATUS')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, coupon) => _buildDataRow(context, coupon),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<ViewCouponListDatum>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Coupons...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Coupons Found',
+              emptySubtitle: 'Click "Add Coupon" above to configure promotional offers.',
+              emptyIcon: Icons.discount_outlined,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('CODE')),
+                DataColumn(label: Text('TITLE')),
+                DataColumn(label: Text('TYPE')),
+                DataColumn(label: Text('DISCOUNT')),
+                DataColumn(label: Text('MIN ORDER')),
+                DataColumn(label: Text('MAX DISCOUNT')),
+                DataColumn(label: Text('VALIDITY')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, coupon) => _buildDataRow(context, coupon),
+            ),
+          ),
         ),
       ],
     );
@@ -116,20 +88,18 @@ class CouponView extends GetView<CouponController> {
 
     return DataRow(
       cells: [
-        DataCell(SelectableText(coupon.code.isEmpty ? '—' : coupon.code, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
         DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 200),
-            child: Tooltip(
-              message: coupon.title.trim().isEmpty ? '—' : coupon.title,
-              waitDuration: const Duration(milliseconds: 400),
-              child: Text(
-                coupon.title.trim().isEmpty ? '—' : coupon.title,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          AppTableCellText(
+            text: coupon.code,
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ),
+        DataCell(
+          AppTableCellText(
+            text: coupon.title,
+            maxWidth: 200,
+            style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
         DataCell(
@@ -148,12 +118,12 @@ class CouponView extends GetView<CouponController> {
         ),
         DataCell(
           Text(
-            isPercentage ? '${coupon.discountValue}%' : '₹${coupon.discountValue}',
+            isPercentage ? '${coupon.discountValue}%' : coupon.discountValue.toString().toPrice(),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
-        DataCell(Text('₹${coupon.minOrderAmount}', style: const TextStyle(fontSize: 12))),
-        DataCell(Text('₹${coupon.maxDiscount}', style: const TextStyle(fontSize: 12))),
+        DataCell(Text(coupon.minOrderAmount.toString().toPrice(), style: const TextStyle(fontSize: 12))),
+        DataCell(Text(coupon.maxDiscount.toString().toPrice(), style: const TextStyle(fontSize: 12))),
         DataCell(Text('${_formatDate(coupon.startAt)} - ${_formatDate(coupon.endAt)}', style: const TextStyle(fontSize: 11))),
         DataCell(StatusBadge(isEditable: false, statusValue: coupon.status, activeLabel: 'Active', inactiveLabel: 'Inactive')),
         DataCell(
@@ -210,7 +180,7 @@ class CouponView extends GetView<CouponController> {
       headerIcon: Icons.discount_rounded,
       sections: [
         DetailSection(
-          title: '1. Identification & Setup',
+          title: 'Basic Information',
           items: [
             DetailItem(label: 'Coupon Code', value: coupon.code, isCopyable: true),
             DetailItem(label: 'Title', value: coupon.title),
@@ -221,15 +191,15 @@ class CouponView extends GetView<CouponController> {
           flags: [DetailFlag(label: 'Active (Live)', value: coupon.status == 1)],
         ),
         DetailSection(
-          title: '2. Value & Bounds',
+          title: 'Value & Bounds',
           items: [
-            DetailItem(label: 'Discount Value', value: isPercentage ? '${coupon.discountValue}%' : '₹${coupon.discountValue}'),
-            DetailItem(label: 'Max Discount Cap', value: '₹${coupon.maxDiscount}'),
-            DetailItem(label: 'Min Order Amount', value: '₹${coupon.minOrderAmount}'),
+            DetailItem(label: 'Discount Value', value: isPercentage ? '${coupon.discountValue}%' : coupon.discountValue.toString().toPrice()),
+            DetailItem(label: 'Max Discount Cap', value: coupon.maxDiscount.toString().toPrice()),
+            DetailItem(label: 'Min Order Amount', value: coupon.minOrderAmount.toString().toPrice()),
           ],
         ),
         DetailSection(
-          title: '3. Limits & Scope',
+          title: 'Limits & Scope',
           items: [
             DetailItem(label: 'Total Usage Cap', value: '${coupon.usageLimit}'),
             DetailItem(label: 'Per Customer Cap', value: '${coupon.usagePerCustomer}'),
@@ -240,7 +210,7 @@ class CouponView extends GetView<CouponController> {
           ],
         ),
         DetailSection(
-          title: '4. Validity & Lifecycle',
+          title: 'Validity & Lifecycle',
           items: [
             DetailItem(label: 'Valid From', value: _formatDate(coupon.startAt)),
             DetailItem(label: 'Valid Until', value: _formatDate(coupon.endAt)),
