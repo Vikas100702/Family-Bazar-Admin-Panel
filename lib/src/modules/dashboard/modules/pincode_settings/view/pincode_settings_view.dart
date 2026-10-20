@@ -1,7 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -46,61 +46,33 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Pincode Configurations...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<Datum>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Pincode Configurations Available',
-                      emptySubtitle: 'Map a new delivery pincode or refresh from server.',
-                      emptyIcon: Icons.location_off_outlined,
-                      columns: const [
-                        DataColumn(label: Text('FIRM CODE')),
-                        DataColumn(label: Text('FIRM NAME')),
-                        DataColumn(label: Text('PINCODE')),
-                        DataColumn(label: Text('CREATED BY')),
-                        DataColumn(label: Text('STATUS')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, pincode) => _buildDataRow(context, pincode),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<Datum>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Pincode Configurations...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Pincode Configurations Available',
+              emptySubtitle: 'Map a new delivery pincode or refresh from server.',
+              emptyIcon: Icons.location_off_outlined,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('FIRM CODE')),
+                DataColumn(label: Text('FIRM NAME')),
+                DataColumn(label: Text('PINCODE')),
+                DataColumn(label: Text('CREATED BY')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, pincode) => _buildDataRow(context, pincode),
+            ),
+          ),
         ),
       ],
     );
@@ -112,30 +84,27 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
     return DataRow(
       cells: [
         DataCell(
-          SelectableText(pincode.pFirmCode.isEmpty ? '—' : pincode.pFirmCode, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-        ),
-        DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: Tooltip(
-              message: pincode.pFirmName.isEmpty ? '—' : pincode.pFirmName,
-              waitDuration: const Duration(milliseconds: 400),
-              child: Text(
-                pincode.pFirmName.isEmpty ? '—' : pincode.pFirmName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ),
+          AppTableCellText(
+            text: pincode.pFirmCode,
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
           ),
         ),
         DataCell(
-          SelectableText(
-            pincode.pPinCode.isEmpty ? '—' : pincode.pPinCode,
+          AppTableCellText(
+            text: pincode.pFirmName,
+            maxWidth: 220,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ),
+        DataCell(
+          AppTableCellText(
+            text: pincode.pPinCode,
+            isSelectable: true,
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
-        DataCell(Text(pincode.userName.isEmpty ? '—' : pincode.userName)),
+        DataCell(AppTableCellText(text: pincode.userName, maxWidth: 160)),
         DataCell(StatusBadge(statusValue: pincode.status, activeLabel: 'Active', inactiveLabel: 'Inactive')),
         DataCell(
           Row(
