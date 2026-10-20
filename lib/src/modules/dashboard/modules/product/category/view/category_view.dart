@@ -69,7 +69,7 @@ class CategoryView extends GetView<CategoryController> {
       cells: [
         DataCell(
           AppTableCellText(
-            text: category.igCode,
+            text: category.igCode.withDashFallback,
             isSelectable: true,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
@@ -89,12 +89,12 @@ class CategoryView extends GetView<CategoryController> {
         ),
         DataCell(
           AppTableCellText(
-            text: category.igName,
+            text: category.igName.withDashFallback,
             maxWidth: 220,
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
-        DataCell(AppTableCellText(text: category.igEucode, maxWidth: 140)),
+        DataCell(AppTableCellText(text: category.igEucode.withDashFallback, maxWidth: 140, style: context.captionStyle)),
         DataCell(
           StatusBadge(
             isEditable: true,
@@ -129,26 +129,26 @@ class CategoryView extends GetView<CategoryController> {
         DetailSection(
           title: 'Basic Information',
           items: [
-            DetailItem(label: 'Category Code', value: category.igCode, isCopyable: true),
-            DetailItem(label: 'Category Name', value: category.igName),
+            DetailItem(label: 'Category Code', value: category.igCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Category Name', value: category.igName.withDashFallback),
           ],
         ),
         DetailSection(
           title: 'System Information',
           flags: [DetailFlag(label: 'Active Status', value: category.isStatusActive)],
           items: [
-            DetailItem(label: 'CM Code', value: category.igCmCode, isCopyable: true),
-            DetailItem(label: 'EU Code', value: category.igEucode),
-            DetailItem(label: 'MU Code', value: category.igMucode),
+            DetailItem(label: 'CM Code', value: category.igCmCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'EU Code', value: category.igEucode.withDashFallback),
+            DetailItem(label: 'MU Code', value: category.igMucode.withDashFallback),
           ],
         ),
         DetailSection(
           title: 'History Details',
           items: [
-            DetailItem(label: 'Created By', value: category.igCreatedBy),
-            DetailItem(label: 'Created At', value: category.igCreatedTimeStamp),
-            DetailItem(label: 'Modified By', value: category.igModifyBy),
-            DetailItem(label: 'Modified At', value: category.igModifyTimeStamp),
+            DetailItem(label: 'Created By', value: category.igCreatedBy.withDashFallback),
+            DetailItem(label: 'Created At', value: EntityDetailsDialogHelper.formatDate(category.igCreatedTimeStamp)),
+            DetailItem(label: 'Modified By', value: category.igModifyBy.withDashFallback),
+            DetailItem(label: 'Modified At', value: EntityDetailsDialogHelper.formatDate(category.igModifyTimeStamp)),
           ],
         ),
       ],
