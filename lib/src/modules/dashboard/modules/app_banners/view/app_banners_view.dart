@@ -112,8 +112,8 @@ class AppBannersView extends GetView<AppBannersController> {
             child: Text(banner.bnrType.withDashFallback, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           ),
         ),
-        DataCell(Text(banner.startDate.withDashFallback, style: const TextStyle(fontSize: 12))),
-        DataCell(Text(banner.endDate.withDashFallback, style: const TextStyle(fontSize: 12))),
+        DataCell(AppTableCellText(text: banner.startDate.withDashFallback, style: const TextStyle(fontSize: 12))),
+        DataCell(AppTableCellText(text: banner.endDate.withDashFallback, style: const TextStyle(fontSize: 12))),
         DataCell(
           StatusBadge(
             isEditable: true,
@@ -123,7 +123,7 @@ class AppBannersView extends GetView<AppBannersController> {
             onToggle: (bool val) => controller.toggleBannerStatus(banner, val),
           ),
         ),
-        DataCell(Text(banner.created.withDashFallback, style: const TextStyle(fontSize: 11))),
+        DataCell(AppTableCellText(text: banner.created.withDashFallback, style: context.captionStyle)),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -191,10 +191,10 @@ class AppBannersView extends GetView<AppBannersController> {
           ],
         ),
         DetailSection(
-          title: 'History Details',
+          title: 'Scheduling & Display Rules',
           items: [
-            DetailItem(label: 'Created At', value: banner.created.withDashFallback),
-            DetailItem(label: 'Updated At', value: banner.updated.withDashFallback),
+            DetailItem(label: 'Start Date', value: banner.startDate.withDashFallback),
+            DetailItem(label: 'End Date', value: banner.endDate.withDashFallback),
           ],
         ),
       ],
