@@ -85,26 +85,26 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
       cells: [
         DataCell(
           AppTableCellText(
-            text: pincode.pFirmCode,
+            text: pincode.pFirmCode.withDashFallback,
             isSelectable: true,
             style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
           ),
         ),
         DataCell(
           AppTableCellText(
-            text: pincode.pFirmName,
+            text: pincode.pFirmName.withDashFallback,
             maxWidth: 220,
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
         DataCell(
           AppTableCellText(
-            text: pincode.pPinCode,
+            text: pincode.pPinCode.withDashFallback,
             isSelectable: true,
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
-        DataCell(AppTableCellText(text: pincode.userName, maxWidth: 160)),
+        DataCell(AppTableCellText(text: pincode.userName.withDashFallback, maxWidth: 160)),
         DataCell(StatusBadge(statusValue: pincode.status, activeLabel: 'Active', inactiveLabel: 'Inactive')),
         DataCell(
           Row(
@@ -146,9 +146,9 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
         DetailSection(
           title: 'Basic Information',
           items: [
-            DetailItem(label: 'Pincode', value: pincode.pPinCode, isCopyable: true),
-            DetailItem(label: 'Firm Code', value: pincode.pFirmCode, isCopyable: true),
-            DetailItem(label: 'Firm Name', value: pincode.pFirmName),
+            DetailItem(label: 'Pincode', value: pincode.pPinCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Firm Code', value: pincode.pFirmCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Firm Name', value: pincode.pFirmName.withDashFallback),
           ],
         ),
         DetailSection(
@@ -173,7 +173,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
 
   void _showPincodeDialog(BuildContext context, {required bool isEdit, int? id}) {
     final bool isDark = context.isDark;
-    final Size mediaQuery = MediaQuery.sizeOf(context);
+    final double dialogWidth = context.responsiveWidth(context.screenWidth * 0.92, 480);
 
     Get.dialog(
       barrierDismissible: false,
@@ -184,7 +184,7 @@ class PincodeSettingsView extends GetView<PincodeSettingsController> {
         ),
         backgroundColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
         child: Container(
-          width: context.isDesktop ? 480 : mediaQuery.width * 0.92,
+          width: dialogWidth,
           padding: EdgeInsets.all(context.responsiveSize(20, 24)),
           child: SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
