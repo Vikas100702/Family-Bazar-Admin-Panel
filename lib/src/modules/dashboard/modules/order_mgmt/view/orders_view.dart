@@ -94,8 +94,8 @@ class OrdersView extends GetView<OrdersController> {
           ),
         ),
         DataCell(
-          Text(
-            order.totalAmount.toCurrency(),
+          AppTableCellText(
+            text: order.totalAmount.toCurrency(),
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.primaryRed),
           ),
         ),
@@ -104,9 +104,13 @@ class OrdersView extends GetView<OrdersController> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(order.paymentMethod, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+              AppTableCellText(
+                text: order.paymentMethod.withDashFallback,
+                maxWidth: 130,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              ),
               Text(
-                order.paymentStatus,
+                order.paymentStatus.withDashFallback,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -119,15 +123,15 @@ class OrdersView extends GetView<OrdersController> {
         DataCell(
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+            decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: context.responsiveRadius(4, 6)),
             child: Text(
-              order.orderStatus,
+              order.orderStatus.withDashFallback,
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
             ),
           ),
         ),
-        DataCell(AppTableCellText(text: order.city, maxWidth: 120, style: const TextStyle(fontSize: 12))),
-        DataCell(Text(EntityDetailsDialogHelper.formatDate(order.createdAt), style: const TextStyle(fontSize: 11))),
+        DataCell(AppTableCellText(text: order.city.withDashFallback, maxWidth: 120, style: const TextStyle(fontSize: 12))),
+        DataCell(AppTableCellText(text: EntityDetailsDialogHelper.formatDate(order.createdAt), style: context.captionStyle)),
         DataCell(
           IconButton(
             icon: const Icon(Icons.visibility_outlined, size: 18),
