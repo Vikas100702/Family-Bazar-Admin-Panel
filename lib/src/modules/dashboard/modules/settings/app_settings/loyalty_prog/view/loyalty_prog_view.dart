@@ -145,8 +145,8 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
 
   DataRow _buildDataRow(BuildContext context, LoyaltyRuleDatum rule) {
     final String rangeStr = rule.maxOrderAmt != null && rule.maxOrderAmt! > 0
-        ? '₹${rule.minOrderAmt.toStringAsFixed(0)} - ₹${rule.maxOrderAmt!.toStringAsFixed(0)}'
-        : '₹${rule.minOrderAmt.toStringAsFixed(0)} and above';
+        ? '${rule.minOrderAmt.toCurrency(fractionDigits: 0)} - ${rule.maxOrderAmt!.toCurrency(fractionDigits: 0)}'
+        : '${rule.minOrderAmt.toCurrency(fractionDigits: 0)} and above';
 
     return DataRow(
       cells: [
@@ -159,33 +159,28 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
         ),
         DataCell(
           AppTableCellText(
-            text: rule.ruleName,
+            text: rule.ruleName.withDashFallback,
             maxWidth: 180,
             maxLines: 1,
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
-        DataCell(Text(rangeStr, style: const TextStyle(fontSize: 12))),
+        DataCell(AppTableCellText(text: rangeStr, style: const TextStyle(fontSize: 12))),
         DataCell(
-          Text(
-            rule.pointsValue.toCurrency(),
+          AppTableCellText(
+            text: rule.pointsValue.toCurrency(),
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
           ),
         ),
-        DataCell(Text('${rule.brands.length} Brands, ${rule.categories.length} Cats', style: const TextStyle(fontSize: 12))),
-        DataCell(Text(EntityDetailsDialogHelper.formatDate(rule.expiryDate), style: const TextStyle(fontSize: 12))),
+        DataCell(AppTableCellText(text: '${rule.brands.length} Brands, ${rule.categories.length} Cats', style: const TextStyle(fontSize: 12))),
+        DataCell(AppTableCellText(text: EntityDetailsDialogHelper.formatDate(rule.expiryDate), style: context.captionStyle)),
         DataCell(
           Obx(() {
             final bool isUpdating = controller.togglingStatusMap[rule.id] == true;
             if (isUpdating) {
               return const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryRed));
             }
-            return StatusBadge(
-              isEditable: true,
-              isActive: rule.isActive,
-              statusValue: rule.status.toString(),
-              onToggle: (val) => controller.toggleRuleStatus(rule, val),
-            );
+            return StatusBadge(isEditable: true, isActive: rule.isActive, onToggle: (val) => controller.toggleRuleStatus(rule, val));
           }),
         ),
         DataCell(
@@ -434,9 +429,9 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-        borderRadius: context.responsiveRadius(12, 16),
-        border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
+        color: context.isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+        borderRadius: context.responsiveRadius(8, 10),
+        border: Border.all(color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
