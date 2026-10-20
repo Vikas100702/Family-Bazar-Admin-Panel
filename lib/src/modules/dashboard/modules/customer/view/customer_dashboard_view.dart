@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/controller/customer_dashboard_controller.dart';
@@ -85,9 +86,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     });
   }
 
-  // ===========================================================================
   // 1. TOP HEADER & PROFILE CARD
-  // ===========================================================================
   Widget _buildHeaderSection(BuildContext context, CustomerProfile profile, VoidCallback onBack, bool isDark) {
     return Container(
       padding: EdgeInsets.all(context.responsiveSize(16, 20)),
@@ -185,9 +184,6 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     );
   }
 
-  // ===========================================================================
-  // 2. EXECUTIVE METRIC KPI RIBBON
-  // ===========================================================================
   Widget _buildKpiRibbon(BuildContext context, CustomerDashboardData data, bool isDark) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -304,9 +300,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     );
   }
 
-  // ===========================================================================
   // 3. TAB SELECTOR TOOLBAR
-  // ===========================================================================
   Widget _buildTabSelector(BuildContext context, bool isDark) {
     final List<Map<String, dynamic>> tabs = [
       {'label': 'Overview & Telemetry', 'icon': Icons.badge_outlined},
@@ -372,9 +366,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     });
   }
 
-  // ===========================================================================
   // 4. ACTIVE TAB CONTENT
-  // ===========================================================================
   Widget _buildActiveTabContent(BuildContext context, CustomerDashboardData data, bool isDark) {
     return Obx(() {
       switch (controller.activeTabIndex.value) {
@@ -482,7 +474,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                         child: _buildInfoCardlet(
                           context,
                           label: 'Joined On',
-                          value: data.profile.createdAt.split('T').first,
+                          value: EntityDetailsDialogHelper.formatDate(DateTime.tryParse(data.profile.createdAt)),
                           icon: Icons.calendar_today_outlined,
                           isDark: isDark,
                         ),
@@ -492,7 +484,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                         child: _buildInfoCardlet(
                           context,
                           label: 'Last Login',
-                          value: data.profile.lastLoginAt.split('T').first,
+                          value: EntityDetailsDialogHelper.formatDate(DateTime.tryParse(data.profile.lastLoginAt)),
                           icon: Icons.login_outlined,
                           isDark: isDark,
                         ),
@@ -806,7 +798,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
               ),
               const SizedBox(height: 16),
 
-              // Dispatch Delivery Instructions Callout
+              // Dispatch Delivery Instructions Call out
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -904,7 +896,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: prefs.recentlyViewed.length,
-                            separatorBuilder: (_, __) => const Divider(height: 12),
+                            separatorBuilder: (_, _) => const Divider(height: 12),
                             itemBuilder: (context, idx) {
                               final p = prefs.recentlyViewed[idx];
                               return ListTile(
@@ -919,7 +911,10 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                                   child: const Icon(Icons.remove_red_eye_outlined, size: 16, color: Colors.grey),
                                 ),
                                 title: Text(p.itemName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                subtitle: Text('SKU: ${p.itemCode} | Viewed: ${p.viewedAt.split("T").first}', style: context.captionStyle),
+                                subtitle: Text(
+                                  'SKU: ${p.itemCode} | Viewed: ${EntityDetailsDialogHelper.formatDate(DateTime.tryParse(p.viewedAt))}',
+                                  style: context.captionStyle,
+                                ),
                                 trailing: Text(
                                   p.price.toPrice(),
                                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
@@ -1158,7 +1153,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: cart.items.length,
-                  separatorBuilder: (_, __) => const Divider(height: 8),
+                  separatorBuilder: (_, _) => const Divider(height: 8),
                   itemBuilder: (context, index) {
                     final item = cart.items[index];
                     return ListTile(
@@ -1172,7 +1167,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                                 width: 36,
                                 height: 36,
                                 fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => const Icon(Icons.shopping_basket_outlined, size: 24),
+                                errorWidget: (_, _, _) => const Icon(Icons.shopping_basket_outlined, size: 24),
                               ),
                             )
                           : Container(
@@ -1229,7 +1224,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: data.recentOrders.length,
-                  separatorBuilder: (_, __) => const Divider(height: 14),
+                  separatorBuilder: (_, _) => const Divider(height: 14),
                   itemBuilder: (context, index) {
                     final order = data.recentOrders[index];
                     final bool isDelivered = order.orderStatus == 'DELIVERED';
@@ -1270,7 +1265,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                                   const SizedBox(width: 8),
                                   Text(order.orderNumber, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                                   const SizedBox(width: 8),
-                                  Text('(${order.orderDate.split("T").first})', style: context.captionStyle),
+                                  Text('(${EntityDetailsDialogHelper.formatDate(DateTime.tryParse(order.orderDate))})', style: context.captionStyle),
                                 ],
                               ),
                               Row(
@@ -1380,7 +1375,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: data.recentTransactions.length,
-              separatorBuilder: (_, __) => const Divider(height: 12),
+              separatorBuilder: (_, _) => const Divider(height: 12),
               itemBuilder: (context, index) {
                 final txn = data.recentTransactions[index];
                 final bool isCredit = txn.type == 'CREDIT';
@@ -1399,7 +1394,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                   ),
                   title: Text(txn.description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                   subtitle: Text(
-                    '${txn.createdAt.split("T").first} | Ref: ${txn.txnId}${txn.orderId != null ? " | Order: ${txn.orderId}" : ""}',
+                    '${EntityDetailsDialogHelper.formatDate(DateTime.tryParse(txn.createdAt))} | Ref: ${txn.txnId}${txn.orderId != null ? " | Order: ${txn.orderId}" : ""}',
                     style: context.captionStyle,
                   ),
                   trailing: Column(
@@ -1425,7 +1420,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     );
   }
 
-  // --- TAB 4: SAVED WISHLIST ---
+  // --- TAB 4: SAVED WISH-LIST ---
   Widget _buildWishlistTab(BuildContext context, CustomerDashboardData data, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -1465,7 +1460,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                                 height: 100,
                                 width: double.infinity,
                                 fit: BoxFit.contain,
-                                errorWidget: (_, __, ___) => const Center(child: Icon(Icons.broken_image_rounded, size: 32, color: Colors.grey)),
+                                errorWidget: (_, _, _) => const Center(child: Icon(Icons.broken_image_rounded, size: 32, color: Colors.grey)),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -1517,9 +1512,6 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     );
   }
 
-  // ===========================================================================
-  // REUSABLE STRUCTURED CARDLET (LABEL + VALUE IN BORDERED BOX)
-  // ===========================================================================
   Widget _buildInfoCardlet(
     BuildContext context, {
     required String label,
