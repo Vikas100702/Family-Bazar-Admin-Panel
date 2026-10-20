@@ -1,6 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
@@ -44,61 +45,33 @@ class TimeSlotView extends GetView<TimeSlotController> {
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Time Slots...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<TimeSlotItem>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Time Slots Found',
-                      emptySubtitle: 'Click "Add Time Slot" above to configure delivery fulfillment windows.',
-                      emptyIcon: Icons.schedule_rounded,
-                      columns: const [
-                        DataColumn(label: Text('SLOT ID')),
-                        DataColumn(label: Text('START TIME')),
-                        DataColumn(label: Text('END TIME')),
-                        DataColumn(label: Text('CREATED AT')),
-                        DataColumn(label: Text('UPDATED AT')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, slot) => _buildDataRow(context, slot),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<TimeSlotItem>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Time Slots...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Time Slots Found',
+              emptySubtitle: 'Click "Add Time Slot" above to configure delivery fulfillment windows.',
+              emptyIcon: Icons.schedule_rounded,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('SLOT ID')),
+                DataColumn(label: Text('START TIME')),
+                DataColumn(label: Text('END TIME')),
+                DataColumn(label: Text('CREATED AT')),
+                DataColumn(label: Text('UPDATED AT')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, slot) => _buildDataRow(context, slot),
+            ),
+          ),
         ),
       ],
     );
@@ -110,7 +83,13 @@ class TimeSlotView extends GetView<TimeSlotController> {
 
     return DataRow(
       cells: [
-        DataCell(SelectableText(slot.id > 0 ? '#${slot.id}' : '—', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
+        DataCell(
+          AppTableCellText(
+            text: slot.id > 0 ? '#${slot.id}' : '—',
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -131,18 +110,8 @@ class TimeSlotView extends GetView<TimeSlotController> {
             ],
           ),
         ),
-        DataCell(
-          Text(
-            slot.createdAt != null && slot.createdAt!.year >= 1970 ? slot.createdAt!.toLocal().toString().split('.').first : '—',
-            style: const TextStyle(fontSize: 12),
-          ),
-        ),
-        DataCell(
-          Text(
-            slot.updatedAt != null && slot.updatedAt!.year >= 1970 ? slot.updatedAt!.toLocal().toString().split('.').first : '—',
-            style: const TextStyle(fontSize: 12),
-          ),
-        ),
+        DataCell(Text(EntityDetailsDialogHelper.formatDate(slot.createdAt), style: const TextStyle(fontSize: 12))),
+        DataCell(Text(EntityDetailsDialogHelper.formatDate(slot.updatedAt), style: const TextStyle(fontSize: 12))),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
