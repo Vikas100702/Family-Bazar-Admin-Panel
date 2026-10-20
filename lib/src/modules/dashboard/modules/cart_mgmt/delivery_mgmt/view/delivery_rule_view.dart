@@ -97,7 +97,7 @@ class DeliveryView extends GetView<DeliveryController> {
         ),
         DataCell(
           AppTableCellText(
-            text: rule.ruleName,
+            text: rule.ruleName.withDashFallback,
             maxWidth: 240,
             maxLines: 2,
             style: const TextStyle(fontWeight: FontWeight.w600),
@@ -127,7 +127,12 @@ class DeliveryView extends GetView<DeliveryController> {
             ),
           ),
         ),
-        DataCell(Text('${rule.pincodeCount} Pincodes', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
+        DataCell(
+          AppTableCellText(
+            text: '${rule.pincodeCount} Pincodes',
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+          ),
+        ),
         DataCell(
           StatusBadge(
             statusValue: rule.status,
@@ -137,14 +142,7 @@ class DeliveryView extends GetView<DeliveryController> {
             onToggle: (bool val) => controller.toggleRuleStatus(rule, val),
           ),
         ),
-        DataCell(
-          AppTableCellText(
-            text: rule.ruleName,
-            maxWidth: 240,
-            maxLines: 2,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ),
+        DataCell(AppTableCellText(text: EntityDetailsDialogHelper.formatDate(rule.createdAt), style: context.captionStyle)),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
