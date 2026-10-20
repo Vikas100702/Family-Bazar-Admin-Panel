@@ -139,7 +139,7 @@ extension StringExtensions on String {
   }
 
   /// Returns fallback placeholder ('—') if string is empty
-  String get withDashFallback => trim().isEmpty ? '-' : trim();
+  // String get withDashFallback => trim().isEmpty ? '-' : trim();
 
   /// Safe integer conversion from string values (e.g. stock quantities)
   int toSafeInt([int defaultValue = 0]) {
@@ -169,5 +169,13 @@ extension StringExtensions on String {
       return AppColors.textMutedSlate;
     }
     return AppColors.textMutedSlate;
+  }
+}
+
+extension NullableStringExtensions on String? {
+  /// Returns trimmed string, or fallback '—' if null or empty
+  String get withDashFallback {
+    if (this == null || this!.trim().isEmpty) return '—';
+    return this!.trim();
   }
 }
