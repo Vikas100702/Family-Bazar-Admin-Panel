@@ -1,7 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/controller/firm_setup_controller.dart';
@@ -27,60 +27,32 @@ class FirmView extends GetView<FirmController> {
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Registered Firms...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<ViewFirmDatum>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Registered Firms Found',
-                      emptySubtitle: 'Add a new firm or refresh to sync with server.',
-                      emptyIcon: Icons.domain_disabled_rounded,
-                      columns: const [
-                        DataColumn(label: Text('FIRM CODE')),
-                        DataColumn(label: Text('FIRM NAME')),
-                        DataColumn(label: Text('GSTIN')),
-                        DataColumn(label: Text('FULL ADDRESS')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, firm) => _buildDataRow(context, firm),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<ViewFirmDatum>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Registered Firms...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Registered Firms Found',
+              emptySubtitle: 'Add a new firm or refresh to sync with server.',
+              emptyIcon: Icons.domain_disabled_rounded,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('FIRM CODE')),
+                DataColumn(label: Text('FIRM NAME')),
+                DataColumn(label: Text('GSTIN')),
+                DataColumn(label: Text('FULL ADDRESS')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, firm) => _buildDataRow(context, firm),
+            ),
+          ),
         ),
       ],
     );
@@ -92,38 +64,28 @@ class FirmView extends GetView<FirmController> {
 
     return DataRow(
       cells: [
-        DataCell(SelectableText(firm.fFirmCode.isEmpty ? '—' : firm.fFirmCode, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
         DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 220),
-            child: Tooltip(
-              message: firm.fFirmName.isEmpty ? '—' : firm.fFirmName,
-              waitDuration: const Duration(milliseconds: 400),
-              child: Text(
-                firm.fFirmName.isEmpty ? '—' : firm.fFirmName,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          AppTableCellText(
+            text: firm.fFirmCode,
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
         ),
         DataCell(
-          SelectableText(
-            firm.fGstNumber.isEmpty ? '—' : firm.fGstNumber,
+          AppTableCellText(
+            text: firm.fFirmName,
+            maxWidth: 220,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ),
+        DataCell(
+          AppTableCellText(
+            text: firm.fGstNumber,
+            isSelectable: true,
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
-        DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 240),
-            child: Tooltip(
-              message: address.isEmpty ? '—' : address,
-              waitDuration: const Duration(milliseconds: 400),
-              child: Text(address.isEmpty ? '—' : address, maxLines: 5, overflow: TextOverflow.ellipsis, style: context.captionStyle),
-            ),
-          ),
-        ),
+        DataCell(AppTableCellText(text: address, maxWidth: 240, maxLines: 2, style: context.captionStyle)),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
