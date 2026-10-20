@@ -117,14 +117,33 @@ class CouponView extends GetView<CouponController> {
           ),
         ),
         DataCell(
-          Text(
-            isPercentage ? '${coupon.discountValue}%' : coupon.discountValue.toString().toPrice(),
+          AppTableCellText(
+            text: isPercentage ? '${coupon.discountValue}%' : coupon.discountValue.toString().toPrice(),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
           ),
         ),
-        DataCell(Text(coupon.minOrderAmount.toString().toPrice(), style: const TextStyle(fontSize: 12))),
-        DataCell(Text(coupon.maxDiscount.toString().toPrice(), style: const TextStyle(fontSize: 12))),
-        DataCell(Text('${_formatDate(coupon.startAt)} - ${_formatDate(coupon.endAt)}', style: const TextStyle(fontSize: 11))),
+        DataCell(AppTableCellText(text: coupon.minOrderAmount.toString().toPrice(), style: const TextStyle(fontSize: 12))),
+        DataCell(AppTableCellText(text: coupon.maxDiscount.toString().toPrice(), style: const TextStyle(fontSize: 12))),
+        DataCell(
+          AppTableCellText(
+            text: '${EntityDetailsDialogHelper.formatDate(coupon.startAt)} - ${EntityDetailsDialogHelper.formatDate(coupon.endAt)}',
+            style: context.captionStyle,
+          ),
+        ),
+        DataCell(
+          AppTableCellText(
+            text: isPercentage ? '${coupon.discountValue}%' : coupon.discountValue.toString().toPrice(),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
+          ),
+        ),
+        DataCell(AppTableCellText(text: coupon.minOrderAmount.toString().toPrice(), style: const TextStyle(fontSize: 12))),
+        DataCell(AppTableCellText(text: coupon.maxDiscount.toString().toPrice(), style: const TextStyle(fontSize: 12))),
+        DataCell(
+          AppTableCellText(
+            text: '${EntityDetailsDialogHelper.formatDate(coupon.startAt)} - ${EntityDetailsDialogHelper.formatDate(coupon.endAt)}',
+            style: context.captionStyle,
+          ),
+        ),
         DataCell(StatusBadge(isEditable: false, statusValue: coupon.status, activeLabel: 'Active', inactiveLabel: 'Inactive')),
         DataCell(
           Row(
@@ -212,16 +231,10 @@ class CouponView extends GetView<CouponController> {
         DetailSection(
           title: 'Validity & Lifecycle',
           items: [
-            DetailItem(label: 'Valid From', value: _formatDate(coupon.startAt)),
-            DetailItem(label: 'Valid Until', value: _formatDate(coupon.endAt)),
-            DetailItem(
-              label: 'Created At',
-              value: coupon.createdAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(coupon.createdAt!.toLocal()) : '—',
-            ),
-            DetailItem(
-              label: 'Last Updated',
-              value: coupon.updatedAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(coupon.updatedAt!.toLocal()) : '—',
-            ),
+            DetailItem(label: 'Valid From', value: EntityDetailsDialogHelper.formatDate(coupon.startAt)),
+            DetailItem(label: 'Valid Until', value: EntityDetailsDialogHelper.formatDate(coupon.endAt)),
+            DetailItem(label: 'Created At', value: EntityDetailsDialogHelper.formatDate(coupon.createdAt)),
+            DetailItem(label: 'Last Updated', value: EntityDetailsDialogHelper.formatDate(coupon.updatedAt)),
           ],
         ),
       ],
@@ -869,14 +882,5 @@ class CouponView extends GetView<CouponController> {
 
     final String formatted = DateFormat('yyyy-MM-dd HH:mm:ss').format(combined);
     controller.setDateTime(formattedDateTime: formatted, isStart: isStart);
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return '—';
-    try {
-      return DateFormat('dd MMM yyyy, hh:mm a').format(date.toLocal());
-    } catch (_) {
-      return date.toString().split(' ')[0];
-    }
   }
 }
