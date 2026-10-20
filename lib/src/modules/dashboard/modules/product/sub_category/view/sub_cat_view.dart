@@ -69,7 +69,7 @@ class SubCategoryView extends GetView<SubCategoryController> {
       cells: [
         DataCell(
           AppTableCellText(
-            text: subCategory.ogCode,
+            text: subCategory.ogCode.withDashFallback,
             isSelectable: true,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
@@ -89,12 +89,12 @@ class SubCategoryView extends GetView<SubCategoryController> {
         ),
         DataCell(
           AppTableCellText(
-            text: subCategory.ogName,
+            text: subCategory.ogName.withDashFallback,
             maxWidth: 220,
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
-        DataCell(AppTableCellText(text: subCategory.ogEucode, maxWidth: 140)),
+        DataCell(AppTableCellText(text: subCategory.ogEucode.withDashFallback, maxWidth: 140, style: context.captionStyle)),
         DataCell(
           StatusBadge(
             isEditable: true,
@@ -122,32 +122,32 @@ class SubCategoryView extends GetView<SubCategoryController> {
   void _showSubCategoryDetails(BuildContext context, ViewSubCategoryDatum subCategory) {
     EntityDetailsDialogHelper.show(
       context: context,
-      title: subCategory.ogName.isNotEmpty ? subCategory.ogName.trim() : 'Sub Category',
-      subtitle: 'Code: ${subCategory.ogCode.isNotEmpty ? subCategory.ogCode : "—"}',
+      title: subCategory.ogName.trim().isNotEmpty ? subCategory.ogName.trim() : 'Sub Category',
+      subtitle: 'Code: ${subCategory.ogCode.withDashFallback}',
       headerIcon: Icons.account_tree_rounded,
       sections: [
         DetailSection(
           title: 'Basic Information',
           items: [
-            DetailItem(label: 'Sub Category Code', value: subCategory.ogCode, isCopyable: true),
-            DetailItem(label: 'Sub Category Name', value: subCategory.ogName),
+            DetailItem(label: 'Sub Category Code', value: subCategory.ogCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Sub Category Name', value: subCategory.ogName.withDashFallback),
           ],
         ),
         DetailSection(
           title: 'System Information',
           flags: [DetailFlag(label: 'Active Status', value: subCategory.isStatusActive)],
           items: [
-            DetailItem(label: 'SC Code', value: subCategory.ogScCode, isCopyable: true),
-            DetailItem(label: 'EU Code', value: subCategory.ogEucode),
-            DetailItem(label: 'MU Code', value: subCategory.ogMucode),
+            DetailItem(label: 'SC Code', value: subCategory.ogScCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'EU Code', value: subCategory.ogEucode.withDashFallback),
+            DetailItem(label: 'MU Code', value: subCategory.ogMucode.withDashFallback),
           ],
         ),
         DetailSection(
           title: 'History Details',
           items: [
-            DetailItem(label: 'Created By', value: subCategory.ogCreatedBy),
+            DetailItem(label: 'Created By', value: subCategory.ogCreatedBy.withDashFallback),
             DetailItem(label: 'Created At', value: EntityDetailsDialogHelper.formatDate(subCategory.ogCreatedTimeStamp)),
-            DetailItem(label: 'Modified By', value: subCategory.ogModifyBy),
+            DetailItem(label: 'Modified By', value: subCategory.ogModifyBy.withDashFallback),
             DetailItem(label: 'Modified At', value: EntityDetailsDialogHelper.formatDate(subCategory.ogModifyTimeStamp)),
           ],
         ),
