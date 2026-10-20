@@ -96,7 +96,10 @@ class TimeSlotView extends GetView<TimeSlotController> {
             children: [
               const Icon(Icons.play_circle_outline_rounded, size: 16, color: AppColors.statusGreenSuccess),
               const SizedBox(width: 6),
-              Text(_formatDisplaySlot(slot.startTimeSlot), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              AppTableCellText(
+                text: _formatDisplaySlot(slot.startTimeSlot),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -106,12 +109,15 @@ class TimeSlotView extends GetView<TimeSlotController> {
             children: [
               const Icon(Icons.stop_circle_outlined, size: 16, color: AppColors.primaryRed),
               const SizedBox(width: 6),
-              Text(_formatDisplaySlot(slot.endTimeSlot), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              AppTableCellText(
+                text: _formatDisplaySlot(slot.endTimeSlot),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
             ],
           ),
         ),
-        DataCell(Text(EntityDetailsDialogHelper.formatDate(slot.createdAt), style: const TextStyle(fontSize: 12))),
-        DataCell(Text(EntityDetailsDialogHelper.formatDate(slot.updatedAt), style: const TextStyle(fontSize: 12))),
+        DataCell(AppTableCellText(text: EntityDetailsDialogHelper.formatDate(slot.createdAt), style: context.captionStyle)),
+        DataCell(AppTableCellText(text: EntityDetailsDialogHelper.formatDate(slot.updatedAt), style: context.captionStyle)),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
