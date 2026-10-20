@@ -1,14 +1,13 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/order_mgmt/controller/orders_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/order_mgmt/model/view_orders_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 class OrdersView extends GetView<OrdersController> {
   const OrdersView({super.key});
@@ -28,64 +27,36 @@ class OrdersView extends GetView<OrdersController> {
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Customer Orders...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<OrderDatum>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Orders Found',
-                      emptySubtitle: 'No customer orders match your query.',
-                      emptyIcon: Icons.shopping_bag_outlined,
-                      columns: const [
-                        DataColumn(label: Text('ORDER NO')),
-                        DataColumn(label: Text('CUSTOMER')),
-                        DataColumn(label: Text('CONTACT')),
-                        DataColumn(label: Text('TOTAL AMOUNT')),
-                        DataColumn(label: Text('PAYMENT')),
-                        DataColumn(label: Text('ORDER STATUS')),
-                        DataColumn(label: Text('DELIVERY CITY')),
-                        DataColumn(label: Text('ORDER PLACED')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, order) => _buildDataRow(context, order),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<OrderDatum>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Customer Orders...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Orders Found',
+              emptySubtitle: 'No customer orders match your query.',
+              emptyIcon: Icons.shopping_bag_outlined,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('ORDER NO')),
+                DataColumn(label: Text('CUSTOMER')),
+                DataColumn(label: Text('CONTACT')),
+                DataColumn(label: Text('TOTAL AMOUNT')),
+                DataColumn(label: Text('PAYMENT')),
+                DataColumn(label: Text('ORDER STATUS')),
+                DataColumn(label: Text('DELIVERY CITY')),
+                DataColumn(label: Text('ORDER PLACED')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, order) => _buildDataRow(context, order),
+            ),
+          ),
         ),
       ],
     );
@@ -97,23 +68,18 @@ class OrdersView extends GetView<OrdersController> {
     return DataRow(
       cells: [
         DataCell(
-          SelectableText(
-            order.orderNumber.isNotEmpty ? order.orderNumber : '#${order.id}',
+          AppTableCellText(
+            text: order.orderNumber.isNotEmpty ? order.orderNumber : '#${order.id}',
+            isSelectable: true,
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
           ),
         ),
         DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 160),
-            child: Tooltip(
-              message: order.customerFullName,
-              child: Text(
-                order.customerFullName,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          AppTableCellText(
+            text: order.customerFullName,
+            maxWidth: 160,
+            maxLines: 1,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
         ),
         DataCell(
@@ -129,7 +95,7 @@ class OrdersView extends GetView<OrdersController> {
         ),
         DataCell(
           Text(
-            '₹${order.totalAmount.toStringAsFixed(2)}',
+            order.totalAmount.toCurrency(),
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.primaryRed),
           ),
         ),
@@ -160,13 +126,8 @@ class OrdersView extends GetView<OrdersController> {
             ),
           ),
         ),
-        DataCell(Text(order.city.isNotEmpty ? order.city : '—', style: const TextStyle(fontSize: 12))),
-        DataCell(
-          Text(
-            order.createdAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt!.toLocal()) : '—',
-            style: const TextStyle(fontSize: 11),
-          ),
-        ),
+        DataCell(AppTableCellText(text: order.city, maxWidth: 120, style: const TextStyle(fontSize: 12))),
+        DataCell(Text(EntityDetailsDialogHelper.formatDate(order.createdAt), style: const TextStyle(fontSize: 11))),
         DataCell(
           IconButton(
             icon: const Icon(Icons.visibility_outlined, size: 18),
@@ -189,7 +150,7 @@ class OrdersView extends GetView<OrdersController> {
       headerIcon: Icons.receipt_long_rounded,
       sections: [
         DetailSection(
-          title: '1. Order Overview & Status',
+          title: 'Order Overview & Status',
           flags: [DetailFlag(label: 'Payment Completed', value: order.isPaid)],
           items: [
             DetailItem(label: 'Order ID', value: '#${order.id}', isCopyable: true),
@@ -202,18 +163,18 @@ class OrdersView extends GetView<OrdersController> {
           ],
         ),
         DetailSection(
-          title: '2. Billing & Price Breakdown',
+          title: 'Billing & Price Breakdown',
           items: [
-            DetailItem(label: 'Subtotal Items', value: '₹${order.subtotal.toStringAsFixed(2)}'),
-            DetailItem(label: 'Discount Amount', value: '-₹${order.discountAmount.toStringAsFixed(2)}'),
-            DetailItem(label: 'Delivery Charge', value: '₹${order.deliveryCharge.toStringAsFixed(2)}'),
-            DetailItem(label: 'Small Cart Charge', value: '₹${order.smallCartCharge.toStringAsFixed(2)}'),
-            DetailItem(label: 'Handling Charge', value: '₹${order.handlingCharge.toStringAsFixed(2)}'),
-            DetailItem(label: 'Total Paid Amount', value: '₹${order.totalAmount.toStringAsFixed(2)}', isCopyable: true),
+            DetailItem(label: 'Subtotal Items', value: order.subtotal.toCurrency()),
+            DetailItem(label: 'Discount Amount', value: '-${order.discountAmount.toCurrency()}'),
+            DetailItem(label: 'Delivery Charge', value: order.deliveryCharge.toCurrency()),
+            DetailItem(label: 'Small Cart Charge', value: order.smallCartCharge.toCurrency()),
+            DetailItem(label: 'Handling Charge', value: order.handlingCharge.toCurrency()),
+            DetailItem(label: 'Total Paid Amount', value: order.totalAmount.toCurrency(), isCopyable: true),
           ],
         ),
         DetailSection(
-          title: '3. Customer & Delivery Destination',
+          title: 'Customer & Delivery Destination',
           items: [
             DetailItem(label: 'Customer ID', value: '#${order.customerId}', isCopyable: true),
             DetailItem(label: 'Customer Name', value: order.customerFullName),
@@ -228,12 +189,9 @@ class OrdersView extends GetView<OrdersController> {
           ],
         ),
         DetailSection(
-          title: '4. System Timestamps & Gateway References',
+          title: 'System Timestamps & Gateway References',
           items: [
-            DetailItem(
-              label: 'Order Created Timestamp',
-              value: order.createdAt != null ? DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt!.toLocal()) : '—',
-            ),
+            DetailItem(label: 'Order Created Timestamp', value: EntityDetailsDialogHelper.formatDate(order.createdAt)),
             DetailItem(label: 'Razorpay Payment ID', value: order.razorpayPaymentId ?? '—', isCopyable: order.razorpayPaymentId != null),
             DetailItem(label: 'Transaction Status', value: order.paymentTxnStatus.isNotEmpty ? order.paymentTxnStatus : '—'),
           ],
