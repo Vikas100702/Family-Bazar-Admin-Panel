@@ -1,7 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -47,63 +47,35 @@ class MiscChargesView extends GetView<MiscChargesController> {
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Misc Cart Charges...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<MiscChargeItem>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Misc Charges Found',
-                      emptySubtitle: 'Click "Add Misc Charge" above to configure cart fee policies.',
-                      emptyIcon: Icons.receipt_long_rounded,
-                      columns: const [
-                        DataColumn(label: Text('CONFIG ID')),
-                        DataColumn(label: Text('HANDLING FEE')),
-                        DataColumn(label: Text('SMALL CART FEE')),
-                        DataColumn(label: Text('MIN CART THRESHOLD')),
-                        DataColumn(label: Text('STATUS')),
-                        DataColumn(label: Text('CREATED AT')),
-                        DataColumn(label: Text('UPDATED AT')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, charge) => _buildDataRow(context, charge),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<MiscChargeItem>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Misc Cart Charges...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Misc Charges Found',
+              emptySubtitle: 'Click "Add Misc Charge" above to configure cart fee policies.',
+              emptyIcon: Icons.receipt_long_rounded,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('CONFIG ID')),
+                DataColumn(label: Text('HANDLING FEE')),
+                DataColumn(label: Text('SMALL CART FEE')),
+                DataColumn(label: Text('MIN CART THRESHOLD')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('CREATED AT')),
+                DataColumn(label: Text('UPDATED AT')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, charge) => _buildDataRow(context, charge),
+            ),
+          ),
         ),
       ],
     );
@@ -114,11 +86,17 @@ class MiscChargesView extends GetView<MiscChargesController> {
 
     return DataRow(
       cells: [
-        DataCell(SelectableText(charge.id > 0 ? '#${charge.id}' : '—', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
-        DataCell(Text('₹${charge.handlingFee.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+        DataCell(
+          AppTableCellText(
+            text: charge.id > 0 ? '#${charge.id}' : '—',
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ),
+        DataCell(Text(charge.handlingFee.toCurrency(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
         DataCell(
           Text(
-            '₹${charge.smallCartCharge.toStringAsFixed(2)}',
+            charge.smallCartCharge.toCurrency(),
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.primaryRed),
           ),
         ),
@@ -127,42 +105,22 @@ class MiscChargesView extends GetView<MiscChargesController> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(color: AppColors.accentAzureBlue.withValues(alpha: 0.1), borderRadius: context.responsiveRadius(4, 6)),
             child: Text(
-              'Under ₹${charge.smallCartMinAmount.toStringAsFixed(2)}',
+              'Under ${charge.smallCartMinAmount.toCurrency()}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.accentAzureBlue),
             ),
           ),
         ),
         DataCell(
-          Obx(() {
-            final bool isToggling = controller.togglingStatusMap[charge.id] == true;
-            if (isToggling) {
-              return const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-              );
-            }
-            return StatusBadge(
-              statusValue: charge.status,
-              activeLabel: 'Active',
-              inactiveLabel: 'Inactive',
-              isEditable: true,
-              onToggle: (bool val) => controller.toggleChargeStatus(charge, val),
-            );
-          }),
-        ),
-        DataCell(
-          Text(
-            charge.createdAt != null && charge.createdAt!.year >= 1970 ? charge.createdAt!.toLocal().toString().split('.').first : '—',
-            style: const TextStyle(fontSize: 12),
+          StatusBadge(
+            statusValue: charge.status,
+            activeLabel: 'Active',
+            inactiveLabel: 'Inactive',
+            isEditable: true,
+            onToggle: (bool val) => controller.toggleChargeStatus(charge, val),
           ),
         ),
-        DataCell(
-          Text(
-            charge.updatedAt != null && charge.updatedAt!.year >= 1970 ? charge.updatedAt!.toLocal().toString().split('.').first : '—',
-            style: const TextStyle(fontSize: 12),
-          ),
-        ),
+        DataCell(Text(EntityDetailsDialogHelper.formatDate(charge.createdAt), style: const TextStyle(fontSize: 12))),
+        DataCell(Text(EntityDetailsDialogHelper.formatDate(charge.updatedAt), style: const TextStyle(fontSize: 12))),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -226,14 +184,8 @@ class MiscChargesView extends GetView<MiscChargesController> {
         DetailSection(
           title: '2. Audit & Timestamps',
           items: [
-            DetailItem(
-              label: 'Created At',
-              value: charge.createdAt != null && charge.createdAt!.year >= 1970 ? charge.createdAt!.toLocal().toString().split('.').first : '—',
-            ),
-            DetailItem(
-              label: 'Updated At',
-              value: charge.updatedAt != null && charge.updatedAt!.year >= 1970 ? charge.updatedAt!.toLocal().toString().split('.').first : '—',
-            ),
+            DetailItem(label: 'Created At', value: EntityDetailsDialogHelper.formatDate(charge.createdAt)),
+            DetailItem(label: 'Updated At', value: EntityDetailsDialogHelper.formatDate(charge.updatedAt)),
           ],
         ),
       ],
