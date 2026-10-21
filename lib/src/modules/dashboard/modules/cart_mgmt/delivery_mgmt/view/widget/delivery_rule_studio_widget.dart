@@ -28,7 +28,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(context.responsiveSize(20, 28)),
-              physics: const BouncingScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -37,7 +37,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                     isDark: isDark,
                     stepNumber: '1',
                     title: 'Rule Metadata & Serviceable Coverage',
-                    subtitle: 'Configure rule calculation type, and postal delivery zones.',
+                    subtitle: 'Configure rule calculation type and postal delivery zones.',
                     child: _buildRuleParametersForm(context, isDark),
                   ),
                   SizedBox(height: context.responsiveHeight(20, 24)),
@@ -69,6 +69,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
     );
   }
 
+  // 1. STUDIO HEADER
   Widget _buildStudioHeader(BuildContext context, bool isDark) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: context.responsiveSize(20, 28), vertical: context.responsiveHeight(14, 18)),
@@ -86,7 +87,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: context.responsiveRadius(6, 8)),
                 child: const Icon(Icons.tune_rounded, color: AppColors.primaryRed, size: 20),
               ),
               const SizedBox(width: 12),
@@ -115,7 +116,10 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
             onPressed: controller.closeRuleStudio,
             icon: const Icon(Icons.close_rounded, size: 16),
             label: const Text('Exit Studio'),
-            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(12, 16), vertical: context.responsiveHeight(8, 10)),
+              shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
+            ),
           ),
         ],
       ),
@@ -175,7 +179,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                   ],
                 ),
               ),
-              if (actionWidget != null) actionWidget,
+              ?actionWidget,
             ],
           ),
           const SizedBox(height: 16),
@@ -205,22 +209,19 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                         label: 'Rule Name *',
                         hint: 'e.g. Festive Delivery Rule',
                         controller: controller.ruleNameController,
-                        isDark: isDark,
                         validator: (val) => (val == null || val.trim().isEmpty) ? 'Rule Name is required' : null,
                       ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(flex: 2, child: _buildRuleTypeDropdown(context, isDark)),
                     const SizedBox(width: 14),
-                    const SizedBox(width: 14),
                     Expanded(
                       flex: 1,
-                      child: _buildStatusToggle(label: 'Status', isDark: isDark, statusRx: controller.status),
+                      child: _buildStatusToggle(label: 'Status', isDark: isDark, statusRx: controller.status, context: context),
                     ),
                   ],
                 );
               }
-
               return Column(
                 children: [
                   _buildTextField(
@@ -228,13 +229,12 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                     label: 'Rule Name *',
                     hint: 'e.g. Festive Delivery Rule',
                     controller: controller.ruleNameController,
-                    isDark: isDark,
                     validator: (val) => (val == null || val.trim().isEmpty) ? 'Rule Name is required' : null,
                   ),
                   const SizedBox(height: 12),
-                  Row(children: [Expanded(child: _buildRuleTypeDropdown(context, isDark))]),
+                  _buildRuleTypeDropdown(context, isDark),
                   const SizedBox(height: 12),
-                  _buildStatusToggle(label: 'Status', isDark: isDark, statusRx: controller.status),
+                  _buildStatusToggle(label: 'Status', isDark: isDark, statusRx: controller.status, context: context),
                 ],
               );
             },
@@ -245,7 +245,6 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
             label: 'Description (Optional)',
             hint: 'Internal fulfillment comments and guidelines',
             controller: controller.descriptionController,
-            isDark: isDark,
             maxLines: 2,
           ),
           const SizedBox(height: 16),
@@ -284,7 +283,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
 
           return DropdownButtonFormField<String>(
             isExpanded: true,
-            value: currentVal,
+            initialValue: currentVal,
             dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
             style: TextStyle(
               fontSize: 13,
@@ -294,19 +293,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                   : (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate),
             ),
             decoration: InputDecoration(
-              filled: true,
-              fillColor: isEdit
-                  ? (isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray.withValues(alpha: 0.6))
-                  : (isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: isEdit
-                      ? (isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate)
-                      : (isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-                ),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+              isDense: true,
               helperText: isEdit ? 'Locked during edit mode' : null,
               helperStyle: const TextStyle(fontSize: 10, color: Colors.grey),
             ),
@@ -324,7 +311,6 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                 child: Text('Combined (Distance + Amount)', overflow: TextOverflow.ellipsis, maxLines: 1),
               ),
             ],
-            // Passing null to onChanged automatically disables the dropdown
             onChanged: isEdit
                 ? null
                 : (val) {
@@ -338,7 +324,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
     );
   }
 
-  Widget _buildStatusToggle({required String label, required bool isDark, required RxInt statusRx}) {
+  Widget _buildStatusToggle({required String label, required bool isDark, required RxInt statusRx, required BuildContext context}) {
     return Obx(() {
       final bool isActive = statusRx.value == 1;
       return Column(
@@ -351,12 +337,20 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
               color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: context.responsiveRadius(6, 8),
               border: Border.all(color: isActive ? AppColors.statusGreenSuccess : AppColors.borderSubtleSlate),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [StatusBadge(isEditable: true, isActive: isActive, onToggle: (val) => statusRx.value = val ? 1 : 0)],
+              children: [
+                StatusBadge(
+                  isEditable: true,
+                  isActive: isActive,
+                  activeLabel: 'Active',
+                  inactiveLabel: 'Inactive',
+                  onToggle: (val) => statusRx.value = val ? 1 : 0,
+                ),
+              ],
             ),
           ),
         ],
@@ -368,7 +362,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: context.responsiveRadius(6, 8),
         border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
       ),
       padding: const EdgeInsets.all(14),
@@ -385,7 +379,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                   decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                   child: Text(
                     '${controller.selectedPincodeIds.length} of ${controller.allPincodes.length} Selected',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
+                    style: context.captionStyle.copyWith(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
                   ),
                 ),
               ),
@@ -398,13 +392,10 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                 child: TextField(
                   controller: controller.pincodeSearchController,
                   onChanged: controller.onPincodeSearch,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Search pincode or operating firm...',
                     isDense: true,
-                    prefixIcon: const Icon(Icons.search_rounded, size: 16),
-                    filled: true,
-                    fillColor: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+                    prefixIcon: Icon(Icons.search_rounded, size: 16),
                   ),
                 ),
               ),
@@ -428,7 +419,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
             if (controller.isLoadingPincodes.value) {
               return const SizedBox(
                 height: 140,
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryRed)),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed))),
               );
             }
 
@@ -444,7 +435,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
               height: 160,
               decoration: BoxDecoration(
                 border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: context.responsiveRadius(4, 6),
               ),
               child: ListView.separated(
                 itemCount: list.length,
@@ -487,7 +478,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: context.responsiveRadius(6, 8),
               ),
               child: Column(
                 children: [
@@ -501,7 +492,11 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                     onPressed: () => controller.openInlineSlabForm(),
                     icon: const Icon(Icons.add_rounded, size: 16),
                     label: const Text('Add Fee Slab Tier'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryRed, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryRed,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
+                    ),
                   ),
                 ],
               ),
@@ -519,21 +514,26 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                 final bool showAmount = type == 'amount' || type == 'distance_amount';
 
                 final String distStr = '${slab.minDistanceKm.toStringAsFixed(0)} - ${slab.maxDistanceKm.toStringAsFixed(0)} KM';
-                final String cartStr =
-                    '₹ ${slab.minOrderAmount.toStringAsFixed(0)} - ${slab.maxOrderAmount != null && slab.maxOrderAmount! > 0 ? "₹ ${slab.maxOrderAmount!.toStringAsFixed(0)}" : "Open"}';
+                final String maxCartStr = slab.maxOrderAmount != null && slab.maxOrderAmount! > 0
+                    ? slab.maxOrderAmount!.toCurrency(fractionDigits: 0)
+                    : "Open";
+                final String cartStr = '${slab.minOrderAmount.toCurrency(fractionDigits: 0)} - $maxCartStr';
 
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: context.responsiveRadius(6, 8),
                     border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: AppColors.accentAzureBlue.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentAzureBlue.withValues(alpha: 0.12),
+                          borderRadius: context.responsiveRadius(4, 4),
+                        ),
                         child: Text(
                           'P${slab.priority}',
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.accentAzureBlue),
@@ -546,15 +546,17 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            if (showAmount) Text('Order Subtotal: $cartStr', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            if (showDistance) Text('Distance: $distStr', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                            if (showAmount)
+                              Text('Order Subtotal: $cartStr', style: context.bodyTextStyle.copyWith(fontSize: 13, fontWeight: FontWeight.bold)),
+                            if (showDistance)
+                              Text('Distance: $distStr', style: context.captionStyle.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
                             Text(
-                              'Base Charge: ₹ ${slab.baseCharge.toStringAsFixed(0)}',
+                              'Base Charge: ${slab.baseCharge.toCurrency(fractionDigits: 0)}',
                               style: const TextStyle(fontSize: 12, color: AppColors.primaryRed, fontWeight: FontWeight.bold),
                             ),
                             if (showDistance && slab.perKmCharge > 0)
                               Text(
-                                'Per KM: ₹ ${slab.perKmCharge.toStringAsFixed(0)}',
+                                'Per KM: ${slab.perKmCharge.toCurrency(fractionDigits: 0)}',
                                 style: const TextStyle(fontSize: 12, color: AppColors.statusBlueInfo),
                               ),
                           ],
@@ -564,13 +566,17 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                       const SizedBox(width: 10),
                       IconButton(
                         icon: const Icon(Icons.edit_outlined, size: 16),
+                        mouseCursor: SystemMouseCursors.click,
                         tooltip: 'Edit Slab',
+                        splashRadius: 16,
                         onPressed: () => controller.openInlineSlabForm(slab: slab, index: index),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                        mouseCursor: SystemMouseCursors.click,
                         color: AppColors.primaryRed,
                         tooltip: 'Remove Slab',
+                        splashRadius: 16,
                         onPressed: () => controller.removeSlab(index),
                       ),
                     ],
@@ -587,7 +593,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: context.responsiveRadius(6, 8),
         border: Border.all(color: AppColors.primaryRed.withValues(alpha: 0.5), width: 1.2),
       ),
       padding: const EdgeInsets.all(16),
@@ -605,7 +611,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryRed),
                   ),
                 ),
-                IconButton(icon: const Icon(Icons.close, size: 16), onPressed: controller.closeInlineSlabForm),
+                IconButton(icon: const Icon(Icons.close, size: 16), splashRadius: 16, onPressed: controller.closeInlineSlabForm),
               ],
             ),
             const SizedBox(height: 12),
@@ -617,7 +623,6 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // 1. CONDITIONAL DISTANCE SLOTS
                   if (showDistance) ...[
                     Row(
                       children: [
@@ -627,7 +632,6 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                             label: 'Min Distance (KM) *',
                             hint: '0',
                             controller: controller.minDistanceKmController,
-                            isDark: isDark,
                             isNumber: true,
                             validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
                           ),
@@ -639,7 +643,6 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                             label: 'Max Distance (KM) *',
                             hint: '5',
                             controller: controller.maxDistanceKmController,
-                            isDark: isDark,
                             isNumber: true,
                             validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
                           ),
@@ -651,7 +654,6 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                             label: 'Per KM Surcharge (₹)',
                             hint: '0',
                             controller: controller.perKmChargeController,
-                            isDark: isDark,
                             isNumber: true,
                           ),
                         ),
@@ -659,6 +661,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                     ),
                     const SizedBox(height: 12),
                   ],
+
                   // 2. CONDITIONAL AMOUNT SLOTS
                   if (showAmount) ...[
                     Row(
@@ -669,7 +672,6 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                             label: 'Min Order Subtotal (₹) *',
                             hint: '0',
                             controller: controller.minOrderAmountController,
-                            isDark: isDark,
                             isNumber: true,
                             validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
                           ),
@@ -679,9 +681,8 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                           child: _buildTextField(
                             context: context,
                             label: 'Max Order Subtotal (₹)',
-                            hint: '499 (Leave blank for open-ended)',
+                            hint: 'Leave blank for open-ended',
                             controller: controller.maxOrderAmountController,
-                            isDark: isDark,
                             isNumber: true,
                           ),
                         ),
@@ -689,6 +690,7 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                     ),
                     const SizedBox(height: 12),
                   ],
+
                   // 3. BASE CHARGE, PRIORITY & SLAB STATUS
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -699,7 +701,6 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                           label: 'Base Delivery Fee (₹) *',
                           hint: '40',
                           controller: controller.baseChargeController,
-                          isDark: isDark,
                           isNumber: true,
                           validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
                         ),
@@ -711,14 +712,13 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                           label: 'Slab Priority *',
                           hint: '1',
                           controller: controller.slabPriorityController,
-                          isDark: isDark,
                           isNumber: true,
                           validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: _buildStatusToggle(label: 'Slab Status', isDark: isDark, statusRx: controller.slabStatus),
+                        child: _buildStatusToggle(label: 'Slab Status', isDark: isDark, statusRx: controller.slabStatus, context: context),
                       ),
                     ],
                   ),
@@ -733,7 +733,11 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: controller.saveInlineSlab,
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryRed, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRed,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
+                  ),
                   child: const Text('Keep Slab'),
                 ),
               ],
@@ -745,17 +749,23 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
   }
 
   Widget _buildBottomSubmissionBar(BuildContext context) {
+    final bool isDark = context.isDark;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 20), vertical: context.responsiveHeight(10, 14)),
       decoration: BoxDecoration(
-        color: context.isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
+        color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+        borderRadius: context.responsiveRadius(8, 10),
+        border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          OutlinedButton(onPressed: controller.closeRuleStudio, child: const Text('Discard Changes')),
+          OutlinedButton(
+            onPressed: controller.closeRuleStudio,
+            style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8))),
+            child: const Text('Discard Changes'),
+          ),
           Obx(() {
             final bool isSubmitting = controller.isSubmitting.value;
             final bool isEdit = controller.isStudioEditing.value;
@@ -776,7 +786,8 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryRed,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(18, 24), vertical: context.responsiveHeight(12, 14)),
+                shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
               ),
             );
           }),
@@ -790,7 +801,6 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
     required String label,
     required String hint,
     required TextEditingController controller,
-    required bool isDark,
     bool isNumber = false,
     int maxLines = 1,
     String? Function(String?)? validator,
@@ -798,20 +808,21 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+        Text(
+          label,
+          style: context.captionStyle.copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+            color: context.isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate,
+          ),
+        ),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
           maxLines: maxLines,
           keyboardType: isNumber ? TextInputType.number : TextInputType.text,
           inputFormatters: isNumber ? [FilteringTextInputFormatter.digitsOnly] : null,
-          decoration: InputDecoration(
-            hintText: hint,
-            filled: true,
-            fillColor: isDark ? AppColors.canvasDarkSlate : AppColors.surfaceSubtleGray,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          ),
+          decoration: InputDecoration(hintText: hint, isDense: true),
           validator: validator,
         ),
       ],

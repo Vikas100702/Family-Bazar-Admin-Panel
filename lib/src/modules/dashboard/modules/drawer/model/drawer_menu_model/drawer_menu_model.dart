@@ -1,24 +1,33 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 @immutable
 class DrawerMenuModel {
   final String title;
-  final String identifier; // The raw key from API (e.g., 'Category')
-  final String? icon; // API Image URL
-  final IconData? fallbackIcon; // For static items (Dashboard) or error fallbacks
+  final String identifier; // Raw route/permission key (e.g. 'category', 'item')
+  final String? icon; // Remote network image asset URL
+  final IconData? fallbackIcon; // Semantic fallback icon
   final List<DrawerMenuModel> subItems;
   final bool isExpansion;
 
-  const DrawerMenuModel({
+  DrawerMenuModel({
     required this.title,
     required this.identifier,
     this.icon,
     this.fallbackIcon,
-    this.subItems = const <DrawerMenuModel>[],
+    List<DrawerMenuModel> subItems = const <DrawerMenuModel>[],
     this.isExpansion = false,
-  });
+  }) : subItems = List<DrawerMenuModel>.unmodifiable(subItems);
 
-  /// Defensive helper to prevent bang-operator force unwraps in presentation widgets
+  const DrawerMenuModel.empty()
+    : title = '',
+      identifier = '',
+      icon = null,
+      fallbackIcon = null,
+      subItems = const <DrawerMenuModel>[],
+      isExpansion = false;
+
+  /// Defensive helper to determine if expandable sub-items exist.
   bool get hasSubItems => isExpansion && subItems.isNotEmpty;
 
   DrawerMenuModel copyWith({
@@ -34,22 +43,26 @@ class DrawerMenuModel {
       identifier: identifier ?? this.identifier,
       icon: icon ?? this.icon,
       fallbackIcon: fallbackIcon ?? this.fallbackIcon,
-      subItems: subItems ?? this.subItems,
+      subItems: subItems != null ? List<DrawerMenuModel>.unmodifiable(subItems) : this.subItems,
       isExpansion: isExpansion ?? this.isExpansion,
     );
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DrawerMenuModel &&
-          runtimeType == other.runtimeType &&
-          identifier == other.identifier &&
-          title == other.title &&
-          isExpansion == other.isExpansion;
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is DrawerMenuModel &&
+        runtimeType == other.runtimeType &&
+        identifier == other.identifier &&
+        title == other.title &&
+        icon == other.icon &&
+        fallbackIcon == other.fallbackIcon &&
+        isExpansion == other.isExpansion &&
+        listEquals(subItems, other.subItems);
+  }
 
   @override
-  int get hashCode => Object.hash(identifier, title, isExpansion);
+  int get hashCode => Object.hash(identifier, title, icon, fallbackIcon, isExpansion, Object.hashAll(subItems));
 
   @override
   String toString() => 'DrawerMenuModel(title: $title, identifier: $identifier, isExpansion: $isExpansion, subItemsCount: ${subItems.length})';

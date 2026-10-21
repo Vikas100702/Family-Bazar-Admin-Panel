@@ -15,12 +15,14 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
 
   PincodeSettingsController({required this._repository, required this._firmRepository, required this._storageService});
 
-  // Firm selection & drop-down reactive state
+  bool _isActionLocked = false;
+
+  // FIRM SELECTION & DROP-DOWN REACTIVE STATE
   final RxList<ViewFirmDatum> firmDropdownList = <ViewFirmDatum>[].obs;
   final Rxn<ViewFirmDatum> selectedFirm = Rxn<ViewFirmDatum>();
   final RxBool isLoadingFirms = false.obs;
 
-  // Form Management
+  // FORM MANAGEMENT & TEXT CONTROLLERS
   final GlobalKey<FormState> pincodeFormKey = GlobalKey<FormState>();
   late final TextEditingController firmCodeController;
   late final TextEditingController firmNameController;
@@ -48,23 +50,32 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
   Future<void> fetchServerData() async {
     await runWithLoading(() async {
       try {
-        final response = await _repository.getPincodes(page: currentPage.value, limit: itemsPerPage.value, searchValue: searchQuery.value);
+        final PincodeModel response = await _repository.getPincodes(
+          page: currentPage.value,
+          limit: itemsPerPage.value,
+          searchValue: searchQuery.value,
+        );
+
         if (isClosed) return;
 
         if (response.status) {
-          setServerData(data: response.data, totalCount: response.pagination?.totalRecords ?? 0, pageCount: response.pagination?.totalPages);
+          setServerData(
+            data: response.data,
+            totalCount: response.pagination?.totalRecords ?? response.data.length,
+            pageCount: response.pagination?.totalPages,
+          );
         } else {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch the pincode list.');
         }
       } catch (e, stackTrace) {
-        Sentry.captureException(
-          e,
-          stackTrace: stackTrace,
-          withScope: (scope) {
-            scope.setTag('controller', 'PincodeSettingsController');
-          },
-        );
-        errorMessage(message: 'An unexpected error occurred while fetching pincodes.');
+        _logException(e, stackTrace, 'fetchServerData', <String, dynamic>{
+          'page': currentPage.value,
+          'limit': itemsPerPage.value,
+          'search': searchQuery.value,
+        });
+        if (!isClosed) {
+          errorMessage(message: 'An unexpected error occurred while fetching pincodes.');
+        }
       }
     });
   }
@@ -72,7 +83,8 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
   Future<void> fetchFirmsForDropdown() async {
     try {
       isLoadingFirms.value = true;
-      final response = await _firmRepository.viewFirms();
+      final ViewFirmModel response = await _firmRepository.viewFirms();
+
       if (isClosed) return;
 
       if (response.success) {
@@ -81,8 +93,10 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
         errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch firms list.');
       }
     } catch (e, stackTrace) {
-      Sentry.captureException(e, stackTrace: stackTrace);
-      if (!isClosed) errorMessage(message: 'Error fetching pincode details.');
+      _logException(e, stackTrace, 'fetchFirmsForDropdown');
+      if (!isClosed) {
+        errorMessage(message: 'Error fetching firm details for dropdown.');
+      }
     } finally {
       if (!isClosed) isLoadingFirms.value = false;
     }
@@ -108,23 +122,28 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
     await fetchServerData();
   }
 
-  /// Submits pincode assignment with conflict verification and slot values
+  // MUTATIONS (SUBMIT & UN-MAP) WITH CONCURRENCY LOCKS
   Future<void> submitPincode({bool isEdit = false, int? id}) async {
-    if (!pincodeFormKey.currentState!.validate()) return;
+    if (isSubmitting.value || _isActionLocked) return;
+
+    if (pincodeFormKey.currentState == null || !pincodeFormKey.currentState!.validate()) {
+      return;
+    }
+
+    _isActionLocked = true;
     isSubmitting.value = true;
 
     try {
-      final payload = {
-        "user_name": _storageService.getString("username") ?? "Super Admin",
-        "P_FirmCode": firmCodeController.text.trim(),
-        "P_FirmName": firmNameController.text.trim(),
-        "P_PinCode": pinCodeController.text.trim(),
-        "id": ?id,
-        "IsScheduleSlot": selectedSlot.value == 1 ? 1 : 0,
-        "IsRegularSlot": selectedSlot.value == 2 ? 1 : 0,
-      };
+      final AddPincodeModel response = await _repository.addPincode(
+        userName: _storageService.getString('username') ?? 'Super Admin',
+        firmCode: firmCodeController.text.trim(),
+        firmName: firmNameController.text.trim(),
+        pincode: pinCodeController.text.trim(),
+        id: id,
+        isScheduleSlot: selectedSlot.value == 1 ? 1 : 0,
+        isRegularSlot: selectedSlot.value == 2 ? 1 : 0,
+      );
 
-      final response = await _repository.addPincode(payload);
       if (isClosed) return;
 
       if (response.status == -1) {
@@ -133,46 +152,55 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
         pincodeFormKey.currentState?.validate();
       } else if (response.status == 1 || response.success) {
         addPincodeStatus.value = 0;
-        successMessage(title: "Success", message: response.message);
+        successMessage(title: 'Success', message: response.message);
         Get.back();
         fetchServerData();
       } else {
-        errorMessage(message: response.message);
+        errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to save pincode.');
       }
     } catch (e, stackTrace) {
-      Sentry.captureException(e, stackTrace: stackTrace);
-      errorMessage(message: e.toString());
+      _logException(e, stackTrace, 'submitPincode', <String, dynamic>{'isEdit': isEdit, 'id': id});
+      if (!isClosed) {
+        errorMessage(message: 'An error occurred while saving the pincode mapping.');
+      }
     } finally {
+      _isActionLocked = false;
       if (!isClosed) isSubmitting.value = false;
     }
   }
 
   Future<void> confirmAndUnmapPincode() async {
-    isSubmitting.value = true;
-    try {
-      final payload = {
-        "user_name": _storageService.getString("username") ?? "Super Admin",
-        "P_FirmCode": firmCodeController.text.trim(),
-        "P_FirmName": firmNameController.text.trim(),
-        "P_PinCode": pinCodeController.text.trim(),
-        "IsScheduleSlot": selectedSlot.value == 1 ? 1 : 0,
-        "IsRegularSlot": selectedSlot.value == 2 ? 1 : 0,
-      };
+    if (isSubmitting.value || _isActionLocked) return;
 
-      final response = await _repository.unmapAndAssignPincode(payload);
+    _isActionLocked = true;
+    isSubmitting.value = true;
+
+    try {
+      final UnmapAndAssignPincodeModel response = await _repository.unmapAndAssignPincode(
+        userName: _storageService.getString('username') ?? 'Super Admin',
+        firmCode: firmCodeController.text.trim(),
+        firmName: firmNameController.text.trim(),
+        pincode: pinCodeController.text.trim(),
+        isScheduleSlot: selectedSlot.value == 1 ? 1 : 0,
+        isRegularSlot: selectedSlot.value == 2 ? 1 : 0,
+      );
+
       if (isClosed) return;
 
       if (response.status == 1 || response.success) {
         addPincodeStatus.value = 0;
-        successMessage(title: "Success", message: response.message);
+        successMessage(title: 'Success', message: response.message);
         fetchServerData();
       } else {
-        errorMessage(message: response.message);
+        errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to unmap & reassign pincode.');
       }
     } catch (e, stackTrace) {
-      Sentry.captureException(e, stackTrace: stackTrace);
-      errorMessage(message: e.toString());
+      _logException(e, stackTrace, 'confirmAndUnmapPincode');
+      if (!isClosed) {
+        errorMessage(message: 'An error occurred during unmap and assign execution.');
+      }
     } finally {
+      _isActionLocked = false;
       if (!isClosed) isSubmitting.value = false;
     }
   }
@@ -182,7 +210,7 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
     firmNameController.clear();
     pinCodeController.clear();
     selectedFirm.value = null;
-    selectedSlot.value = 1; // Reset to default Schedule Slot
+    selectedSlot.value = 1;
     addPincodeStatus.value = 0;
     addPincodeErrorMessage.value = '';
     isSubmitting.value = false;
@@ -195,7 +223,7 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
 
     if (firmDropdownList.isNotEmpty) {
       try {
-        selectedFirm.value = firmDropdownList.firstWhere((f) => f.fFirmCode == pincode.pFirmCode || f.fFirmName == pincode.pFirmName);
+        selectedFirm.value = firmDropdownList.firstWhere((ViewFirmDatum f) => f.fFirmCode == pincode.pFirmCode || f.fFirmName == pincode.pFirmName);
       } catch (_) {
         selectedFirm.value = null;
       }
@@ -216,11 +244,24 @@ class PincodeSettingsController extends BaseServerTableController<Datum> {
     }
   }
 
+  void _logException(dynamic exception, StackTrace stackTrace, String action, [Map<String, dynamic>? extra]) {
+    Sentry.captureException(
+      exception,
+      stackTrace: stackTrace,
+      withScope: (Scope scope) {
+        scope.setTag('controller', 'PincodeSettingsController');
+        scope.setTag('module', 'pincode_settings');
+        scope.setContexts('pincode_action', <String, dynamic>{'action': action, 'current_page': currentPage.value, ...?extra});
+      },
+    );
+  }
+
   @override
   void onClose() {
     firmCodeController.dispose();
     firmNameController.dispose();
     pinCodeController.dispose();
+    firmDropdownList.clear();
     super.onClose();
   }
 }

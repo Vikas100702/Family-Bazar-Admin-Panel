@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_assets.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
@@ -12,24 +13,24 @@ import 'package:get/get.dart';
 class DrawerView extends GetView<DashboardDrawerController> {
   const DrawerView({super.key});
 
+  DashboardController get _dashboardController => Get.find<DashboardController>();
+
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDark;
-    final DashboardController dashboardController = Get.find<DashboardController>();
+    final bool isDark = context.isDark;
 
     return Obx(() {
-      final bool isCollapsed = context.isDesktop && dashboardController.isDrawerCollapsed.value;
+      final bool isCollapsed = context.isDesktop && _dashboardController.isDrawerCollapsed.value;
 
       return Drawer(
         elevation: context.isDesktop ? 0 : 4.0,
-        shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(0, 0)),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         backgroundColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildAdaptiveHeader(context, isCollapsed: isCollapsed),
             Divider(height: 1, thickness: 1, color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-
             Expanded(
               child: controller.menuItems.isEmpty
                   ? const Center(
@@ -46,12 +47,11 @@ class DrawerView extends GetView<DashboardDrawerController> {
                       ),
                       itemCount: controller.menuItems.length,
                       itemBuilder: (context, index) {
-                        final item = controller.menuItems[index];
+                        final DrawerMenuModel item = controller.menuItems[index];
                         return _buildDynamicMenuItem(context, item, isCollapsed: isCollapsed);
                       },
                     ),
             ),
-
             Divider(height: 1, thickness: 1, color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
             _buildAdaptiveFooter(context, isCollapsed: isCollapsed),
           ],
@@ -61,7 +61,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
   }
 
   Widget _buildAdaptiveHeader(BuildContext context, {required bool isCollapsed}) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     if (isCollapsed) {
       return Container(
@@ -99,7 +99,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
               errorBuilder: (context, error, stackTrace) => Container(
                 width: context.responsiveSize(38, 42),
                 height: context.responsiveSize(38, 42),
-                decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: context.responsiveRadius(6, 8)),
                 child: const Icon(Icons.storefront_rounded, color: AppColors.primaryRed, size: 22),
               ),
             ),
@@ -133,12 +133,9 @@ class DrawerView extends GetView<DashboardDrawerController> {
     return isCollapsed ? _buildCollapsedSingleItem(context, item) : _buildSingleMenuItem(context, item);
   }
 
-  // Mini Sidebar Item (Icon only)
   Widget _buildCollapsedSingleItem(BuildContext context, DrawerMenuModel item) {
     return Obx(() {
-      final dashboardController = Get.find<DashboardController>();
-      final bool isActive = _isKeyActive(dashboardController.selectedMenuKey.value, item.identifier);
-
+      final bool isActive = _isKeyActive(_dashboardController.selectedMenuKey.value, item.identifier);
       final Color tileColor = isActive ? AppColors.primaryRed.withValues(alpha: 0.12) : Colors.transparent;
       final Color borderColor = isActive ? AppColors.primaryRed.withValues(alpha: 0.35) : Colors.transparent;
 
@@ -149,10 +146,10 @@ class DrawerView extends GetView<DashboardDrawerController> {
           waitDuration: const Duration(milliseconds: 300),
           child: Material(
             color: tileColor,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.responsiveRadius(6, 8),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: context.responsiveRadius(6, 8),
               mouseCursor: SystemMouseCursors.click,
               hoverColor: AppColors.primaryRed.withValues(alpha: 0.06),
               splashColor: AppColors.primaryRed.withValues(alpha: 0.12),
@@ -160,7 +157,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
               child: Container(
                 height: 48,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: context.responsiveRadius(6, 8),
                   border: Border.all(color: borderColor, width: 1),
                 ),
                 alignment: Alignment.center,
@@ -173,14 +170,11 @@ class DrawerView extends GetView<DashboardDrawerController> {
     });
   }
 
-  // Mini Sidebar Item with Popup (Supports 2nd & 3rd Tiers)
   Widget _buildCollapsedExpandableItem(BuildContext context, DrawerMenuModel item) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Obx(() {
-      final dashboardController = Get.find<DashboardController>();
-      final bool isAnyChildActive = _isRecursiveActive(dashboardController.selectedMenuKey.value, item);
-
+      final bool isAnyChildActive = _isRecursiveActive(_dashboardController.selectedMenuKey.value, item);
       final Color tileColor = isAnyChildActive ? AppColors.primaryRed.withValues(alpha: 0.12) : Colors.transparent;
       final Color borderColor = isAnyChildActive ? AppColors.primaryRed.withValues(alpha: 0.35) : Colors.transparent;
 
@@ -191,18 +185,18 @@ class DrawerView extends GetView<DashboardDrawerController> {
           waitDuration: const Duration(milliseconds: 300),
           child: Material(
             color: tileColor,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.responsiveRadius(6, 8),
             clipBehavior: Clip.antiAlias,
             child: PopupMenuButton<String>(
               tooltip: '',
               offset: const Offset(54, 0),
               color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: context.responsiveRadius(6, 8),
                 side: BorderSide(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
               ),
-              onSelected: (identifier) => _handleItemTap(context, identifier),
-              itemBuilder: (popupContext) {
+              onSelected: (String identifier) => _handleItemTap(context, identifier),
+              itemBuilder: (BuildContext popupContext) {
                 final List<PopupMenuEntry<String>> entries = [
                   PopupMenuItem<String>(
                     enabled: false,
@@ -220,9 +214,8 @@ class DrawerView extends GetView<DashboardDrawerController> {
                   const PopupMenuDivider(height: 1),
                 ];
 
-                for (final subItem in item.subItems) {
+                for (final DrawerMenuModel subItem in item.subItems) {
                   if (subItem.hasSubItems) {
-                    // Group Header for 2nd tier parent having 3rd tier children
                     entries.add(
                       PopupMenuItem<String>(
                         enabled: false,
@@ -237,8 +230,9 @@ class DrawerView extends GetView<DashboardDrawerController> {
                         ),
                       ),
                     );
-                    for (final thirdItem in subItem.subItems) {
-                      final bool isThirdActive = _isKeyActive(dashboardController.selectedMenuKey.value, thirdItem.identifier);
+
+                    for (final DrawerMenuModel thirdItem in subItem.subItems) {
+                      final bool isThirdActive = _isKeyActive(_dashboardController.selectedMenuKey.value, thirdItem.identifier);
                       entries.add(
                         PopupMenuItem<String>(
                           value: thirdItem.identifier,
@@ -264,7 +258,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
                       );
                     }
                   } else {
-                    final bool isSubActive = _isKeyActive(dashboardController.selectedMenuKey.value, subItem.identifier);
+                    final bool isSubActive = _isKeyActive(_dashboardController.selectedMenuKey.value, subItem.identifier);
                     entries.add(
                       PopupMenuItem<String>(
                         value: subItem.identifier,
@@ -296,7 +290,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
               child: Container(
                 height: 48,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: context.responsiveRadius(6, 8),
                   border: Border.all(color: borderColor, width: 1),
                 ),
                 alignment: Alignment.center,
@@ -309,14 +303,11 @@ class DrawerView extends GetView<DashboardDrawerController> {
     });
   }
 
-  // Full Sidebar Item (Icon + Label)
   Widget _buildSingleMenuItem(BuildContext context, DrawerMenuModel item) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Obx(() {
-      final dashboardController = Get.find<DashboardController>();
-      final bool isActive = _isKeyActive(dashboardController.selectedMenuKey.value, item.identifier);
-
+      final bool isActive = _isKeyActive(_dashboardController.selectedMenuKey.value, item.identifier);
       final Color tileColor = isActive ? AppColors.primaryRed.withValues(alpha: 0.1) : Colors.transparent;
       final Color borderColor = isActive ? AppColors.primaryRed.withValues(alpha: 0.3) : Colors.transparent;
 
@@ -324,10 +315,10 @@ class DrawerView extends GetView<DashboardDrawerController> {
         padding: EdgeInsets.symmetric(vertical: context.responsiveHeight(2, 3)),
         child: Material(
           color: tileColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: context.responsiveRadius(6, 8),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.responsiveRadius(6, 8),
             mouseCursor: SystemMouseCursors.click,
             hoverColor: AppColors.primaryRed.withValues(alpha: 0.05),
             splashColor: AppColors.primaryRed.withValues(alpha: 0.12),
@@ -335,7 +326,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(12, 14), vertical: context.responsiveHeight(10, 12)),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: context.responsiveRadius(6, 8),
                 border: Border.all(color: borderColor, width: 1),
               ),
               child: Row(
@@ -365,21 +356,19 @@ class DrawerView extends GetView<DashboardDrawerController> {
     });
   }
 
-  // Full Sidebar 1st-Tier Dropdown
   Widget _buildExpandableMenuGroup(BuildContext context, DrawerMenuModel item) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Obx(() {
-      final dashboardController = Get.find<DashboardController>();
-      final bool isAnyChildActive = _isRecursiveActive(dashboardController.selectedMenuKey.value, item);
+      final bool isAnyChildActive = _isRecursiveActive(_dashboardController.selectedMenuKey.value, item);
 
       return Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent, splashColor: Colors.transparent),
         child: ExpansionTile(
           initiallyExpanded: isAnyChildActive,
           tilePadding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(12, 14), vertical: context.responsiveHeight(2, 4)),
-          collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          collapsedShape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
+          shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
           leading: _buildMenuIcon(context, item, isActive: isAnyChildActive),
           title: Text(
             item.title,
@@ -395,8 +384,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
           ),
           iconColor: AppColors.primaryRed,
           collapsedIconColor: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
-          children: item.subItems.map((subItem) {
-            // Check if subItem contains 3rd tier children
+          children: item.subItems.map((DrawerMenuModel subItem) {
             if (subItem.hasSubItems) {
               return _buildSecondTierExpandableGroup(context, subItem);
             }
@@ -407,13 +395,11 @@ class DrawerView extends GetView<DashboardDrawerController> {
     });
   }
 
-  // Full Sidebar 2nd-Tier Dropdown (For 3rd Tier Children)
   Widget _buildSecondTierExpandableGroup(BuildContext context, DrawerMenuModel item) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Obx(() {
-      final dashboardController = Get.find<DashboardController>();
-      final bool isAnyChildActive = _isRecursiveActive(dashboardController.selectedMenuKey.value, item);
+      final bool isAnyChildActive = _isRecursiveActive(_dashboardController.selectedMenuKey.value, item);
 
       return Padding(
         padding: EdgeInsets.only(left: context.responsiveWidth(14, 18), right: context.responsiveWidth(4, 6)),
@@ -422,8 +408,8 @@ class DrawerView extends GetView<DashboardDrawerController> {
           child: ExpansionTile(
             initiallyExpanded: isAnyChildActive,
             tilePadding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(10, 12), vertical: 0),
-            collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            collapsedShape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
+            shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
             leading: Icon(
               Icons.tune_rounded,
               size: context.responsiveSize(16, 18),
@@ -447,7 +433,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
             ),
             iconColor: AppColors.primaryRed,
             collapsedIconColor: isDark ? AppColors.textMutedDark : AppColors.textMutedSlate,
-            children: item.subItems.map((subItem) {
+            children: item.subItems.map((DrawerMenuModel subItem) {
               return _buildSubMenuItem(context, subItem, isThirdTier: true);
             }).toList(),
           ),
@@ -457,12 +443,10 @@ class DrawerView extends GetView<DashboardDrawerController> {
   }
 
   Widget _buildSubMenuItem(BuildContext context, DrawerMenuModel subItem, {bool isThirdTier = false}) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return Obx(() {
-      final dashboardController = Get.find<DashboardController>();
-      final bool isSubActive = _isKeyActive(dashboardController.selectedMenuKey.value, subItem.identifier);
-
+      final bool isSubActive = _isKeyActive(_dashboardController.selectedMenuKey.value, subItem.identifier);
       final Color subColor = isSubActive ? AppColors.primaryRed.withValues(alpha: 0.08) : Colors.transparent;
       final double leftPadding = isThirdTier ? context.responsiveWidth(36, 44) : context.responsiveWidth(28, 34);
 
@@ -470,10 +454,10 @@ class DrawerView extends GetView<DashboardDrawerController> {
         padding: EdgeInsets.only(left: leftPadding, right: context.responsiveWidth(6, 8), top: 2, bottom: 2),
         child: Material(
           color: subColor,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: context.responsiveRadius(4, 6),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: context.responsiveRadius(4, 6),
             mouseCursor: SystemMouseCursors.click,
             hoverColor: AppColors.primaryRed.withValues(alpha: 0.04),
             onTap: () => _handleItemTap(context, subItem.identifier),
@@ -510,7 +494,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
   }
 
   Widget _buildAdaptiveFooter(BuildContext context, {required bool isCollapsed}) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     if (isCollapsed) {
       return Container(
@@ -547,16 +531,17 @@ class DrawerView extends GetView<DashboardDrawerController> {
   }
 
   Widget _buildMenuIcon(BuildContext context, DrawerMenuModel item, {required bool isActive}) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
     final double iconSize = context.responsiveSize(20, 22);
     final Color iconColor = isActive ? AppColors.primaryRed : (isDark ? AppColors.textSecondaryMuted : AppColors.textSecondarySlate);
 
-    if (item.icon != null && item.icon!.isNotEmpty) {
+    if (item.icon != null && item.icon!.trim().isNotEmpty) {
+      final String fullUrl = ApiConstants.resolveImageUrl(item.icon!);
       return SizedBox(
         width: iconSize,
         height: iconSize,
         child: CachedNetworkImage(
-          imageUrl: item.icon!,
+          imageUrl: fullUrl,
           fit: BoxFit.contain,
           color: isActive ? AppColors.primaryRed : null,
           colorBlendMode: isActive ? BlendMode.srcIn : null,
@@ -574,7 +559,6 @@ class DrawerView extends GetView<DashboardDrawerController> {
 
   IconData _getIconForIdentifier(String identifier) {
     final String cleanKey = identifier.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
-
     if (cleanKey.contains('dashboard')) {
       return Icons.space_dashboard_rounded;
     } else if (cleanKey.contains('firm')) {
@@ -583,11 +567,23 @@ class DrawerView extends GetView<DashboardDrawerController> {
       return Icons.pin_drop_rounded;
     } else if (cleanKey.contains('coupon')) {
       return Icons.discount_rounded;
-    } else if (cleanKey.contains('product')) {
+    } else if (cleanKey.contains('category')) {
+      return Icons.category_rounded;
+    } else if (cleanKey.contains('subcategory')) {
+      return Icons.account_tree_rounded;
+    } else if (cleanKey.contains('brand')) {
+      return Icons.branding_watermark_rounded;
+    } else if (cleanKey.contains('item') || cleanKey.contains('product')) {
       return Icons.inventory_2_rounded;
+    } else if (cleanKey.contains('dashboardgroup') || cleanKey.contains('group')) {
+      return Icons.grid_view_rounded;
     } else if (cleanKey.contains('banner')) {
       return Icons.view_carousel_rounded;
-    } else if (cleanKey.contains('cart')) {
+    } else if (cleanKey.contains('delivery')) {
+      return Icons.local_shipping_rounded;
+    } else if (cleanKey.contains('timeslot') || cleanKey.contains('slot')) {
+      return Icons.schedule_rounded;
+    } else if (cleanKey.contains('charge') || cleanKey.contains('cart')) {
       return Icons.shopping_cart_rounded;
     } else if (cleanKey.contains('customer')) {
       return Icons.people_rounded;
@@ -595,6 +591,10 @@ class DrawerView extends GetView<DashboardDrawerController> {
       return Icons.military_tech_rounded;
     } else if (cleanKey.contains('coin')) {
       return Icons.monetization_on_rounded;
+    } else if (cleanKey.contains('payment')) {
+      return Icons.payment_rounded;
+    } else if (cleanKey.contains('report')) {
+      return Icons.analytics_rounded;
     } else if (cleanKey.contains('setting')) {
       return Icons.settings_rounded;
     }
@@ -602,9 +602,7 @@ class DrawerView extends GetView<DashboardDrawerController> {
   }
 
   void _handleItemTap(BuildContext context, String identifier) {
-    final dashboardController = Get.find<DashboardController>();
-    dashboardController.changeActiveMenu(identifier);
-
+    _dashboardController.changeActiveMenu(identifier);
     if (!context.isDesktop) {
       final scaffoldState = Scaffold.maybeOf(context);
       if (scaffoldState != null && scaffoldState.isDrawerOpen) {
@@ -621,10 +619,10 @@ class DrawerView extends GetView<DashboardDrawerController> {
 
   bool _isRecursiveActive(String activeKey, DrawerMenuModel item) {
     if (_isKeyActive(activeKey, item.identifier)) return true;
-    for (final sub in item.subItems) {
+    for (final DrawerMenuModel sub in item.subItems) {
       if (_isKeyActive(activeKey, sub.identifier)) return true;
       if (sub.hasSubItems) {
-        for (final third in sub.subItems) {
+        for (final DrawerMenuModel third in sub.subItems) {
           if (_isKeyActive(activeKey, third.identifier)) return true;
         }
       }

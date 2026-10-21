@@ -1,6 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -9,7 +10,6 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 class LoyaltyProgView extends GetView<LoyaltyProgController> {
   const LoyaltyProgView({super.key});
@@ -37,7 +37,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: context.responsiveRadius(8, 10),
               border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
             ),
             child: Row(
@@ -66,6 +66,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
                       backgroundColor: AppColors.primaryRed,
                       foregroundColor: AppColors.onPrimaryWhite,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                     ),
                   ),
                 ],
@@ -101,69 +102,42 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
                   backgroundColor: AppColors.primaryRed,
                   foregroundColor: AppColors.onPrimaryWhite,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                 ),
               ),
           ],
         ),
         SizedBox(height: context.responsiveHeight(12, 16)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Loyalty Rules...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<LoyaltyRuleDatum>(
-                      items: controller.pagedList.toList(),
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Loyalty Rules Found',
-                      emptySubtitle: 'Click "Add Loyalty Rule" above to create reward tiers.',
-                      emptyIcon: Icons.card_giftcard_outlined,
-                      columns: const [
-                        DataColumn(label: Text('RULE ID')),
-                        DataColumn(label: Text('RULE NAME')),
-                        DataColumn(label: Text('ORDER RANGE')),
-                        DataColumn(label: Text('POINTS VALUE')),
-                        DataColumn(label: Text('MAPPED BRANDS')),
-                        DataColumn(label: Text('EXPIRY DATE')),
-                        DataColumn(label: Text('STATUS')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, rule) => _buildDataRow(context, rule),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<LoyaltyRuleDatum>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Loyalty Rules...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Loyalty Rules Found',
+              emptySubtitle: 'Click "Add Loyalty Rule" above to create reward tiers.',
+              emptyIcon: Icons.card_giftcard_outlined,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('RULE ID')),
+                DataColumn(label: Text('RULE NAME')),
+                DataColumn(label: Text('ORDER RANGE')),
+                DataColumn(label: Text('POINTS VALUE')),
+                DataColumn(label: Text('MAPPED BRANDS')),
+                DataColumn(label: Text('EXPIRY DATE')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, rule) => _buildDataRow(context, rule),
+            ),
+          ),
         ),
       ],
     );
@@ -171,54 +145,48 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
 
   DataRow _buildDataRow(BuildContext context, LoyaltyRuleDatum rule) {
     final String rangeStr = rule.maxOrderAmt != null && rule.maxOrderAmt! > 0
-        ? '₹${rule.minOrderAmt} - ₹${rule.maxOrderAmt}'
-        : '₹${rule.minOrderAmt} and above';
+        ? '${rule.minOrderAmt.toCurrency(fractionDigits: 0)} - ${rule.maxOrderAmt!.toCurrency(fractionDigits: 0)}'
+        : '${rule.minOrderAmt.toCurrency(fractionDigits: 0)} and above';
 
     return DataRow(
       cells: [
-        DataCell(SelectableText('#${rule.id}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
         DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 180),
-            child: Tooltip(
-              message: rule.ruleName,
-              child: Text(
-                rule.ruleName,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+          AppTableCellText(
+            text: '#${rule.id}',
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
           ),
         ),
-        DataCell(Text(rangeStr, style: const TextStyle(fontSize: 12))),
         DataCell(
-          Text(
-            '₹${rule.pointsValue.toStringAsFixed(2)}',
+          AppTableCellText(
+            text: rule.ruleName.withDashFallback,
+            maxWidth: 180,
+            maxLines: 1,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        DataCell(AppTableCellText(text: rangeStr, style: const TextStyle(fontSize: 12))),
+        DataCell(
+          AppTableCellText(
+            text: rule.pointsValue.toCurrency(),
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
           ),
         ),
-        DataCell(Text('${rule.brands.length} Brands, ${rule.categories.length} Cats', style: const TextStyle(fontSize: 12))),
-        DataCell(
-          Text(rule.expiryDate != null ? DateFormat('dd MMM yyyy').format(rule.expiryDate!.toLocal()) : '-', style: const TextStyle(fontSize: 12)),
-        ),
+        DataCell(AppTableCellText(text: '${rule.brands.length} Brands, ${rule.categories.length} Cats', style: const TextStyle(fontSize: 12))),
+        DataCell(AppTableCellText(text: EntityDetailsDialogHelper.formatDate(rule.expiryDate), style: context.captionStyle)),
         DataCell(
           Obx(() {
             final bool isUpdating = controller.togglingStatusMap[rule.id] == true;
             if (isUpdating) {
-              return const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2));
+              return const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryRed));
             }
-            return StatusBadge(
-              isEditable: true,
-              isActive: rule.isActive,
-              statusValue: rule.status.toString(),
-              onToggle: (val) => controller.toggleRuleStatus(rule, val),
-            );
+            return StatusBadge(isEditable: true, isActive: rule.isActive, onToggle: (val) => controller.toggleRuleStatus(rule, val));
           }),
         ),
         DataCell(
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 18),
+            mouseCursor: SystemMouseCursors.click,
             color: AppColors.statusBlueInfo,
             tooltip: 'Edit Rule',
             splashRadius: 18,
@@ -391,6 +359,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
                     child: Obx(() {
                       final bool isSubmitting = controller.isSubmittingPointsSettings.value;
                       final bool isEdit = controller.pointsSettingsId.value != null;
+
                       return ElevatedButton.icon(
                         onPressed: isSubmitting ? null : controller.submitPointsSettings,
                         icon: isSubmitting
@@ -404,6 +373,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
                           backgroundColor: AppColors.primaryRed,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                         ),
                       );
                     }),
@@ -426,7 +396,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
         Obx(() {
           return DropdownButtonFormField<String>(
             isExpanded: true,
-            value: controller.loyaltyConflictPriority.value,
+            initialValue: controller.loyaltyConflictPriority.value,
             dropdownColor: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
             decoration: InputDecoration(
               filled: true,
@@ -459,9 +429,9 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-        borderRadius: context.responsiveRadius(12, 16),
-        border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate, width: 1),
+        color: context.isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
+        borderRadius: context.responsiveRadius(8, 10),
+        border: Border.all(color: context.isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -553,7 +523,10 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
             onPressed: controller.closeForm,
             icon: const Icon(Icons.close_rounded, size: 16),
             label: const Text('Exit Studio'),
-            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
+            ),
           ),
         ],
       ),
@@ -659,6 +632,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
         ],
       );
     }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -758,7 +732,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
       ),
       listBuilder: () => ListView.separated(
         itemCount: controller.availableBrands.length,
-        separatorBuilder: (_, __) => const Divider(height: 1, thickness: 0.5),
+        separatorBuilder: (_, _) => const Divider(height: 1, thickness: 0.5),
         itemBuilder: (context, index) {
           final brand = controller.availableBrands[index];
           return Obx(() {
@@ -791,7 +765,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
       ),
       listBuilder: () => ListView.separated(
         itemCount: controller.availableCategories.length,
-        separatorBuilder: (_, __) => const Divider(height: 1, thickness: 0.5),
+        separatorBuilder: (_, _) => const Divider(height: 1, thickness: 0.5),
         itemBuilder: (context, index) {
           final cat = controller.availableCategories[index];
           return Obx(() {
@@ -813,6 +787,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
     if (isMobile) {
       return Column(children: [brandBlock, const SizedBox(height: 16), categoryBlock]);
     }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -885,6 +860,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
   Widget _buildStatusToggle(bool isDark) {
     return Obx(() {
       final bool isActive = controller.status.value == 1;
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -949,10 +925,15 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          OutlinedButton(onPressed: controller.closeForm, child: const Text('Discard Changes')),
+          OutlinedButton(
+            onPressed: controller.closeForm,
+            style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8))),
+            child: const Text('Discard Changes'),
+          ),
           Obx(() {
             final bool isSubmitting = controller.isSubmitting.value;
             final bool isEdit = controller.editingRuleId.value != null;
+
             return ElevatedButton.icon(
               onPressed: isSubmitting ? null : controller.submitLoyaltyRule,
               icon: isSubmitting
@@ -966,6 +947,7 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
                 backgroundColor: AppColors.primaryRed,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
               ),
             );
           }),

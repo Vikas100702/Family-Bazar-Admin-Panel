@@ -23,32 +23,36 @@ class ViewBrandModel {
       return const ViewBrandModel(success: false, message: 'Empty response payload received', pagination: null, data: <ViewBrandDatum>[]);
     }
 
-    final rawData = json["data"];
-    List<ViewBrandDatum> parsedData = const <ViewBrandDatum>[];
+    final dynamic rawData = json['data'];
+    final List<ViewBrandDatum> parsedData = <ViewBrandDatum>[];
 
     if (rawData is List) {
-      parsedData = List<ViewBrandDatum>.from(rawData.whereType<Map<String, dynamic>>().map((x) => ViewBrandDatum.fromJson(x)));
+      for (final item in rawData) {
+        if (item is Map<String, dynamic>) {
+          parsedData.add(ViewBrandDatum.fromJson(item));
+        }
+      }
     } else if (rawData is Map<String, dynamic>) {
-      parsedData = [ViewBrandDatum.fromJson(rawData)];
+      parsedData.add(ViewBrandDatum.fromJson(rawData));
     }
 
     return ViewBrandModel(
-      success: _parseBool(json["success"]),
-      message: json["message"]?.toString().trim() ?? "",
-      pagination: json["pagination"] is Map<String, dynamic> ? Pagination.fromJson(json["pagination"] as Map<String, dynamic>) : null,
-      data: parsedData,
+      success: _parseBool(json['success'] ?? json['status']),
+      message: _parseCleanString(json['message']),
+      pagination: json['pagination'] is Map<String, dynamic> ? Pagination.fromJson(json['pagination'] as Map<String, dynamic>) : null,
+      data: List<ViewBrandDatum>.unmodifiable(parsedData),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    "success": success,
-    "message": message,
-    "pagination": pagination?.toJson(),
-    "data": data.map((x) => x.toJson()).toList(),
+    'success': success,
+    'message': message,
+    if (pagination != null) 'pagination': pagination?.toJson(),
+    'data': data.map((x) => x.toJson()).toList(growable: false),
   };
 
   @override
-  String toString() => "ViewBrandModel(success: $success, message: $message, records: ${data.length})";
+  String toString() => 'ViewBrandModel(success: $success, message: $message, records: ${data.length})';
 }
 
 @immutable
@@ -95,7 +99,6 @@ class ViewBrandDatum {
     required this.imModBy,
   });
 
-  // UI Presentation Helper Getters (Fixes String/Int comparison bug)
   bool get isFeatured => mcFeaturedBrand == '1' || mcFeaturedBrand == 'true' || mcFeaturedBrand.toLowerCase() == 'yes';
 
   bool get isStatusActive => mcStatus == '1' || mcStatus == 'true' || mcStatus.toLowerCase() == 'active';
@@ -148,72 +151,72 @@ class ViewBrandDatum {
     if (json == null) {
       return const ViewBrandDatum(
         id: 0,
-        mcCompCode: "",
-        mcCompName: "",
-        mcMuCode: "",
+        mcCompCode: '',
+        mcCompName: '',
+        mcMuCode: '',
         mcLock: 0,
-        mcCpCompCode: "",
-        mcFeaturedBrand: "0",
-        mcStatus: "0",
-        mcCreatedBy: "",
-        mcModifyBy: "",
+        mcCpCompCode: '',
+        mcFeaturedBrand: '0',
+        mcStatus: '0',
+        mcCreatedBy: '',
+        mcModifyBy: '',
         imageId: 0,
-        imItemCode: "",
-        imItemType: "",
-        imImageMob: "",
-        imImageWeb: "",
-        imCreBy: "",
-        imModBy: "",
+        imItemCode: '',
+        imItemType: '',
+        imImageMob: '',
+        imImageWeb: '',
+        imCreBy: '',
+        imModBy: '',
       );
     }
 
     return ViewBrandDatum(
-      id: _parseInt(json["id"]),
-      mcCompCode: _parseString(json["MC_CompCode"]),
-      mcCompName: _parseString(json["MC_CompName"]),
-      mcMuCode: _parseString(json["MC_MUCode"]),
-      mcLock: _parseInt(json["MC_Lock"]),
-      mcCpCompCode: _parseString(json["MC_CPCompCode"]),
-      mcFeaturedBrand: _parseString(json["MC_Featured_Brand"] ?? json["featured_brand"], "0"),
-      mcStatus: _parseString(json["MC_Status"] ?? json["status"], "0"),
-      mcCreatedBy: _parseString(json["MC_CreatedBy"]),
-      mcModifyBy: _parseString(json["MC_ModifyBy"]),
-      mcCreatedTimeStamp: _parseDateTime(json["MC_CreatedTimeStamp"]),
-      mcModifyTimeStamp: _parseDateTime(json["MC_ModifyTimeStamp"]),
-      imageId: _parseInt(json["image_id"]),
-      imItemCode: _parseString(json["IM_ItemCode"]),
-      imItemType: _parseString(json["IM_ItemType"]),
-      imImageMob: _parseString(json["IM_ImageMob"] ?? json["m_img"]),
-      imImageWeb: _parseString(json["IM_ImageWeb"] ?? json["w_img"]),
-      imCreBy: _parseString(json["IM_CreBy"]),
-      imModBy: _parseString(json["IM_ModBy"]),
+      id: _parseInt(json['id']),
+      mcCompCode: _parseCleanString(json['MC_CompCode']),
+      mcCompName: _parseCleanString(json['MC_CompName']),
+      mcMuCode: _parseCleanString(json['MC_MUCode']),
+      mcLock: _parseInt(json['MC_Lock']),
+      mcCpCompCode: _parseCleanString(json['MC_CPCompCode']),
+      mcFeaturedBrand: _parseCleanString(json['MC_Featured_Brand'] ?? json['featured_brand'], fallback: '0'),
+      mcStatus: _parseCleanString(json['MC_Status'] ?? json['status'], fallback: '0'),
+      mcCreatedBy: _parseCleanString(json['MC_CreatedBy']),
+      mcModifyBy: _parseCleanString(json['MC_ModifyBy']),
+      mcCreatedTimeStamp: _parseDate(json['MC_CreatedTimeStamp']),
+      mcModifyTimeStamp: _parseDate(json['MC_ModifyTimeStamp']),
+      imageId: _parseInt(json['image_id']),
+      imItemCode: _parseCleanString(json['IM_ItemCode']),
+      imItemType: _parseCleanString(json['IM_ItemType']),
+      imImageMob: _parseCleanString(json['IM_ImageMob'] ?? json['m_img']),
+      imImageWeb: _parseCleanString(json['IM_ImageWeb'] ?? json['w_img']),
+      imCreBy: _parseCleanString(json['IM_CreBy']),
+      imModBy: _parseCleanString(json['IM_ModBy']),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    "id": id,
-    "MC_CompCode": mcCompCode,
-    "MC_CompName": mcCompName,
-    "MC_MUCode": mcMuCode,
-    "MC_Lock": mcLock,
-    "MC_CPCompCode": mcCpCompCode,
-    "MC_Featured_Brand": mcFeaturedBrand,
-    "MC_Status": mcStatus,
-    "MC_CreatedBy": mcCreatedBy,
-    "MC_ModifyBy": mcModifyBy,
-    "MC_CreatedTimeStamp": mcCreatedTimeStamp?.toIso8601String(),
-    "MC_ModifyTimeStamp": mcModifyTimeStamp?.toIso8601String(),
-    "image_id": imageId,
-    "IM_ItemCode": imItemCode,
-    "IM_ItemType": imItemType,
-    "IM_ImageMob": imImageMob,
-    "IM_ImageWeb": imImageWeb,
-    "IM_CreBy": imCreBy,
-    "IM_ModBy": imModBy,
+    'id': id,
+    'MC_CompCode': mcCompCode,
+    'MC_CompName': mcCompName,
+    'MC_MUCode': mcMuCode,
+    'MC_Lock': mcLock,
+    'MC_CPCompCode': mcCpCompCode,
+    'MC_Featured_Brand': mcFeaturedBrand,
+    'MC_Status': mcStatus,
+    'MC_CreatedBy': mcCreatedBy,
+    'MC_ModifyBy': mcModifyBy,
+    'MC_CreatedTimeStamp': mcCreatedTimeStamp?.toIso8601String(),
+    'MC_ModifyTimeStamp': mcModifyTimeStamp?.toIso8601String(),
+    'image_id': imageId,
+    'IM_ItemCode': imItemCode,
+    'IM_ItemType': imItemType,
+    'IM_ImageMob': imImageMob,
+    'IM_ImageWeb': imImageWeb,
+    'IM_CreBy': imCreBy,
+    'IM_ModBy': imModBy,
   };
 
   @override
-  String toString() => "ViewBrandDatum(mcCompCode: $mcCompCode, mcCompName: $mcCompName, featured: $mcFeaturedBrand, status: $mcStatus)";
+  String toString() => 'ViewBrandDatum(mcCompCode: $mcCompCode, mcCompName: $mcCompName, featured: $mcFeaturedBrand, status: $mcStatus)';
 }
 
 @immutable
@@ -240,47 +243,56 @@ class Pagination {
     }
 
     return Pagination(
-      currentPage: _parseInt(json["current_page"]),
-      limit: _parseInt(json["limit"]),
-      totalRecords: _parseInt(json["total_records"]),
-      totalPages: _parseInt(json["total_pages"]),
+      currentPage: _parseInt(json['current_page'] ?? json['page']),
+      limit: _parseInt(json['limit'] ?? json['per_page'], defaultValue: 20),
+      totalRecords: _parseInt(json['total_records'] ?? json['total']),
+      totalPages: _parseInt(json['total_pages'] ?? json['totalPages']),
     );
   }
 
-  Map<String, dynamic> toJson() => {"current_page": currentPage, "limit": limit, "total_records": totalRecords, "total_pages": totalPages};
+  Map<String, dynamic> toJson() => {'current_page': currentPage, 'limit': limit, 'total_records': totalRecords, 'total_pages': totalPages};
 
   @override
-  String toString() => "Pagination(currentPage: $currentPage, totalRecords: $totalRecords)";
-}
-
-// ===========================================================================
-// DEFENSIVE DATA PARSING UTILITIES (Cross-Platform Web Safe)
-// ===========================================================================
-
-int _parseInt(dynamic val, [int fallback = 0]) {
-  if (val == null) return fallback;
-  if (val is int) return val;
-  if (val is double) return val.toInt();
-  if (val is String) {
-    return int.tryParse(val.trim()) ?? double.tryParse(val.trim())?.toInt() ?? fallback;
-  }
-  return fallback;
-}
-
-String _parseString(dynamic val, [String fallback = '']) {
-  if (val == null) return fallback;
-  return val.toString().trim();
+  String toString() => 'Pagination(currentPage: $currentPage, totalRecords: $totalRecords)';
 }
 
 bool _parseBool(dynamic val) {
   if (val == null) return false;
   if (val is bool) return val;
-  final str = val.toString().trim().toLowerCase();
-  return str == '1' || str == 'true';
+  if (val is num) return val == 1;
+  final String str = val.toString().trim().toLowerCase();
+  return str == '1' || str == 'true' || str == 'active' || str == 'y';
 }
 
-DateTime? _parseDateTime(dynamic val) {
+int _parseInt(dynamic val, {int defaultValue = 0}) {
+  if (val == null) return defaultValue;
+  if (val is int) return val;
+  if (val is num) return val.toInt();
+  final String str = val.toString().trim();
+  final num? parsedNum = num.tryParse(str);
+  if (parsedNum != null) return parsedNum.toInt();
+  return defaultValue;
+}
+
+String _parseCleanString(dynamic val, {String fallback = ''}) {
+  if (val == null) return fallback;
+  final String str = val.toString().trim();
+  if (str.isEmpty || str == 'null' || str == 'undefined') return fallback;
+  return str;
+}
+
+DateTime? _parseDate(dynamic val) {
   if (val == null) return null;
-  if (val is DateTime) return val;
-  return DateTime.tryParse(val.toString().trim());
+  if (val is DateTime) {
+    return val.year >= 1970 ? val : null;
+  }
+  final String dateStr = val.toString().trim();
+  if (dateStr.isEmpty || dateStr.startsWith('0000-00-00') || dateStr == 'null' || dateStr == 'undefined') {
+    return null;
+  }
+  final DateTime? parsed = DateTime.tryParse(dateStr);
+  if (parsed == null || parsed.year < 1970) {
+    return null;
+  }
+  return parsed;
 }

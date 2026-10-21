@@ -1,6 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
@@ -36,86 +37,69 @@ class TimeSlotView extends GetView<TimeSlotController> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryRed,
                 foregroundColor: AppColors.onPrimaryWhite,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(14, 16), vertical: context.responsiveHeight(12, 14)),
+                shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
               ),
             ),
           ],
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Time Slots...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<TimeSlotItem>(
-                      items: controller.pagedList.toList(),
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Time Slots Found',
-                      emptySubtitle: 'Click "Add Time Slot" above to configure delivery fulfillment windows.',
-                      emptyIcon: Icons.schedule_rounded,
-                      columns: const [
-                        DataColumn(label: Text('SLOT ID')),
-                        DataColumn(label: Text('START TIME')),
-                        DataColumn(label: Text('END TIME')),
-                        DataColumn(label: Text('CREATED AT')),
-                        DataColumn(label: Text('UPDATED AT')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, slot) => _buildDataRow(context, slot),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<TimeSlotItem>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Time Slots...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Time Slots Found',
+              emptySubtitle: 'Click "Add Time Slot" above to configure delivery fulfillment windows.',
+              emptyIcon: Icons.schedule_rounded,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('SLOT ID')),
+                DataColumn(label: Text('START TIME')),
+                DataColumn(label: Text('END TIME')),
+                DataColumn(label: Text('CREATED AT')),
+                DataColumn(label: Text('UPDATED AT')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, slot) => _buildDataRow(context, slot),
+            ),
+          ),
         ),
       ],
     );
   }
 
+  // 1. DATA ROW BUILDER
   DataRow _buildDataRow(BuildContext context, TimeSlotItem slot) {
     final bool isDark = context.isDark;
 
     return DataRow(
       cells: [
-        DataCell(SelectableText(slot.id > 0 ? '#${slot.id}' : '—', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
+        DataCell(
+          AppTableCellText(
+            text: slot.id > 0 ? '#${slot.id}' : '—',
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        ),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.play_circle_outline_rounded, size: 16, color: AppColors.statusGreenSuccess),
               const SizedBox(width: 6),
-              Text(_formatDisplaySlot(slot.startTimeSlot), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              AppTableCellText(
+                text: _formatDisplaySlot(slot.startTimeSlot),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
             ],
           ),
         ),
@@ -125,17 +109,15 @@ class TimeSlotView extends GetView<TimeSlotController> {
             children: [
               const Icon(Icons.stop_circle_outlined, size: 16, color: AppColors.primaryRed),
               const SizedBox(width: 6),
-              Text(_formatDisplaySlot(slot.endTimeSlot), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              AppTableCellText(
+                text: _formatDisplaySlot(slot.endTimeSlot),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
             ],
           ),
         ),
-        DataCell(Text(slot.createdAt != null ? slot.createdAt!.toLocal().toString().split('.').first : '—', style: const TextStyle(fontSize: 12))),
-        DataCell(
-          Text(
-            (slot.updatedAt != null && slot.updatedAt!.year > 1970) ? slot.updatedAt!.toLocal().toString().split('.').first : '—',
-            style: const TextStyle(fontSize: 12),
-          ),
-        ),
+        DataCell(AppTableCellText(text: EntityDetailsDialogHelper.formatDate(slot.createdAt), style: context.captionStyle)),
+        DataCell(AppTableCellText(text: EntityDetailsDialogHelper.formatDate(slot.updatedAt), style: context.captionStyle)),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -186,7 +168,7 @@ class TimeSlotView extends GetView<TimeSlotController> {
           padding: EdgeInsets.all(context.responsiveSize(16, 24)),
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceElevatedSlate : AppColors.surfaceWhite,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: context.responsiveRadius(12, 14),
             border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
           ),
           child: Obx(() {
@@ -195,7 +177,7 @@ class TimeSlotView extends GetView<TimeSlotController> {
             return PopScope(
               canPop: !isSubmitting,
               child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
+                physics: const ClampingScrollPhysics(),
                 child: Form(
                   key: controller.addEditFormKey,
                   child: Column(
@@ -222,7 +204,6 @@ class TimeSlotView extends GetView<TimeSlotController> {
                           label: 'Start Time *',
                           controller: controller.startTimeDisplayController,
                           hint: 'Choose start time',
-                          isDark: isDark,
                           enabled: !isSubmitting,
                           onTap: () => _pickTime(context, isStart: true),
                         ),
@@ -231,7 +212,6 @@ class TimeSlotView extends GetView<TimeSlotController> {
                           label: 'End Time *',
                           controller: controller.endTimeDisplayController,
                           hint: 'Choose end time',
-                          isDark: isDark,
                           enabled: !isSubmitting,
                           onTap: () => _pickTime(context, isStart: false),
                         ),
@@ -243,7 +223,12 @@ class TimeSlotView extends GetView<TimeSlotController> {
                           TextButton(onPressed: isSubmitting ? null : () => Get.back(), child: const Text('Cancel')),
                           const SizedBox(width: 12),
                           ElevatedButton.icon(
-                            onPressed: isSubmitting ? null : () => controller.submitSlot(),
+                            onPressed: isSubmitting
+                                ? null
+                                : () async {
+                                    final bool success = await controller.submitSlot();
+                                    if (success) Get.back();
+                                  },
                             icon: isSubmitting
                                 ? const SizedBox(
                                     width: 16,
@@ -258,7 +243,8 @@ class TimeSlotView extends GetView<TimeSlotController> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryRed,
                               foregroundColor: AppColors.onPrimaryWhite,
-                              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                              padding: EdgeInsets.symmetric(horizontal: context.responsiveWidth(18, 22), vertical: context.responsiveHeight(10, 12)),
+                              shape: RoundedRectangleBorder(borderRadius: context.responsiveRadius(6, 8)),
                             ),
                           ),
                         ],
@@ -280,7 +266,6 @@ class TimeSlotView extends GetView<TimeSlotController> {
     required String label,
     required TextEditingController controller,
     required String hint,
-    required bool isDark,
     required bool enabled,
     required VoidCallback onTap,
   }) {
@@ -291,7 +276,7 @@ class TimeSlotView extends GetView<TimeSlotController> {
         const SizedBox(height: 6),
         InkWell(
           onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: context.responsiveRadius(6, 8),
           child: TextFormField(
             controller: controller,
             readOnly: true,
@@ -302,14 +287,10 @@ class TimeSlotView extends GetView<TimeSlotController> {
               }
               return null;
             },
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textPrimarySlate),
             decoration: InputDecoration(
               hintText: hint,
-              filled: true,
-              fillColor: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
+              isDense: true,
               suffixIcon: Icon(Icons.access_time_rounded, size: 18, color: enabled ? AppColors.primaryRed : Colors.grey),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
           ),
         ),

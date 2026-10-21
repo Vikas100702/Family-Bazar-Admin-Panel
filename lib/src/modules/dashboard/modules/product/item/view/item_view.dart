@@ -1,7 +1,7 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/custom_pagination_widget.dart';
-import 'package:family_bazar_admin_panel/src/core/global_components/view/data_table_widget.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
+import 'package:family_bazar_admin_panel/src/core/global_components/view/paginated_table_container.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_image_cell_widget.dart';
@@ -30,79 +30,54 @@ class ItemsView extends GetView<ItemController> {
         ),
         SizedBox(height: context.responsiveHeight(16, 20)),
         Expanded(
-          child: Obx(() {
-            if (controller.isLoading.value && controller.pagedList.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: context.defaultDecoration,
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
-                      SizedBox(height: 16),
-                      Text('Loading Product Items...', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: RepaintBoundary(
-                    child: DataTableWidget<ViewItemByTypeDatum>(
-                      items: controller.pagedList,
-                      horizontalScrollController: controller.horizontalScrollController,
-                      verticalScrollController: controller.verticalScrollController,
-                      emptyTitle: 'No Product Items Available',
-                      emptySubtitle: 'Sync with server or configure inventory catalog.',
-                      emptyIcon: Icons.inventory_2_outlined,
-                      columns: const [
-                        DataColumn(label: Text('ITEM CODE')),
-                        DataColumn(label: Text('FIRM CODE')),
-                        DataColumn(label: Text('IMAGES')),
-                        DataColumn(label: Text('ITEM NAME')),
-                        DataColumn(label: Text('ITEM MRP')),
-                        DataColumn(label: Text('SALES PRICE')),
-                        DataColumn(label: Text('AVAILABLE STOCK')),
-                        DataColumn(label: Text('EAN / BARCODE')),
-                        DataColumn(label: Text('CATEGORY')),
-                        DataColumn(label: Text('SUB-CATEGORY')),
-                        DataColumn(label: Text('STATUS')),
-                        DataColumn(label: Text('ACTIONS')),
-                      ],
-                      rowBuilder: (context, item) => _buildDataRow(context, item),
-                    ),
-                  ),
-                ),
-                SizedBox(height: context.responsiveHeight(12, 16)),
-                CustomPaginationWidget(
-                  currentPage: controller.currentPage.value,
-                  totalItems: controller.totalRecords.value,
-                  itemsPerPage: controller.itemsPerPage.value,
-                  itemsPerPageOptions: controller.pageSizeOptions,
-                  isLoading: controller.isLoading.value,
-                  onPageChanged: controller.changePage,
-                  onItemsPerPageChanged: controller.changePageSize,
-                ),
+          child: Obx(
+            () => PaginatedTableContainer<ViewItemByTypeDatum>(
+              isLoading: controller.isLoading.value,
+              loadingMessage: 'Loading Product Items...',
+              items: controller.pagedList,
+              horizontalScrollController: controller.horizontalScrollController,
+              verticalScrollController: controller.verticalScrollController,
+              emptyTitle: 'No Product Items Available',
+              emptySubtitle: 'Sync with server or configure inventory catalog.',
+              emptyIcon: Icons.inventory_2_outlined,
+              currentPage: controller.currentPage.value,
+              totalItems: controller.totalRecords.value,
+              itemsPerPage: controller.itemsPerPage.value,
+              itemsPerPageOptions: controller.pageSizeOptions,
+              onPageChanged: controller.changePage,
+              onItemsPerPageChanged: controller.changePageSize,
+              columns: const [
+                DataColumn(label: Text('ITEM CODE')),
+                DataColumn(label: Text('FIRM CODE')),
+                DataColumn(label: Text('IMAGES')),
+                DataColumn(label: Text('ITEM NAME')),
+                DataColumn(label: Text('ITEM MRP')),
+                DataColumn(label: Text('SALES PRICE')),
+                DataColumn(label: Text('AVAILABLE STOCK')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('ACTIONS')),
               ],
-            );
-          }),
+              rowBuilder: (context, item) => _buildDataRow(context, item),
+            ),
+          ),
         ),
       ],
     );
   }
 
   DataRow _buildDataRow(BuildContext context, ViewItemByTypeDatum item) {
-    final isDark = context.isDark;
+    final bool isDark = context.isDark;
 
     return DataRow(
       cells: [
-        DataCell(SelectableText(_formatText(item.iCode), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
-        DataCell(Text(_formatText(item.iFirmCode))),
+        DataCell(
+          AppTableCellText(
+            text: item.iCode.withDashFallback,
+            isSelectable: true,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+        ),
+        DataCell(AppTableCellText(text: item.iFirmCode.withDashFallback, maxWidth: 100)),
         DataCell(
           TableImageCellWidget(
             webImageUrl: item.imImageWeb,
@@ -112,8 +87,8 @@ class ItemsView extends GetView<ItemController> {
             uploadType: 'item',
             entityCode: item.iCode,
             entityTitle: item.iName,
-            onLinkEntity: ({required entityCode, required webImageUrl, required mobileImageUrl}) async {
-              final repo = Get.find<ItemRepository>();
+            onLinkEntity: ({required String entityCode, required String webImageUrl, required String mobileImageUrl}) async {
+              final ItemRepository repo = Get.find<ItemRepository>();
               final res = await repo.addItemDetails(itemCode: entityCode, wImg: webImageUrl, mImg: mobileImageUrl);
               return res.success;
             },
@@ -121,37 +96,40 @@ class ItemsView extends GetView<ItemController> {
           ),
         ),
         DataCell(
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 240),
-            child: Tooltip(
-              message: _formatText(item.iName),
-              waitDuration: const Duration(milliseconds: 400),
-              child: Text(
-                _formatText(item.iName),
-                style: const TextStyle(fontWeight: FontWeight.w500),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-        ),
-        DataCell(Text(_formatText(item.sbMRate.toString()))),
-        DataCell(Text(_formatText(item.sbRateA.toString()))),
-        DataCell(Text(_formatText(item.sbSaleableStock.toString()))),
-        DataCell(SelectableText(_formatText(item.iBarCode), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
-        DataCell(
-          SelectableText(
-            _formatText(item.itemGroupName),
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
+          AppTableCellText(
+            text: item.iName.withDashFallback,
+            maxWidth: 240,
+            maxLines: 2,
+            style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
         DataCell(
-          SelectableText(
-            _formatText(item.otherGroupName),
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? AppColors.accentGoldAmber : AppColors.statusAmberWarning),
+          AppTableCellText(
+            text: item.sbMRate.toString().toPrice(),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ),
-
+        DataCell(
+          AppTableCellText(
+            text: item.sbRateA.toString().toPrice(),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
+          ),
+        ),
+        DataCell(
+          Builder(
+            builder: (_) {
+              final int stock = item.sbSaleableStock.toString().toSafeInt();
+              return Text(
+                '$stock',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: stock > 0 ? (isDark ? AppColors.textPrimaryWhite : AppColors.textPrimarySlate) : AppColors.statusRedError,
+                ),
+              );
+            },
+          ),
+        ),
         DataCell(
           StatusBadge(
             isEditable: true,
@@ -176,34 +154,46 @@ class ItemsView extends GetView<ItemController> {
   }
 
   void _showItemDetails(BuildContext context, ViewItemByTypeDatum item) {
+    final int stockCount = item.sbSaleableStock.toString().toSafeInt();
+
     EntityDetailsDialogHelper.show(
       context: context,
-      title: item.iName.isNotEmpty ? item.iName.trim() : "Item",
+      title: item.iName.trim().isNotEmpty ? item.iName.trim() : 'Item Details',
+      subtitle: 'Code: ${item.iCode.withDashFallback}',
       headerIcon: Icons.inventory_2_rounded,
       sections: [
         DetailSection(
-          title: '',
+          title: 'Basic Information',
           items: [
-            DetailItem(label: 'Item Code', value: item.iCode, isCopyable: true),
-            DetailItem(label: 'Item Name', value: item.iName),
-            DetailItem(label: 'EAN / Barcode', value: item.iBarCode, isCopyable: true),
-            DetailItem(label: 'Firm Code', value: item.iFirmCode, isCopyable: true),
+            DetailItem(label: 'Item Code', value: item.iCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Item Name', value: item.iName.withDashFallback),
+            DetailItem(label: 'EAN Code', value: item.iBarCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Firm Code', value: item.iFirmCode.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Brand Name', value: item.brandName.withDashFallback),
           ],
         ),
         DetailSection(
-          title: '',
+          title: 'System Information',
+          flags: [DetailFlag(label: 'Active Status', value: item.isStatusActive)],
           items: [
-            DetailItem(label: 'Category Code', value: item.iItemGroup, isCopyable: true),
-            DetailItem(label: 'Sub-Category Code', value: item.iOtherGroup, isCopyable: true),
+            DetailItem(label: 'Category Name', value: item.itemGroupName.withDashFallback),
+            DetailItem(label: 'Category Code', value: item.iItemGroup.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Sub-Category Name', value: item.otherGroupName.toString().withDashFallback ?? '—'),
+            DetailItem(label: 'Sub-Category Code', value: item.iOtherGroup.withDashFallback, isCopyable: true),
+            DetailItem(label: 'Mfg Company Code', value: item.iMfgComp.withDashFallback),
+          ],
+        ),
+        DetailSection(
+          title: 'Pricing & Stock Quantities',
+          flags: [DetailFlag(label: 'In Stock', value: stockCount > 0)],
+          items: [
+            DetailItem(label: 'MRP Rate', value: item.sbMRate.toString().toPrice()),
+            DetailItem(label: 'Sale Rate', value: item.sbRateA.toString().toPrice()),
+            DetailItem(label: 'Saleable Stock Units', value: '$stockCount'),
           ],
         ),
       ],
     );
-  }
-
-  String _formatText(String? value) {
-    if (value == null || value.trim().isEmpty) return '—';
-    return value.trim();
   }
 }
 

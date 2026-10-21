@@ -16,8 +16,10 @@ class DashboardDrawerController extends BaseController {
 
   DashboardDrawerController({required this._storageService, required this._loginRepository});
 
+  // REACTIVE STATE & LOCKS
   final RxList<DrawerMenuModel> menuItems = <DrawerMenuModel>[].obs;
   final RxBool isSyncingPermissions = false.obs;
+  bool _isSyncLocked = false;
 
   @override
   void onInit() {
@@ -27,6 +29,8 @@ class DashboardDrawerController extends BaseController {
   }
 
   Future<void> syncPermissionsFromServer() async {
+    if (_isSyncLocked) return;
+
     try {
       final String? token = _storageService.getString(AppConstants.authTokenKey);
       if (token == null || token.trim().isEmpty) return;
@@ -34,8 +38,12 @@ class DashboardDrawerController extends BaseController {
       final int roleId = _resolveCurrentRoleId();
       if (roleId <= 0) return;
 
+      _isSyncLocked = true;
       isSyncingPermissions.value = true;
+
       final Map<String, List<PermissionModuleItem>> freshPermissions = await _loginRepository.fetchPermissionMenu(roleId: roleId);
+
+      if (isClosed) return;
 
       if (freshPermissions.isNotEmpty) {
         _buildMenuFromPermissionsMap(freshPermissions);
@@ -45,12 +53,13 @@ class DashboardDrawerController extends BaseController {
       Sentry.captureException(
         e,
         stackTrace: stackTrace,
-        withScope: (scope) {
+        withScope: (Scope scope) {
           scope.setTag('controller', 'DashboardDrawerController');
           scope.setTag('action', 'syncPermissionsFromServer');
         },
       );
     } finally {
+      _isSyncLocked = false;
       if (!isClosed) {
         isSyncingPermissions.value = false;
       }
@@ -60,11 +69,13 @@ class DashboardDrawerController extends BaseController {
   int _resolveCurrentRoleId() {
     try {
       final String? userDataJson = _storageService.getString('user_data');
-      if (userDataJson != null && userDataJson.isNotEmpty) {
-        final Map<String, dynamic> dataMap = jsonDecode(userDataJson);
-        final dynamic roleId = dataMap['role_id'] ?? dataMap['role-id'];
-        if (roleId is int) return roleId;
-        return int.tryParse(roleId?.toString() ?? '') ?? 1;
+      if (userDataJson != null && userDataJson.trim().isNotEmpty) {
+        final dynamic decoded = jsonDecode(userDataJson);
+        if (decoded is Map<String, dynamic>) {
+          final dynamic roleId = decoded['role_id'] ?? decoded['role-id'];
+          if (roleId is int) return roleId;
+          return int.tryParse(roleId?.toString() ?? '') ?? 1;
+        }
       }
     } catch (_) {}
     return 1;
@@ -78,17 +89,22 @@ class DashboardDrawerController extends BaseController {
         return;
       }
 
-      final Map<String, dynamic> userDataMap = jsonDecode(userDataJson);
-      final dynamic rawPermissionsNew = userDataMap['permissions_new'];
+      final dynamic decoded = jsonDecode(userDataJson);
+      if (decoded is! Map<String, dynamic>) {
+        _setFallbackDashboardOnly();
+        return;
+      }
+
+      final dynamic rawPermissionsNew = decoded['permissions_new'];
       if (rawPermissionsNew == null || rawPermissionsNew is! Map<String, dynamic>) {
         _setFallbackDashboardOnly();
         return;
       }
 
-      final Map<String, List<PermissionModuleItem>> parsedMap = {};
-      rawPermissionsNew.forEach((key, listVal) {
+      final Map<String, List<PermissionModuleItem>> parsedMap = <String, List<PermissionModuleItem>>{};
+      rawPermissionsNew.forEach((String key, dynamic listVal) {
         if (listVal is List) {
-          parsedMap[key] = listVal.whereType<Map<String, dynamic>>().map((item) => PermissionModuleItem.fromJson(item)).toList();
+          parsedMap[key] = listVal.whereType<Map<String, dynamic>>().map(PermissionModuleItem.fromJson).toList(growable: false);
         }
       });
 
@@ -97,7 +113,7 @@ class DashboardDrawerController extends BaseController {
       Sentry.captureException(
         e,
         stackTrace: stackTrace,
-        withScope: (scope) {
+        withScope: (Scope scope) {
           scope.setTag('controller', 'DashboardDrawerController');
           scope.setTag('action', '_parseAndBuildMenuFromStorage');
         },
@@ -107,35 +123,41 @@ class DashboardDrawerController extends BaseController {
   }
 
   void _buildMenuFromPermissionsMap(Map<String, List<PermissionModuleItem>> permissionsMap) {
-    final List<DrawerMenuModel> builtMenu = [
-      const DrawerMenuModel(title: 'Dashboard', identifier: 'dashboard', fallbackIcon: Icons.dashboard_rounded),
+    final List<DrawerMenuModel> builtMenu = <DrawerMenuModel>[
+      DrawerMenuModel(title: 'Dashboard', identifier: 'dashboard', fallbackIcon: Icons.dashboard_rounded),
     ];
 
-    permissionsMap.forEach((groupKey, groupItems) {
+    permissionsMap.forEach((String groupKey, List<PermissionModuleItem> groupItems) {
       if (groupItems.isEmpty) return;
 
-      // 1st Tier Guard: Only items with view == true
-      final List<PermissionModuleItem> authorizedItems = groupItems.where((item) => item.permissions.view).toList();
+      // Filter viewable items only
+      final List<PermissionModuleItem> authorizedItems = groupItems
+          .where((PermissionModuleItem item) => item.permissions.view)
+          .toList(growable: false);
+
       if (authorizedItems.isEmpty) return;
 
-      // Helper function to map PermissionModuleItem to DrawerMenuModel recursively
       DrawerMenuModel mapToDrawerItem(PermissionModuleItem item) {
         final String name = item.name.trim();
 
-        // 3rd Tier Check: If child exists and contains viewable items
-        final List<PermissionModuleItem> authorizedChildren = item.child.where((c) => c.permissions.view).toList();
+        // 3rd Tier: child contains viewable modules
+        final List<PermissionModuleItem> authorizedChildren = item.child
+            .where((PermissionModuleItem c) => c.permissions.view)
+            .toList(growable: false);
 
         if (authorizedChildren.isNotEmpty) {
-          final List<DrawerMenuModel> thirdTierSubItems = authorizedChildren.map((c) {
-            final String childName = c.name.trim();
-            return DrawerMenuModel(
-              title: childName,
-              identifier: childName,
-              icon: c.icon,
-              fallbackIcon: _getFallbackIcon(childName),
-              isExpansion: false,
-            );
-          }).toList();
+          final List<DrawerMenuModel> thirdTierSubItems = authorizedChildren
+              .map((PermissionModuleItem c) {
+                final String childName = c.name.trim();
+                return DrawerMenuModel(
+                  title: childName,
+                  identifier: childName,
+                  icon: c.icon,
+                  fallbackIcon: _getFallbackIcon(childName),
+                  isExpansion: false,
+                );
+              })
+              .toList(growable: false);
 
           return DrawerMenuModel(
             title: name,
@@ -151,7 +173,7 @@ class DashboardDrawerController extends BaseController {
       }
 
       if (authorizedItems.length > 1) {
-        final List<DrawerMenuModel> subItems = authorizedItems.map((childObj) => mapToDrawerItem(childObj)).toList();
+        final List<DrawerMenuModel> subItems = authorizedItems.map(mapToDrawerItem).toList(growable: false);
 
         builtMenu.add(
           DrawerMenuModel(
@@ -163,8 +185,8 @@ class DashboardDrawerController extends BaseController {
           ),
         );
       } else {
-        final singleItem = authorizedItems.first;
-        final mappedItem = mapToDrawerItem(singleItem);
+        final PermissionModuleItem singleItem = authorizedItems.first;
+        final DrawerMenuModel mappedItem = mapToDrawerItem(singleItem);
 
         if (mappedItem.hasSubItems) {
           builtMenu.add(
@@ -173,11 +195,11 @@ class DashboardDrawerController extends BaseController {
               identifier: '${groupKey.toLowerCase().replaceAll(' ', '_')}_group',
               fallbackIcon: _getFallbackIcon(groupKey),
               isExpansion: true,
-              subItems: [mappedItem],
+              subItems: <DrawerMenuModel>[mappedItem],
             ),
           );
         } else {
-          final String name = singleItem.name.isNotEmpty ? singleItem.name : groupKey;
+          final String name = singleItem.name.trim().isNotEmpty ? singleItem.name.trim() : groupKey;
           builtMenu.add(
             DrawerMenuModel(title: name, identifier: name, icon: singleItem.icon, fallbackIcon: _getFallbackIcon(name), isExpansion: false),
           );
@@ -193,12 +215,19 @@ class DashboardDrawerController extends BaseController {
   void _updateStoredPermissions(Map<String, List<PermissionModuleItem>> freshPermissions) {
     try {
       final String? userDataJson = _storageService.getString('user_data');
-      Map<String, dynamic> userDataMap = {};
-      if (userDataJson != null && userDataJson.isNotEmpty) {
-        userDataMap = jsonDecode(userDataJson) as Map<String, dynamic>;
+      Map<String, dynamic> userDataMap = <String, dynamic>{};
+
+      if (userDataJson != null && userDataJson.trim().isNotEmpty) {
+        final dynamic decoded = jsonDecode(userDataJson);
+        if (decoded is Map<String, dynamic>) {
+          userDataMap = decoded;
+        }
       }
 
-      userDataMap['permissions_new'] = freshPermissions.map((key, list) => MapEntry(key, list.map((item) => item.toJson()).toList()));
+      userDataMap['permissions_new'] = freshPermissions.map(
+        (String key, List<PermissionModuleItem> list) =>
+            MapEntry(key, list.map((PermissionModuleItem item) => item.toJson()).toList(growable: false)),
+      );
 
       _storageService.setString('user_data', jsonEncode(userDataMap));
     } catch (_) {}
@@ -206,52 +235,56 @@ class DashboardDrawerController extends BaseController {
 
   void _setFallbackDashboardOnly() {
     if (!isClosed) {
-      menuItems.assignAll(const [DrawerMenuModel(title: 'Dashboard', identifier: 'dashboard', fallbackIcon: Icons.dashboard_rounded)]);
+      menuItems.assignAll(<DrawerMenuModel>[DrawerMenuModel(title: 'Dashboard', identifier: 'dashboard', fallbackIcon: Icons.dashboard_rounded)]);
     }
   }
 
   String _formatTitle(String key) {
     final String clean = key.replaceAll(RegExp(r'[_\-]+'), ' ').trim();
     if (clean.isEmpty) return key;
-
     final String spaced = clean.replaceAll(RegExp(r'(?<!^)(?=[A-Z])'), ' ');
-    return spaced.split(' ').where((word) => word.isNotEmpty).map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase()).join(' ');
+    return spaced
+        .split(' ')
+        .where((String word) => word.isNotEmpty)
+        .map((String word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .join(' ');
   }
 
   IconData _getFallbackIcon(String identifier) {
-    final String clean = identifier.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
-
-    if (clean.contains('firm')) {
+    final String cleanKey = identifier.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '');
+    if (cleanKey.contains('dashboard')) {
+      return Icons.space_dashboard_rounded;
+    } else if (cleanKey.contains('firm')) {
       return Icons.domain_rounded;
-    } else if (clean.contains('pincode') || clean.contains('pin')) {
+    } else if (cleanKey.contains('pincode') || cleanKey.contains('pin')) {
       return Icons.pin_drop_rounded;
-    } else if (clean.contains('coupon')) {
+    } else if (cleanKey.contains('coupon')) {
       return Icons.discount_rounded;
-    } else if (clean.contains('category')) {
+    } else if (cleanKey.contains('category')) {
       return Icons.category_rounded;
-    } else if (clean.contains('subcategory')) {
+    } else if (cleanKey.contains('subcategory')) {
       return Icons.account_tree_rounded;
-    } else if (clean.contains('brand')) {
+    } else if (cleanKey.contains('brand')) {
       return Icons.branding_watermark_rounded;
-    } else if (clean.contains('item') || clean.contains('product')) {
+    } else if (cleanKey.contains('item') || cleanKey.contains('product')) {
       return Icons.inventory_2_rounded;
-    } else if (clean.contains('dashboardgroup') || clean.contains('group')) {
+    } else if (cleanKey.contains('dashboardgroup') || cleanKey.contains('group')) {
       return Icons.grid_view_rounded;
-    } else if (clean.contains('banner')) {
+    } else if (cleanKey.contains('banner')) {
       return Icons.view_carousel_rounded;
-    } else if (clean.contains('cart')) {
+    } else if (cleanKey.contains('cart')) {
       return Icons.shopping_cart_rounded;
-    } else if (clean.contains('customer')) {
+    } else if (cleanKey.contains('customer')) {
       return Icons.people_rounded;
-    } else if (clean.contains('loyalty')) {
+    } else if (cleanKey.contains('loyalty')) {
       return Icons.military_tech_rounded;
-    } else if (clean.contains('coin')) {
+    } else if (cleanKey.contains('coin')) {
       return Icons.monetization_on_rounded;
-    } else if (clean.contains('payment')) {
+    } else if (cleanKey.contains('payment')) {
       return Icons.payment_rounded;
-    } else if (clean.contains('report')) {
+    } else if (cleanKey.contains('report')) {
       return Icons.analytics_rounded;
-    } else if (clean.contains('setting')) {
+    } else if (cleanKey.contains('setting')) {
       return Icons.settings_rounded;
     }
     return Icons.widgets_rounded;

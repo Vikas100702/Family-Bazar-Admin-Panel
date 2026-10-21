@@ -7,11 +7,11 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class LoyaltyRepository {
   final ApiClient _apiClient;
-
   const LoyaltyRepository({required this._apiClient});
 
-  Future<AvailableItemsModel> getAvailableItems({int? ruleId, String? search, int page = 1, int limit = 1000}) async {
-    final Map<String, dynamic> payload = {
+  Future<AvailableItemsModel> getAvailableItems({int? ruleId, String? search, int page = 1, int limit = 20}) async {
+    const String endpoint = ApiConstants.getAvailableItemsApiEndpoint;
+    final Map<String, dynamic> payload = <String, dynamic>{
       if (ruleId != null && ruleId > 0) 'rule_id': ruleId,
       'searchvalue': search?.trim() ?? '',
       'page': page,
@@ -19,34 +19,37 @@ class LoyaltyRepository {
     };
 
     try {
-      final Response response = await _apiClient.dio.post(ApiConstants.getAvailableItemsEndpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         return AvailableItemsModel.fromJson(response.data as Map<String, dynamic>);
       }
-      throw const FormatException('[LoyaltyRepository.getAvailableItems]: Invalid response format');
+
+      throw FormatException('[LoyaltyRepository.getAvailableItems]: Invalid response format from $endpoint');
     } catch (e, stackTrace) {
-      _captureSentryError('getAvailableItems', ApiConstants.getAvailableItemsEndpoint, e, stackTrace, payload: payload);
+      _captureSentryError('getAvailableItems', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
   }
 
-  Future<ViewLoyaltyRulesModel> getLoyaltyRules({int? id, int? status, String? search, int page = 1, int limit = 10}) async {
-    final Map<String, dynamic> payload = {
+  Future<ViewLoyaltyRulesModel> getLoyaltyRules({int? id, int? status, String? search, int page = 1, int limit = 20}) async {
+    const String endpoint = ApiConstants.getRulesApiEndpoint;
+    final Map<String, dynamic> payload = <String, dynamic>{
       if (id != null && id > 0) 'id': id,
-      if (status != null) 'status': status,
-      if (id == null) ...{'searchvalue': search?.trim() ?? '', 'page': page, 'limit': limit},
+      'status': ?status,
+      if (id == null) ...<String, dynamic>{'searchvalue': search?.trim() ?? '', 'page': page, 'limit': limit},
     };
 
     try {
-      final Response response = await _apiClient.dio.post(ApiConstants.getRulesEndpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         return ViewLoyaltyRulesModel.fromJson(response.data as Map<String, dynamic>);
       }
-      throw const FormatException('[LoyaltyRepository.getLoyaltyRules]: Invalid response format');
+
+      throw FormatException('[LoyaltyRepository.getLoyaltyRules]: Invalid response format from $endpoint');
     } catch (e, stackTrace) {
-      _captureSentryError('getLoyaltyRules', ApiConstants.getRulesEndpoint, e, stackTrace, payload: payload);
+      _captureSentryError('getLoyaltyRules', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
   }
@@ -62,7 +65,8 @@ class LoyaltyRepository {
     required int status,
     String? expiryDate,
   }) async {
-    final Map<String, dynamic> payload = {
+    const String endpoint = ApiConstants.saveRuleApiEndpoint;
+    final Map<String, dynamic> payload = <String, dynamic>{
       if (id != null && id > 0) 'id': id,
       'rule_name': ruleName.trim(),
       'brands': brandCodes,
@@ -75,14 +79,15 @@ class LoyaltyRepository {
     };
 
     try {
-      final Response response = await _apiClient.dio.post(ApiConstants.saveRuleEndpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         return SaveLoyaltyRuleModel.fromJson(response.data as Map<String, dynamic>);
       }
-      throw const FormatException('[LoyaltyRepository.saveLoyaltyRule]: Invalid response format');
+
+      throw FormatException('[LoyaltyRepository.saveLoyaltyRule]: Invalid response format from $endpoint');
     } catch (e, stackTrace) {
-      _captureSentryError('saveLoyaltyRule', ApiConstants.saveRuleEndpoint, e, stackTrace, payload: payload);
+      _captureSentryError('saveLoyaltyRule', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
   }
@@ -95,7 +100,8 @@ class LoyaltyRepository {
     required num newCustReward,
     required num custReffReward,
   }) async {
-    final Map<String, dynamic> payload = {
+    const String endpoint = ApiConstants.savePointsSettingsApiEndpoint;
+    final Map<String, dynamic> payload = <String, dynamic>{
       if (id != null && id > 0) 'id': id,
       'rupees_per_point': rupeesPerPoint,
       'points_per_rupee': pointsPerRupee,
@@ -105,14 +111,15 @@ class LoyaltyRepository {
     };
 
     try {
-      final Response response = await _apiClient.dio.post(ApiConstants.savePointsSettingsEndpoint, data: payload);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         return SavePointsSettingsModel.fromJson(response.data as Map<String, dynamic>);
       }
-      throw const FormatException('[LoyaltyRepository.savePointsSettings]: Invalid response format');
+
+      throw FormatException('[LoyaltyRepository.savePointsSettings]: Invalid response format from $endpoint');
     } catch (e, stackTrace) {
-      _captureSentryError('savePointsSettings', ApiConstants.savePointsSettingsEndpoint, e, stackTrace, payload: payload);
+      _captureSentryError('savePointsSettings', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
   }
@@ -120,25 +127,34 @@ class LoyaltyRepository {
   void _captureSentryError(String action, String endpoint, Object error, StackTrace stackTrace, {Map<String, dynamic>? payload}) {
     Sentry.addBreadcrumb(
       Breadcrumb(
-        message: 'LoyaltyRepository.$action failed',
-        category: 'loyalty_program.repository',
+        message: 'LoyaltyRepository.$action failed on $endpoint',
+        category: 'settings.loyalty_program.repository',
         level: SentryLevel.error,
-        data: {'action': action, 'endpoint': endpoint, 'error': error.toString(), if (payload != null) 'payload': payload},
+        data: <String, dynamic>{
+          'action': action,
+          'endpoint': endpoint,
+          if (error is DioException) 'status_code': error.response?.statusCode,
+          'payload': ?payload,
+        },
       ),
     );
 
-    if (error is! DioException) {
-      Sentry.captureException(
-        error,
-        stackTrace: stackTrace,
-        withScope: (scope) {
-          scope.setTag('module', 'loyalty_program');
-          scope.setTag('action', action);
-          if (payload != null) {
-            scope.setContexts('request_payload', payload);
-          }
-        },
-      );
-    }
+    Sentry.captureException(
+      error,
+      stackTrace: stackTrace,
+      withScope: (Scope scope) {
+        scope.setTag('module', 'loyalty_program');
+        scope.setTag('repository', 'LoyaltyRepository');
+        scope.setTag('action', action);
+        scope.setContexts('network_context', <String, dynamic>{
+          'endpoint': endpoint,
+          if (error is DioException) ...<String, dynamic>{
+            'status_code': error.response?.statusCode,
+            'response_data': error.response?.data?.toString(),
+          },
+          'payload': ?payload,
+        });
+      },
+    );
   }
 }

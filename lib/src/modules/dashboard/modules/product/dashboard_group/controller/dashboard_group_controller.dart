@@ -2,8 +2,6 @@ import 'package:family_bazar_admin_panel/src/core/base_controller/base_table_con
 import 'package:family_bazar_admin_panel/src/core/models/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/model/firm_setup_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/repository/firm_setup_repository.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_item_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/add_group_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/model/dashboard_group_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/dashboard_group/repository/dashboard_group_repository.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/item/repository/items_repository.dart';
@@ -19,6 +17,8 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
 
   DashboardGroupController({required this._groupRepository, required this._itemRepository, required this._firmRepository});
 
+  bool _isActionLocked = false;
+
   // REACTIVE GROUP NAVIGATION STATE
   final RxList<ViewDashboardGroupDatum> groupList = <ViewDashboardGroupDatum>[].obs;
   final Rxn<ViewDashboardGroupDatum> selectedGroup = Rxn<ViewDashboardGroupDatum>();
@@ -27,7 +27,6 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
   // GROUP ITEMS CATALOG & TABLE STATE
   final RxBool isItemsLoading = false.obs;
   final RxList<ViewItemByTypeDatum> allGroupItems = <ViewItemByTypeDatum>[].obs;
-
   RxList<ViewItemByTypeDatum> get pagedGroupItems => pagedList;
 
   // CREATE GROUP STATE
@@ -67,17 +66,13 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
 
   @override
   String searchTokenBuilder(ViewItemByTypeDatum item) {
-    return '${item.iCode} ${item.iName} ${item.iBarCode} ${item.iFirmCode} ${item.itemGroupName} ${item.otherGroupName}';
-  }
-
-  int? extractCode(int code) {
-    return code;
+    return '${item.iCode} ${item.iName} ${item.iBarCode} ${item.iFirmCode} ${item.itemGroupName} ${item.otherGroupName}'.toLowerCase().trim();
   }
 
   Future<void> fetchDashboardGroups() async {
     await runWithLoading(() async {
       try {
-        final response = await _groupRepository.viewGroups();
+        final ViewDashboardGroupModel response = await _groupRepository.viewGroups();
         if (isClosed) return;
 
         if (response.success && response.data.isNotEmpty) {
@@ -90,13 +85,15 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
           selectedGroup.value = null;
           selectedGroupId.value = 0;
           allGroupItems.clear();
-          setMasterData([]);
+          setMasterData(<ViewItemByTypeDatum>[]);
         } else {
           throw Exception(response.message.isNotEmpty ? response.message : 'Failed to retrieve dashboard groups.');
         }
       } catch (e, stackTrace) {
         _logException(e, stackTrace, 'fetchDashboardGroups');
-        errorMessage(message: 'An unexpected error occurred while loading groups.');
+        if (!isClosed) {
+          errorMessage(message: 'An unexpected error occurred while loading groups.');
+        }
       }
     });
   }
@@ -105,20 +102,20 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
     if (selectedGroupId.value == group.id && allGroupItems.isNotEmpty) {
       return;
     }
-
     selectedGroup.value = group;
     selectedGroupId.value = group.id;
     clearSearch();
-
     fetchGroupItems(group.id);
   }
 
   Future<bool> createGroup() async {
+    if (_isActionLocked) return false;
     if (!addGroupFormKey.currentState!.validate()) return false;
 
     final String name = groupNameController.text.trim();
     bool isSuccess = false;
 
+    _isActionLocked = true;
     await runWithLoading(() async {
       try {
         final AddGroupModel response = await _groupRepository.addGroup(groupName: name);
@@ -127,38 +124,44 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
         if (response.success) {
           isSuccess = true;
           groupNameController.clear();
+          final ViewDashboardGroupModel groupsRes = await _groupRepository.viewGroups();
+          if (isClosed) return;
 
-          final groupsRes = await _groupRepository.viewGroups();
           if (groupsRes.success && groupsRes.data.isNotEmpty) {
             groupList.assignAll(groupsRes.data);
-            final created = groupList.firstWhereOrNull((g) => g.dgName.trim().toLowerCase() == name.toLowerCase()) ?? groupList.last;
-
+            final ViewDashboardGroupDatum created =
+                groupList.firstWhereOrNull((ViewDashboardGroupDatum g) => g.dgName.trim().toLowerCase() == name.toLowerCase()) ?? groupList.last;
             selectGroup(created);
           }
         } else {
           throw Exception(response.message.isNotEmpty ? response.message : 'Failed to add group.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'createGroup', {'group_name': name});
-        errorMessage(message: 'Failed to add group due to a network error.');
+        _logException(e, stackTrace, 'createGroup', <String, dynamic>{'group_name': name});
+        if (!isClosed) {
+          errorMessage(message: 'Failed to add group due to a network error.');
+        }
+      } finally {
+        _isActionLocked = false;
       }
     });
 
     return isSuccess;
   }
 
-  /// Loads the group data into the form before the modal opens
   void prepareEditGroup(ViewDashboardGroupDatum group) {
     editingGroup.value = group;
     editGroupNameController.text = group.dgName;
-    editStatus.value = int.tryParse(group.dgStatus.toString()) ?? 1;
+    editStatus.value = group.dgStatus;
     editGImgM.value = group.imImageMob;
     editGImgW.value = group.imImageWeb;
   }
 
   Future<bool> updateGroup({required int groupId, String? groupName, int? status, String? gImgM, String? gImgW}) async {
-    bool isSuccess = false;
+    if (_isActionLocked) return false;
+    _isActionLocked = true;
 
+    bool isSuccess = false;
     await runWithLoading(() async {
       try {
         final AddGroupModel response = await _groupRepository.updateGroup(
@@ -174,41 +177,42 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
         if (response.success) {
           isSuccess = true;
           successMessage(title: 'Updated', message: response.message.isNotEmpty ? response.message : 'Group updated successfully.');
-
-          // Reload master tabs to synchronize the updated state
-          refreshAll();
+          await refreshAll();
           if (selectedGroupId.value == groupId) {
-            final updated = groupList.firstWhereOrNull((g) => g.id == groupId);
+            final ViewDashboardGroupDatum? updated = groupList.firstWhereOrNull((ViewDashboardGroupDatum g) => g.id == groupId);
             if (updated != null) selectGroup(updated);
           }
         } else {
           throw Exception(response.message.isNotEmpty ? response.message : 'Failed to update group.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'updateGroup', {
+        _logException(e, stackTrace, 'updateGroup', <String, dynamic>{
           'group_id': groupId,
           'group_name': groupName,
           'status': status,
           'g_img_m': gImgM,
           'g_img_w': gImgW,
         });
-        errorMessage(message: 'Failed to update group due to a network error.');
+        if (!isClosed) {
+          errorMessage(message: 'Failed to update group due to a network error.');
+        }
+      } finally {
+        _isActionLocked = false;
       }
     });
 
     return isSuccess;
   }
 
-  /// Dispatches all updated values at once when the edit modal form is submitted
   Future<bool> submitEditGroup() async {
-    final group = editingGroup.value;
+    final ViewDashboardGroupDatum? group = editingGroup.value;
     if (group == null || group.id == 0) return false;
     if (!editGroupFormKey.currentState!.validate()) return false;
 
     return await updateGroup(
       groupId: group.id,
       status: editStatus.value,
-      groupName: editGroupNameController.value.text.trim().isNotEmpty ? editGroupNameController.value.text.trim() : null,
+      groupName: editGroupNameController.text.trim().isNotEmpty ? editGroupNameController.text.trim() : null,
       gImgM: editGImgM.value.trim().isNotEmpty ? editGImgM.value.trim() : null,
       gImgW: editGImgW.value.trim().isNotEmpty ? editGImgW.value.trim() : null,
     );
@@ -220,6 +224,7 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
     try {
       isItemsLoading.value = true;
       final ViewItemByTypeModel response = await _groupRepository.viewGroupItems(groupId: groupId);
+
       if (isClosed) return;
 
       if (response.success) {
@@ -227,16 +232,18 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
         setMasterData(response.data);
       } else {
         allGroupItems.clear();
-        setMasterData([]);
-        if (response.message.isNotEmpty && !response.success) {
+        setMasterData(<ViewItemByTypeDatum>[]);
+        if (response.message.isNotEmpty) {
           errorMessage(message: response.message);
         }
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'fetchGroupItems', {'group_id': groupId});
+      _logException(e, stackTrace, 'fetchGroupItems', <String, dynamic>{'group_id': groupId});
       allGroupItems.clear();
-      setMasterData([]);
-      errorMessage(message: 'Failed to retrieve catalog items for the selected group.');
+      setMasterData(<ViewItemByTypeDatum>[]);
+      if (!isClosed) {
+        errorMessage(message: 'Failed to retrieve catalog items for the selected group.');
+      }
     } finally {
       if (!isClosed) isItemsLoading.value = false;
     }
@@ -246,6 +253,7 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
     try {
       isMasterItemsLoading.value = true;
       final ViewItemByTypeModel response = await _groupRepository.viewFirmItems(firmCode);
+
       if (isClosed) return;
 
       if (response.success) {
@@ -259,10 +267,12 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
         }
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'fetchFirmItems', {'firm_code': firmCode});
+      _logException(e, stackTrace, 'fetchFirmItems', <String, dynamic>{'firm_code': firmCode});
       masterItemList.clear();
       filteredMasterItemList.clear();
-      errorMessage(message: 'Failed to retrieve catalog items for the selected firm.');
+      if (!isClosed) {
+        errorMessage(message: 'Failed to retrieve catalog items for the selected firm.');
+      }
     } finally {
       if (!isClosed) isMasterItemsLoading.value = false;
     }
@@ -286,8 +296,8 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
     masterItemSearchController.clear();
     selectedFirmCode.value = 'ALL';
 
-    for (final item in allGroupItems) {
-      final code = item.iCode.trim();
+    for (final ViewItemByTypeDatum item in allGroupItems) {
+      final String code = item.iCode.trim();
       if (code.isNotEmpty) {
         selectedItemCodeToAdd.add(code);
       }
@@ -300,6 +310,7 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
     try {
       isMasterItemsLoading.value = true;
       final response = await _itemRepository.viewItems();
+
       if (isClosed) return;
 
       if (response.success) {
@@ -311,7 +322,9 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
       }
     } catch (e, stackTrace) {
       _logException(e, stackTrace, 'loadMasterItems');
-      errorMessage(message: 'Failed to fetch catalog items for selection.');
+      if (!isClosed) {
+        errorMessage(message: 'Failed to fetch catalog items for selection.');
+      }
     } finally {
       if (!isClosed) isMasterItemsLoading.value = false;
     }
@@ -326,23 +339,24 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
   }
 
   Future<bool> submitGroupItems() async {
+    if (_isActionLocked) return false;
     if (selectedGroupId.value == 0) {
       errorMessage(message: 'No active group selected.');
       return false;
     }
-
     if (selectedItemCodeToAdd.isEmpty) {
       errorMessage(message: 'Please select at least one item.');
       return false;
     }
 
+    _isActionLocked = true;
+    isSubmittingItems.value = true;
     bool isSuccess = false;
 
     try {
-      isSubmittingItems.value = true;
       final AddGroupItemsModel response = await _groupRepository.addGroupItems(
         groupId: selectedGroupId.value,
-        itemCode: selectedItemCodeToAdd.toList(),
+        itemCode: selectedItemCodeToAdd.toList(growable: false),
       );
 
       if (isClosed) return false;
@@ -355,9 +369,15 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
         errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to assign items to group.');
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'submitGroupItems', {'group_id': selectedGroupId.value, 'item_ids': selectedItemCodeToAdd.toList()});
-      errorMessage(message: 'An error occurred while linking items.');
+      _logException(e, stackTrace, 'submitGroupItems', <String, dynamic>{
+        'group_id': selectedGroupId.value,
+        'item_ids_count': selectedItemCodeToAdd.length,
+      });
+      if (!isClosed) {
+        errorMessage(message: 'An error occurred while linking items.');
+      }
     } finally {
+      _isActionLocked = false;
       if (!isClosed) isSubmittingItems.value = false;
     }
 
@@ -365,39 +385,40 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
   }
 
   Future<bool> deleteGroup(ViewDashboardGroupDatum group) async {
+    if (_isActionLocked) return false;
     if (group.id == 0) {
       errorMessage(message: 'Invalid group selected.');
       return false;
     }
 
+    _isActionLocked = true;
     bool isSuccess = false;
 
     await runWithLoading(() async {
       try {
         final CommonDeleteModel response = await _groupRepository.deleteGroup(groupId: group.id);
-
         if (isClosed) return;
 
         if (response.success) {
           isSuccess = true;
           successMessage(title: 'Deleted', message: response.message.isNotEmpty ? response.message : 'Group deleted successfully.');
-
-          // Clear selection if the deleted group was currently open
           if (selectedGroupId.value == group.id) {
             selectedGroup.value = null;
             selectedGroupId.value = 0;
             allGroupItems.clear();
-            setMasterData([]);
+            setMasterData(<ViewItemByTypeDatum>[]);
           }
-
-          // Reload master group tabs
           await fetchDashboardGroups();
         } else {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to delete group.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'deleteGroup', {'group_id': group.id, 'group_name': group.dgName});
-        errorMessage(message: 'An error occurred while deleting the dashboard group.');
+        _logException(e, stackTrace, 'deleteGroup', <String, dynamic>{'group_id': group.id, 'group_name': group.dgName});
+        if (!isClosed) {
+          errorMessage(message: 'An error occurred while deleting the dashboard group.');
+        }
+      } finally {
+        _isActionLocked = false;
       }
     });
 
@@ -405,17 +426,13 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
   }
 
   Future<bool> deleteGroupItem(ViewItemByTypeDatum item) async {
+    if (_isActionLocked) return false;
     if (selectedGroupId.value == 0) {
       errorMessage(message: 'No active dashboard group selected.');
       return false;
     }
 
-    final int? itemCodeNumber = extractCode(item.id);
-    if (itemCodeNumber == 0) {
-      errorMessage(message: 'Unable to resolve valid item code.');
-      return false;
-    }
-
+    _isActionLocked = true;
     bool isSuccess = false;
 
     await runWithLoading(() async {
@@ -432,8 +449,12 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to remove item from group.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'deleteGroupItem', {'group_id': selectedGroupId.value, 'item_code': itemCodeNumber});
-        errorMessage(message: 'An error occurred while deleting item from group.');
+        _logException(e, stackTrace, 'deleteGroupItem', <String, dynamic>{'group_id': selectedGroupId.value, 'item_code': item.iCode});
+        if (!isClosed) {
+          errorMessage(message: 'An error occurred while deleting item from group.');
+        }
+      } finally {
+        _isActionLocked = false;
       }
     });
 
@@ -444,6 +465,7 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
     try {
       isFirmLoading.value = true;
       final ViewFirmModel response = await _firmRepository.viewFirms();
+
       if (isClosed) return;
 
       if (response.success && response.data.isNotEmpty) {
@@ -464,19 +486,20 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
   }
 
   void filterMasterItems(String query) {
-    final cleanQuery = query.trim().toLowerCase();
-
+    final String cleanQuery = query.trim().toLowerCase();
     if (cleanQuery.isEmpty) {
       filteredMasterItemList.assignAll(masterItemList);
     } else {
       filteredMasterItemList.assignAll(
-        masterItemList.where((item) {
-          final String ean = item.iBarCode.toLowerCase();
-          return item.iName.toLowerCase().contains(cleanQuery) ||
-              item.iCode.toLowerCase().contains(cleanQuery) ||
-              ean.contains(cleanQuery) ||
-              item.iFirmCode.toLowerCase().contains(cleanQuery);
-        }).toList(),
+        masterItemList
+            .where((ViewItemByTypeDatum item) {
+              final String ean = item.iBarCode.toLowerCase();
+              return item.iName.toLowerCase().contains(cleanQuery) ||
+                  item.iCode.toLowerCase().contains(cleanQuery) ||
+                  ean.contains(cleanQuery) ||
+                  item.iFirmCode.toLowerCase().contains(cleanQuery);
+            })
+            .toList(growable: false),
       );
     }
   }
@@ -485,12 +508,12 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
     Sentry.captureException(
       exception,
       stackTrace: stackTrace,
-      withScope: (scope) {
+      withScope: (Scope scope) {
+        scope.setTag('module', 'dashboard_group');
         scope.setTag('controller', 'DashboardGroupController');
-        scope.setContexts('group_action', {'action': action, 'selected_group_id': selectedGroupId.value, ...?extra});
+        scope.setContexts('group_action', <String, dynamic>{'action': action, 'selected_group_id': selectedGroupId.value, ...?extra});
       },
     );
-    debugPrint("[Dashboard Group Exception]$exception\n$stackTrace");
   }
 
   @override

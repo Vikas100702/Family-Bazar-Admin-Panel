@@ -6,31 +6,50 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class FirmRepository {
   final ApiClient _apiClient;
-
   const FirmRepository({required this._apiClient});
 
   Future<ViewFirmModel> viewFirms() async {
+    const String endpoint = ApiConstants.viewFirmApiEndpoint;
+
     try {
-      final response = await _apiClient.dio.post(ApiConstants.viewFirmApiEndpoint);
+      final Response<dynamic> response = await _apiClient.dio.post(endpoint);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
-        final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
-        return ViewFirmModel.fromJson(responseData);
+        return ViewFirmModel.fromJson(response.data as Map<String, dynamic>);
       }
-      throw FormatException('[FirmRepository.viewFirms]: Invalid data format received from endpoint: ${ApiConstants.viewFirmApiEndpoint}');
+
+      throw FormatException('[FirmRepository.viewFirms]: Invalid data format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
-      if (e is! DioException) {
-        Sentry.captureException(
-          e,
-          stackTrace: stackTrace,
-          withScope: (scope) {
-            scope.setTag('layer', 'firm_repository');
-            scope.setTag('endpoint', ApiConstants.viewFirmApiEndpoint);
-            scope.setTag('action', 'viewFirms');
-          },
-        );
-      }
+      _captureSentryError('viewFirms', endpoint, e, stackTrace);
       rethrow;
     }
+  }
+
+  void _captureSentryError(String action, String endpoint, Object error, StackTrace stackTrace) {
+    Sentry.addBreadcrumb(
+      Breadcrumb(
+        message: 'FirmRepository.$action failed on $endpoint',
+        category: 'firm.repository.network',
+        level: SentryLevel.error,
+        data: <String, dynamic>{'action': action, 'endpoint': endpoint, if (error is DioException) 'status_code': error.response?.statusCode},
+      ),
+    );
+
+    Sentry.captureException(
+      error,
+      stackTrace: stackTrace,
+      withScope: (Scope scope) {
+        scope.setTag('module', 'firm');
+        scope.setTag('repository', 'FirmRepository');
+        scope.setTag('action', action);
+        scope.setContexts('network_context', <String, dynamic>{
+          'endpoint': endpoint,
+          if (error is DioException) ...<String, dynamic>{
+            'status_code': error.response?.statusCode,
+            'response_data': error.response?.data?.toString(),
+          },
+        });
+      },
+    );
   }
 }

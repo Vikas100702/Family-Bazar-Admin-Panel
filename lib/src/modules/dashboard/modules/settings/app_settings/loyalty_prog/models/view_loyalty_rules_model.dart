@@ -7,30 +7,57 @@ class ViewLoyaltyRulesModel {
   final LoyaltyPagination? pagination;
   final List<LoyaltyRuleDatum> data;
 
-  const ViewLoyaltyRulesModel({required this.success, required this.message, this.pagination, this.data = const []});
+  const ViewLoyaltyRulesModel({required this.success, required this.message, this.pagination, this.data = const <LoyaltyRuleDatum>[]});
+
+  ViewLoyaltyRulesModel copyWith({bool? success, String? message, LoyaltyPagination? pagination, List<LoyaltyRuleDatum>? data}) {
+    return ViewLoyaltyRulesModel(
+      success: success ?? this.success,
+      message: message ?? this.message,
+      pagination: pagination ?? this.pagination,
+      data: data ?? this.data,
+    );
+  }
 
   factory ViewLoyaltyRulesModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
-      return const ViewLoyaltyRulesModel(success: false, message: 'Empty payload');
+      return const ViewLoyaltyRulesModel(
+        success: false,
+        message: 'Empty payload received from server.',
+        pagination: null,
+        data: <LoyaltyRuleDatum>[],
+      );
     }
 
-    // Defensive parsing: Handle both List (GetAll) and Map (GetById) structures safely
-    List<LoyaltyRuleDatum> parsedData = [];
-    if (json['data'] != null) {
-      if (json['data'] is List) {
-        parsedData = (json['data'] as List).whereType<Map<String, dynamic>>().map((x) => LoyaltyRuleDatum.fromJson(x)).toList();
-      } else if (json['data'] is Map<String, dynamic>) {
-        parsedData = [LoyaltyRuleDatum.fromJson(json['data'] as Map<String, dynamic>)];
+    final dynamic rawData = json['data'];
+    final List<LoyaltyRuleDatum> parsedData = <LoyaltyRuleDatum>[];
+
+    if (rawData is List) {
+      for (final item in rawData) {
+        if (item is Map<String, dynamic>) {
+          parsedData.add(LoyaltyRuleDatum.fromJson(item));
+        }
       }
+    } else if (rawData is Map<String, dynamic>) {
+      parsedData.add(LoyaltyRuleDatum.fromJson(rawData));
     }
 
     return ViewLoyaltyRulesModel(
-      success: json['success'] == true || json['success'] == 'true',
-      message: json['message']?.toString().trim() ?? '',
+      success: _parseBool(json['success'] ?? json['status']),
+      message: _parseCleanString(json['message']),
       pagination: json['pagination'] is Map<String, dynamic> ? LoyaltyPagination.fromJson(json['pagination'] as Map<String, dynamic>) : null,
-      data: List.unmodifiable(parsedData),
+      data: List<LoyaltyRuleDatum>.unmodifiable(parsedData),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'success': success,
+    'message': message,
+    if (pagination != null) 'pagination': pagination?.toJson(),
+    'data': data.map((x) => x.toJson()).toList(growable: false),
+  };
+
+  @override
+  String toString() => 'ViewLoyaltyRulesModel(success: $success, message: $message, count: ${data.length})';
 }
 
 @immutable
@@ -57,32 +84,96 @@ class LoyaltyRuleDatum {
     this.expiryDate,
     this.createdAt,
     this.updatedAt,
-    this.brands = const [],
-    this.categories = const [],
+    this.brands = const <LoyaltyBrand>[],
+    this.categories = const <LoyaltyCategory>[],
   });
 
   bool get isActive => status == 1;
 
-  factory LoyaltyRuleDatum.fromJson(Map<String, dynamic>? json) {
-    if (json == null) {
-      return const LoyaltyRuleDatum(id: 0, ruleName: '', minOrderAmt: 0, pointsValue: 0, status: 0);
-    }
+  LoyaltyRuleDatum copyWith({
+    int? id,
+    String? ruleName,
+    double? minOrderAmt,
+    double? maxOrderAmt,
+    double? pointsValue,
+    int? status,
+    DateTime? expiryDate,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    List<LoyaltyBrand>? brands,
+    List<LoyaltyCategory>? categories,
+  }) {
     return LoyaltyRuleDatum(
-      id: _parseInt(json['id']),
-      ruleName: json['rule_name']?.toString().trim() ?? '',
-      minOrderAmt: _parseDouble(json['min_order_amt']),
-      maxOrderAmt: _parseNullableDouble(json['max_order_amt']),
-      pointsValue: _parseDouble(json['points_value']),
-      status: _parseInt(json['status']),
-      expiryDate: _parseDate(json['expiry_date']),
-      createdAt: _parseDate(json['created_at']),
-      updatedAt: _parseDate(json['updated_at']),
-      brands: json['brands'] is List ? (json['brands'] as List).whereType<Map<String, dynamic>>().map((x) => LoyaltyBrand.fromJson(x)).toList() : [],
-      categories: json['categories'] is List
-          ? (json['categories'] as List).whereType<Map<String, dynamic>>().map((x) => LoyaltyCategory.fromJson(x)).toList()
-          : [],
+      id: id ?? this.id,
+      ruleName: ruleName ?? this.ruleName,
+      minOrderAmt: minOrderAmt ?? this.minOrderAmt,
+      maxOrderAmt: maxOrderAmt ?? this.maxOrderAmt,
+      pointsValue: pointsValue ?? this.pointsValue,
+      status: status ?? this.status,
+      expiryDate: expiryDate ?? this.expiryDate,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      brands: brands ?? this.brands,
+      categories: categories ?? this.categories,
     );
   }
+
+  factory LoyaltyRuleDatum.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return const LoyaltyRuleDatum(id: 0, ruleName: '', minOrderAmt: 0.0, pointsValue: 0.0, status: 0);
+    }
+
+    final List<LoyaltyBrand> parsedBrands = <LoyaltyBrand>[];
+    if (json['brands'] is List) {
+      for (final item in json['brands'] as List) {
+        if (item is Map<String, dynamic>) {
+          parsedBrands.add(LoyaltyBrand.fromJson(item));
+        }
+      }
+    }
+
+    final List<LoyaltyCategory> parsedCats = <LoyaltyCategory>[];
+    if (json['categories'] is List) {
+      for (final item in json['categories'] as List) {
+        if (item is Map<String, dynamic>) {
+          parsedCats.add(LoyaltyCategory.fromJson(item));
+        }
+      }
+    }
+
+    return LoyaltyRuleDatum(
+      id: _parseInt(json['id']),
+      ruleName: _parseCleanString(json['rule_name'] ?? json['ruleName']),
+      minOrderAmt: _parseDouble(json['min_order_amt'] ?? json['minOrderAmt']),
+      maxOrderAmt: _parseNullableDouble(json['max_order_amt'] ?? json['maxOrderAmt']),
+      pointsValue: _parseDouble(json['points_value'] ?? json['pointsValue']),
+      status: _parseInt(json['status'], defaultValue: 1),
+      expiryDate: _parseDate(json['expiry_date'] ?? json['expiryDate']),
+      createdAt: _parseDate(json['created_at'] ?? json['createdAt']),
+      updatedAt: _parseDate(json['updated_at'] ?? json['updatedAt']),
+      brands: List<LoyaltyBrand>.unmodifiable(parsedBrands),
+      categories: List<LoyaltyCategory>.unmodifiable(parsedCats),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'rule_name': ruleName,
+    'min_order_amt': minOrderAmt,
+    if (maxOrderAmt != null) 'max_order_amt': maxOrderAmt,
+    'points_value': pointsValue,
+    'status': status,
+    if (expiryDate != null)
+      'expiry_date':
+          '${expiryDate!.year.toString().padLeft(4, '0')}-${expiryDate!.month.toString().padLeft(2, '0')}-${expiryDate!.day.toString().padLeft(2, '0')}',
+    if (createdAt != null) 'created_at': createdAt?.toIso8601String(),
+    if (updatedAt != null) 'updated_at': updatedAt?.toIso8601String(),
+    'brands': brands.map((x) => x.toJson()).toList(growable: false),
+    'categories': categories.map((x) => x.toJson()).toList(growable: false),
+  };
+
+  @override
+  String toString() => 'LoyaltyRuleDatum(id: $id, ruleName: $ruleName, minAmt: $minOrderAmt, points: $pointsValue, status: $status)';
 }
 
 @immutable
@@ -92,21 +183,54 @@ class AvailableItemsModel {
   final List<LoyaltyBrand> brands;
   final List<LoyaltyCategory> categories;
 
-  const AvailableItemsModel({required this.success, required this.message, this.brands = const [], this.categories = const []});
+  const AvailableItemsModel({
+    required this.success,
+    required this.message,
+    this.brands = const <LoyaltyBrand>[],
+    this.categories = const <LoyaltyCategory>[],
+  });
 
   factory AvailableItemsModel.fromJson(Map<String, dynamic>? json) {
-    if (json == null) return const AvailableItemsModel(success: false, message: 'Empty payload');
+    if (json == null) {
+      return const AvailableItemsModel(success: false, message: 'Empty options payload received.');
+    }
 
-    final data = json['data'] is Map<String, dynamic> ? json['data'] as Map<String, dynamic> : {};
+    final dynamic data = json['data'] is Map<String, dynamic> ? json['data'] as Map<String, dynamic> : json;
+
+    final List<LoyaltyBrand> parsedBrands = <LoyaltyBrand>[];
+    if (data['brands'] is List) {
+      for (final item in data['brands'] as List) {
+        if (item is Map<String, dynamic>) {
+          parsedBrands.add(LoyaltyBrand.fromJson(item));
+        }
+      }
+    }
+
+    final List<LoyaltyCategory> parsedCats = <LoyaltyCategory>[];
+    if (data['categories'] is List) {
+      for (final item in data['categories'] as List) {
+        if (item is Map<String, dynamic>) {
+          parsedCats.add(LoyaltyCategory.fromJson(item));
+        }
+      }
+    }
+
     return AvailableItemsModel(
-      success: json['success'] == true || json['success'] == 'true',
-      message: json['message']?.toString().trim() ?? '',
-      brands: data['brands'] is List ? (data['brands'] as List).whereType<Map<String, dynamic>>().map((x) => LoyaltyBrand.fromJson(x)).toList() : [],
-      categories: data['categories'] is List
-          ? (data['categories'] as List).whereType<Map<String, dynamic>>().map((x) => LoyaltyCategory.fromJson(x)).toList()
-          : [],
+      success: _parseBool(json['success'] ?? json['status']),
+      message: _parseCleanString(json['message']),
+      brands: List<LoyaltyBrand>.unmodifiable(parsedBrands),
+      categories: List<LoyaltyCategory>.unmodifiable(parsedCats),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'success': success,
+    'message': message,
+    'data': {
+      'brands': brands.map((x) => x.toJson()).toList(growable: false),
+      'categories': categories.map((x) => x.toJson()).toList(growable: false),
+    },
+  };
 }
 
 @immutable
@@ -118,13 +242,18 @@ class SaveLoyaltyRuleModel {
   const SaveLoyaltyRuleModel({required this.success, required this.message, this.data});
 
   factory SaveLoyaltyRuleModel.fromJson(Map<String, dynamic>? json) {
-    if (json == null) return const SaveLoyaltyRuleModel(success: false, message: 'Empty payload');
+    if (json == null) {
+      return const SaveLoyaltyRuleModel(success: false, message: 'Empty response payload received.');
+    }
+
     return SaveLoyaltyRuleModel(
-      success: json['success'] == true || json['success'] == 'true',
-      message: json['message']?.toString().trim() ?? '',
+      success: _parseBool(json['success'] ?? json['status']),
+      message: _parseCleanString(json['message']),
       data: json['data'] is Map<String, dynamic> ? LoyaltyRuleDatum.fromJson(json['data'] as Map<String, dynamic>) : null,
     );
   }
+
+  Map<String, dynamic> toJson() => {'success': success, 'message': message, if (data != null) 'data': data?.toJson()};
 }
 
 @immutable
@@ -134,7 +263,7 @@ class LoyaltyBrand {
   final int brandId;
   final String brandCode;
   final String brandName;
-  final int isSelected; // Used in dropdown
+  final int isSelected;
   final int status;
 
   const LoyaltyBrand({
@@ -147,19 +276,39 @@ class LoyaltyBrand {
     this.status = 1,
   });
 
-  factory LoyaltyBrand.fromJson(Map<String, dynamic> json) {
+  LoyaltyBrand copyWith({int? id, int? ruleId, int? brandId, String? brandCode, String? brandName, int? isSelected, int? status}) {
     return LoyaltyBrand(
-      id: _parseInt(json['id']),
-      ruleId: json['rule_id'] != null ? _parseInt(json['rule_id']) : null,
-      brandId: _parseInt(json['brand_id']),
-      brandCode: json['brand_code']?.toString().trim() ?? '',
-      brandName: json['brand_name']?.toString().trim() ?? '',
-      isSelected: _parseInt(json['is_selected'] ?? json['status']),
-      status: _parseInt(json['status'] ?? json['is_selected']),
+      id: id ?? this.id,
+      ruleId: ruleId ?? this.ruleId,
+      brandId: brandId ?? this.brandId,
+      brandCode: brandCode ?? this.brandCode,
+      brandName: brandName ?? this.brandName,
+      isSelected: isSelected ?? this.isSelected,
+      status: status ?? this.status,
     );
   }
 
-  Map<String, dynamic> toJson() => {'brand_id': brandId};
+  factory LoyaltyBrand.fromJson(Map<String, dynamic> json) {
+    return LoyaltyBrand(
+      id: _parseInt(json['id']),
+      ruleId: _parseNullableInt(json['rule_id'] ?? json['ruleId']),
+      brandId: _parseInt(json['brand_id'] ?? json['brandId'] ?? json['id']),
+      brandCode: _parseCleanString(json['brand_code'] ?? json['brandCode']),
+      brandName: _parseCleanString(json['brand_name'] ?? json['brandName']),
+      isSelected: _parseInt(json['is_selected'] ?? json['isSelected']),
+      status: _parseInt(json['status'], defaultValue: 1),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    if (ruleId != null) 'rule_id': ruleId,
+    'brand_id': brandId,
+    'brand_code': brandCode,
+    'brand_name': brandName,
+    'is_selected': isSelected,
+    'status': status,
+  };
 }
 
 @immutable
@@ -182,19 +331,39 @@ class LoyaltyCategory {
     this.status = 1,
   });
 
-  factory LoyaltyCategory.fromJson(Map<String, dynamic> json) {
+  LoyaltyCategory copyWith({int? id, int? ruleId, int? categoryId, String? categoryCode, String? categoryName, int? isSelected, int? status}) {
     return LoyaltyCategory(
-      id: _parseInt(json['id']),
-      ruleId: json['rule_id'] != null ? _parseInt(json['rule_id']) : null,
-      categoryId: _parseInt(json['category_id'] ?? json['id']),
-      categoryCode: json['category_code']?.toString().trim() ?? '',
-      categoryName: json['category_name']?.toString().trim() ?? '',
-      isSelected: _parseInt(json['is_selected'] ?? json['status']),
-      status: _parseInt(json['status'] ?? json['is_selected']),
+      id: id ?? this.id,
+      ruleId: ruleId ?? this.ruleId,
+      categoryId: categoryId ?? this.categoryId,
+      categoryCode: categoryCode ?? this.categoryCode,
+      categoryName: categoryName ?? this.categoryName,
+      isSelected: isSelected ?? this.isSelected,
+      status: status ?? this.status,
     );
   }
 
-  Map<String, dynamic> toJson() => {'category_id': categoryId};
+  factory LoyaltyCategory.fromJson(Map<String, dynamic> json) {
+    return LoyaltyCategory(
+      id: _parseInt(json['id']),
+      ruleId: _parseNullableInt(json['rule_id'] ?? json['ruleId']),
+      categoryId: _parseInt(json['category_id'] ?? json['categoryId'] ?? json['id']),
+      categoryCode: _parseCleanString(json['category_code'] ?? json['categoryCode']),
+      categoryName: _parseCleanString(json['category_name'] ?? json['categoryName']),
+      isSelected: _parseInt(json['is_selected'] ?? json['isSelected']),
+      status: _parseInt(json['status'], defaultValue: 1),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    if (ruleId != null) 'rule_id': ruleId,
+    'category_id': categoryId,
+    'category_code': categoryCode,
+    'category_name': categoryName,
+    'is_selected': isSelected,
+    'status': status,
+  };
 }
 
 @immutable
@@ -208,38 +377,80 @@ class LoyaltyPagination {
 
   factory LoyaltyPagination.fromJson(Map<String, dynamic> json) {
     return LoyaltyPagination(
-      totalRecords: _parseInt(json['total_records']),
-      totalPages: _parseInt(json['total_pages']),
-      currentPage: _parseInt(json['current_page']),
-      limit: _parseInt(json['limit']),
+      totalRecords: _parseInt(json['total_records'] ?? json['total']),
+      totalPages: _parseInt(json['total_pages'] ?? json['totalPages'], defaultValue: 1),
+      currentPage: _parseInt(json['current_page'] ?? json['page'], defaultValue: 1),
+      limit: _parseInt(json['limit'] ?? json['per_page'], defaultValue: 20),
     );
   }
+
+  Map<String, dynamic> toJson() => {'total_records': totalRecords, 'total_pages': totalPages, 'current_page': currentPage, 'limit': limit};
 }
 
-int _parseInt(dynamic value) {
-  if (value == null) return 0;
-  if (value is int) return value;
-  if (value is num) return value.toInt();
-  return int.tryParse(value.toString().trim()) ?? 0;
+bool _parseBool(dynamic val) {
+  if (val == null) return false;
+  if (val is bool) return val;
+  if (val is num) return val == 1;
+  final String str = val.toString().trim().toLowerCase();
+  return str == '1' || str == 'true' || str == 'active' || str == 'y';
 }
 
-double _parseDouble(dynamic value) {
-  if (value == null) return 0.0;
-  if (value is double) return value;
-  if (value is num) return value.toDouble();
-  return double.tryParse(value.toString().trim()) ?? 0.0;
+int _parseInt(dynamic val, {int defaultValue = 0}) {
+  if (val == null) return defaultValue;
+  if (val is int) return val;
+  if (val is num) return val.toInt();
+  final String str = val.toString().trim();
+  final num? parsedNum = num.tryParse(str);
+  if (parsedNum != null) return parsedNum.toInt();
+  return defaultValue;
 }
 
-double? _parseNullableDouble(dynamic value) {
-  if (value == null) return null;
-  final String str = value.toString().trim();
+int? _parseNullableInt(dynamic val) {
+  if (val == null) return null;
+  if (val is int) return val;
+  if (val is num) return val.toInt();
+  final String str = val.toString().trim();
+  if (str.isEmpty || str.toLowerCase() == 'null') return null;
+  return int.tryParse(str);
+}
+
+double _parseDouble(dynamic val, {double defaultValue = 0.0}) {
+  if (val == null) return defaultValue;
+  if (val is double) return val;
+  if (val is num) return val.toDouble();
+  final String str = val.toString().trim();
+  final double? parsed = double.tryParse(str);
+  return parsed ?? defaultValue;
+}
+
+double? _parseNullableDouble(dynamic val) {
+  if (val == null) return null;
+  if (val is double) return val;
+  if (val is num) return val.toDouble();
+  final String str = val.toString().trim();
   if (str.isEmpty || str.toLowerCase() == 'null') return null;
   return double.tryParse(str);
 }
 
-DateTime? _parseDate(dynamic value) {
-  if (value == null) return null;
-  final String dateStr = value.toString().trim();
-  if (dateStr.isEmpty || dateStr.startsWith('0000')) return null;
-  return DateTime.tryParse(dateStr);
+String _parseCleanString(dynamic val, {String fallback = ''}) {
+  if (val == null) return fallback;
+  final String str = val.toString().trim();
+  if (str.isEmpty || str == 'null' || str == 'undefined') return fallback;
+  return str;
+}
+
+DateTime? _parseDate(dynamic val) {
+  if (val == null) return null;
+  if (val is DateTime) {
+    return val.year >= 1970 ? val : null;
+  }
+  final String dateStr = val.toString().trim();
+  if (dateStr.isEmpty || dateStr.startsWith('0000-00-00') || dateStr == 'null' || dateStr == 'undefined') {
+    return null;
+  }
+  final DateTime? parsed = DateTime.tryParse(dateStr);
+  if (parsed == null || parsed.year < 1970) {
+    return null;
+  }
+  return parsed;
 }

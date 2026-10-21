@@ -7,23 +7,24 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
   final DeliveryRepository _repository;
+  DeliveryController({required this._repository});
 
-  DeliveryController({required DeliveryRepository repository}) : _repository = repository;
+  bool _isActionLocked = false;
 
-  // Studio Mode State (Single In-Page Flow)
+  // STUDIO MODE & FLOW MANAGEMENT
   final RxBool isStudioMode = false.obs;
   final Rxn<int> studioRuleId = Rxn<int>();
   final RxBool isStudioEditing = false.obs;
   final RxBool isInlineSlabFormOpen = false.obs;
 
-  // Rule Form Management
+  // RULE METADATA FORM STATE
   final GlobalKey<FormState> deliveryRuleFormKey = GlobalKey<FormState>();
   late final TextEditingController ruleNameController;
   late final TextEditingController descriptionController;
   final RxString selectedRuleType = 'amount'.obs;
   final RxInt status = 1.obs;
 
-  // Pincode Selection State
+  // PINCODE SELECTION & FILTERING
   final RxList<DeliveryRulePincodeItem> allPincodes = <DeliveryRulePincodeItem>[].obs;
   final RxList<DeliveryRulePincodeItem> filteredPincodes = <DeliveryRulePincodeItem>[].obs;
   final RxSet<int> selectedPincodeIds = <int>{}.obs;
@@ -31,9 +32,8 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
   final RxBool isAllPincodesSelected = false.obs;
   late final TextEditingController pincodeSearchController;
 
+  // DELIVERY SLABS MATRIX STATE
   final RxList<DeliveryRuleSlabItem> studioSlabs = <DeliveryRuleSlabItem>[].obs;
-
-  // Inline Slab Form Management
   final GlobalKey<FormState> distanceSlabFormKey = GlobalKey<FormState>();
   final Rxn<int> editingSlabIndex = Rxn<int>();
   late final TextEditingController minDistanceKmController;
@@ -45,9 +45,8 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
   late final TextEditingController slabPriorityController;
   final RxInt slabStatus = 1.obs;
 
-  // Mutex Submissions & Status Loading Maps
+  // SUBMISSION & STATUS MUTATION MAPS
   final RxBool isSubmitting = false.obs;
-  final RxBool isSubmittingSlab = false.obs;
   final RxMap<int, bool> togglingStatusMap = <int, bool>{}.obs;
   final Rxn<DeliveryRuleDataWrapper> activeViewingDetails = Rxn<DeliveryRuleDataWrapper>();
   final RxBool isLoadingDetails = false.obs;
@@ -58,7 +57,6 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
     ruleNameController = TextEditingController();
     descriptionController = TextEditingController();
     pincodeSearchController = TextEditingController();
-
     minDistanceKmController = TextEditingController();
     maxDistanceKmController = TextEditingController();
     minOrderAmountController = TextEditingController();
@@ -66,7 +64,6 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
     baseChargeController = TextEditingController();
     perKmChargeController = TextEditingController(text: '0');
     slabPriorityController = TextEditingController(text: '1');
-
     fetchServerData();
   }
 
@@ -86,13 +83,12 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
           final List<DeliveryRuleItem> rulesList = response.data!.rules;
           final int total = response.data!.pagination?.total ?? rulesList.length;
           final int? totalPages = response.data!.pagination?.totalPages;
-
           setServerData(data: rulesList, totalCount: total, pageCount: totalPages);
         } else {
           errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to fetch delivery rules.');
         }
       } catch (e, stackTrace) {
-        _logException(e, stackTrace, 'fetchServerData', {'page': currentPage.value, 'search': searchQuery.value});
+        _logException(e, stackTrace, 'fetchServerData', <String, dynamic>{'page': currentPage.value, 'search': searchQuery.value});
         if (!isClosed) {
           errorMessage(message: 'An unexpected error occurred while fetching delivery rules.');
         }
@@ -116,7 +112,7 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
         return null;
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'loadRuleDetails', {'rule_id': ruleId});
+      _logException(e, stackTrace, 'loadRuleDetails', <String, dynamic>{'rule_id': ruleId});
       return null;
     } finally {
       if (!isClosed) isLoadingDetails.value = false;
@@ -134,7 +130,7 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
         allPincodes.assignAll(response.data!.pincodes);
         filteredPincodes.assignAll(response.data!.pincodes);
 
-        // Pre-select mapped pincodes
+        selectedPincodeIds.clear();
         for (final pin in response.data!.pincodes) {
           if (pin.isSelected) {
             selectedPincodeIds.add(pin.id);
@@ -145,13 +141,12 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
         errorMessage(message: 'Failed to fetch available pincodes.');
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'loadPincodes', {'rule_id': ruleId});
+      _logException(e, stackTrace, 'loadPincodes', <String, dynamic>{'rule_id': ruleId});
     } finally {
       if (!isClosed) isLoadingPincodes.value = false;
     }
   }
 
-  /// Create New Rule
   void openCreateRuleStudio() {
     clearStudioState();
     studioRuleId.value = null;
@@ -160,20 +155,19 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
     loadPincodes();
   }
 
-  /// Edit Existing Rule
   Future<void> openEditRuleStudio(DeliveryRuleItem rule) async {
     clearStudioState();
     studioRuleId.value = rule.id;
     isStudioEditing.value = true;
     isStudioMode.value = true;
-
     ruleNameController.text = rule.ruleName;
     descriptionController.text = rule.description;
     selectedRuleType.value = rule.ruleType.isNotEmpty ? rule.ruleType : 'amount';
     status.value = rule.status;
 
-    // Load server details for pre-filling assigned pincodes & slabs
     final DeliveryRuleDataWrapper? details = await loadRuleDetails(rule.id);
+    if (isClosed) return;
+
     if (details != null) {
       studioSlabs.assignAll(details.deliveryRules);
     }
@@ -274,9 +268,10 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
     isInlineSlabFormOpen.value = false;
   }
 
-  /// Adds or updates a slab
   void saveInlineSlab() {
-    if (!distanceSlabFormKey.currentState!.validate()) return;
+    if (distanceSlabFormKey.currentState == null || !distanceSlabFormKey.currentState!.validate()) {
+      return;
+    }
 
     final String type = selectedRuleType.value.toLowerCase().trim();
     final bool isDistanceType = type == 'distance';
@@ -289,6 +284,16 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
     final double minAmount = isDistanceType ? 0.0 : (double.tryParse(minOrderAmountController.text.trim()) ?? 0.0);
     final String rawMax = maxOrderAmountController.text.trim();
     final double? maxAmount = isDistanceType ? 0.0 : (rawMax.isNotEmpty ? double.tryParse(rawMax) : null);
+
+    if (!isAmountType && minDistance > maxDistance) {
+      errorMessage(message: 'Min distance cannot exceed Max distance.');
+      return;
+    }
+
+    if (!isDistanceType && maxAmount != null && maxAmount > 0 && minAmount > maxAmount) {
+      errorMessage(message: 'Min order amount cannot exceed Max order amount.');
+      return;
+    }
 
     final double baseCharge = double.tryParse(baseChargeController.text.trim()) ?? 0.0;
     final int priority = int.tryParse(slabPriorityController.text.trim()) ?? 1;
@@ -320,8 +325,11 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
   }
 
   Future<bool> submitEntireStudioRule() async {
-    if (isSubmitting.value) return false;
-    if (!deliveryRuleFormKey.currentState!.validate()) return false;
+    if (isSubmitting.value || _isActionLocked) return false;
+
+    if (deliveryRuleFormKey.currentState == null || !deliveryRuleFormKey.currentState!.validate()) {
+      return false;
+    }
 
     if (selectedPincodeIds.isEmpty) {
       errorMessage(message: 'Please select at least one serviceable pincode.');
@@ -333,19 +341,19 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
       return false;
     }
 
+    _isActionLocked = true;
     isSubmitting.value = true;
 
     try {
       final int? ruleId = studioRuleId.value;
-
       final SaveDeliveryRuleResponseModel response = await _repository.saveRule(
         id: ruleId,
         ruleName: ruleNameController.text.trim(),
         ruleType: selectedRuleType.value,
         description: descriptionController.text.trim(),
         status: status.value,
-        pincodeIds: selectedPincodeIds.toList(),
-        deliveryRules: studioSlabs.toList(),
+        pincodeIds: selectedPincodeIds.toList(growable: false),
+        deliveryRules: studioSlabs.toList(growable: false),
       );
 
       if (isClosed) return false;
@@ -366,22 +374,26 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
       }
       return false;
     } finally {
+      _isActionLocked = false;
       if (!isClosed) isSubmitting.value = false;
     }
   }
 
-  /// Toggles rule status directly from list view
   Future<void> toggleRuleStatus(DeliveryRuleItem rule, bool newStatus) async {
-    if (togglingStatusMap[rule.id] == true) return;
+    if (togglingStatusMap[rule.id] == true || _isActionLocked) return;
+
     togglingStatusMap[rule.id] = true;
+    _isActionLocked = true;
 
     try {
       final int targetStatus = newStatus ? 1 : 0;
       final DeliveryRuleDataWrapper? details = await loadRuleDetails(rule.id);
-      final List<int> currentPinIds = details?.pincodes.map((p) => p.pincodeId).toList() ?? <int>[];
+      if (isClosed) return;
+
+      final List<int> currentPinIds = details?.pincodes.map((p) => p.pincodeId).toList(growable: false) ?? <int>[];
       final List<DeliveryRuleSlabItem> currentSlabs = details?.deliveryRules ?? <DeliveryRuleSlabItem>[];
 
-      final response = await _repository.saveRule(
+      final SaveDeliveryRuleResponseModel response = await _repository.saveRule(
         id: rule.id,
         ruleName: rule.ruleName,
         ruleType: rule.ruleType,
@@ -397,12 +409,13 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
         successMessage(title: 'Status Updated', message: 'Rule status changed to ${newStatus ? 'Active' : 'Inactive'}.');
         await fetchServerData();
       } else {
-        errorMessage(message: 'Failed to update rule status.');
+        errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to update rule status.');
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'toggleRuleStatus', {'rule_id': rule.id});
+      _logException(e, stackTrace, 'toggleRuleStatus', <String, dynamic>{'rule_id': rule.id});
       if (!isClosed) errorMessage(message: 'Error toggling rule status.');
     } finally {
+      _isActionLocked = false;
       if (!isClosed) togglingStatusMap[rule.id] = false;
     }
   }
@@ -411,9 +424,10 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
     Sentry.captureException(
       exception,
       stackTrace: stackTrace,
-      withScope: (scope) {
+      withScope: (Scope scope) {
         scope.setTag('controller', 'DeliveryController');
-        scope.setContexts('delivery_action', {'action': action, 'current_page': currentPage.value, ...?extra});
+        scope.setTag('module', 'delivery_mgmt');
+        scope.setContexts('delivery_action', <String, dynamic>{'action': action, 'current_page': currentPage.value, ...?extra});
       },
     );
   }
@@ -430,11 +444,13 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
     baseChargeController.dispose();
     perKmChargeController.dispose();
     slabPriorityController.dispose();
+
     allPincodes.clear();
     filteredPincodes.clear();
     selectedPincodeIds.clear();
     studioSlabs.clear();
     togglingStatusMap.clear();
+
     super.onClose();
   }
 }

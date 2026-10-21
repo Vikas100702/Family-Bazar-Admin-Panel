@@ -4,9 +4,11 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/misc_charges/binding/misc_charges_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/time_slot/binding/time_slot_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/coupon_mgmt/binding/coupon_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/binding/customer_dashboard_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/customer/binding/customer_details_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/drawer/binding/drawer_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/firm/binding/firm_setup_binding.dart';
+import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/order_mgmt/binding/orders_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/pincode_settings/binding/pincode_settings_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/brand/binding/brand_binding.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/product/category/binding/category_binding.dart';
@@ -40,5 +42,9 @@ class DashboardBinding extends Bindings {
     LoyaltyProgBinding().dependencies();
     AppBannersBinding().dependencies();
     CustomerDetailsBinding().dependencies();
+    OrdersBinding().dependencies();
+
+    /// ########################################
+    CustomerDashboardBinding().dependencies();
   }
 }

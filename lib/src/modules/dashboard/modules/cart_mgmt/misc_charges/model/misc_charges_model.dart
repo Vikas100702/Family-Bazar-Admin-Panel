@@ -18,37 +18,16 @@ class MiscChargesResponseModel {
     this.pagination,
   });
 
-  MiscChargesResponseModel copyWith({
-    bool? status,
-    bool? success,
-    String? message,
-    int? id,
-    List<MiscChargeItem>? data,
-    MiscChargesPagination? pagination,
-  }) {
-    return MiscChargesResponseModel(
-      status: status ?? this.status,
-      success: success ?? this.success,
-      message: message ?? this.message,
-      id: id ?? this.id,
-      data: data ?? this.data,
-      pagination: pagination ?? this.pagination,
-    );
-  }
-
   factory MiscChargesResponseModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return const MiscChargesResponseModel(status: false, success: false, message: 'Empty response payload received.');
     }
 
     final dynamic rawStatus = json['status'];
-    final bool parsedStatus =
-        rawStatus == true || rawStatus == 1 || rawStatus.toString().trim().toLowerCase() == 'true' || rawStatus.toString().trim() == '1';
+    final bool parsedStatus = _parseBool(rawStatus);
 
     final dynamic rawSuccess = json['success'];
-    final bool parsedSuccess = rawSuccess == null
-        ? parsedStatus
-        : (rawSuccess == true || rawSuccess == 1 || rawSuccess.toString().trim().toLowerCase() == 'true');
+    final bool parsedSuccess = rawSuccess == null ? parsedStatus : _parseBool(rawSuccess);
 
     final List<MiscChargeItem> parsedList = <MiscChargeItem>[];
     final dynamic rawData = json['data'];
@@ -66,10 +45,10 @@ class MiscChargesResponseModel {
     return MiscChargesResponseModel(
       status: parsedStatus,
       success: parsedSuccess,
-      message: json['message']?.toString().trim() ?? '',
+      message: _parseCleanString(json['message']),
       id: _parseNullableInt(json['id']),
       data: List<MiscChargeItem>.unmodifiable(parsedList),
-      pagination: json['pagination'] == null ? null : MiscChargesPagination.fromJson(json['pagination'] as Map<String, dynamic>),
+      pagination: json['pagination'] is Map<String, dynamic> ? MiscChargesPagination.fromJson(json['pagination'] as Map<String, dynamic>) : null,
     );
   }
 
@@ -78,12 +57,9 @@ class MiscChargesResponseModel {
     'success': success,
     'message': message,
     if (id != null) 'id': id,
-    'data': data.map((item) => item.toJson()).toList(),
+    'data': data.map((item) => item.toJson()).toList(growable: false),
     if (pagination != null) 'pagination': pagination?.toJson(),
   };
-
-  @override
-  String toString() => 'MiscChargesResponseModel(status: $status, success: $success, message: $message, id: $id, dataCount: ${data.length})';
 }
 
 @immutable
@@ -108,13 +84,14 @@ class MiscChargesPagination {
     if (json == null) {
       return const MiscChargesPagination(currentPage: 1, perPage: 20, total: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false);
     }
+
     return MiscChargesPagination(
-      currentPage: int.tryParse(json['current_page']?.toString() ?? '1') ?? 1,
-      perPage: int.tryParse(json['per_page']?.toString() ?? '20') ?? 20,
-      total: int.tryParse(json['total']?.toString() ?? '0') ?? 0,
-      totalPages: int.tryParse(json['total_pages']?.toString() ?? '1') ?? 1,
-      hasNextPage: json['has_next_page'] == true || json['has_next_page']?.toString() == 'true',
-      hasPreviousPage: json['has_previous_page'] == true || json['has_previous_page']?.toString() == 'true',
+      currentPage: _parseInt(json['current_page'] ?? json['page'], defaultValue: 1),
+      perPage: _parseInt(json['per_page'] ?? json['limit'], defaultValue: 20),
+      total: _parseInt(json['total']),
+      totalPages: _parseInt(json['total_pages'] ?? json['totalPages'], defaultValue: 1),
+      hasNextPage: _parseBool(json['hasNextPage'] ?? json['has_next_page']),
+      hasPreviousPage: _parseBool(json['hasPreviousPage'] ?? json['has_previous_page']),
     );
   }
 
@@ -195,10 +172,14 @@ class MiscChargeItem {
     'created_at': createdAt?.toIso8601String(),
     'updated_at': updatedAt?.toIso8601String(),
   };
+}
 
-  @override
-  String toString() =>
-      'MiscChargeItem(id: $id, handlingFee: $handlingFee, smallCartCharge: $smallCartCharge, minAmount: $smallCartMinAmount, status: $status)';
+bool _parseBool(dynamic value) {
+  if (value == null) return false;
+  if (value is bool) return value;
+  if (value is num) return value == 1;
+  final String str = value.toString().trim().toLowerCase();
+  return str == '1' || str == 'true' || str == 'active' || str == 'y';
 }
 
 int _parseInt(dynamic value, {int defaultValue = 0}) {
@@ -216,7 +197,9 @@ int? _parseNullableInt(dynamic value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   final String str = value.toString().trim();
-  if (str.isEmpty || str.toLowerCase() == 'null') return null;
+  if (str.isEmpty || str.toLowerCase() == 'null' || str.toLowerCase() == 'undefined') {
+    return null;
+  }
   final num? parsedNum = num.tryParse(str);
   if (parsedNum != null) return parsedNum.toInt();
   return null;
@@ -230,21 +213,25 @@ double _parseDouble(dynamic value, {double defaultValue = 0.0}) {
   return double.tryParse(str) ?? defaultValue;
 }
 
+String _parseCleanString(dynamic value, {String fallback = ''}) {
+  if (value == null) return fallback;
+  final String str = value.toString().trim();
+  if (str.isEmpty || str == 'null' || str == 'undefined') return fallback;
+  return str;
+}
+
 DateTime? _parseDate(dynamic value) {
   if (value == null) return null;
   if (value is DateTime) {
     return value.year >= 1970 ? value : null;
   }
-
   final String dateStr = value.toString().trim();
-  if (dateStr.isEmpty || dateStr.startsWith('0000-00-00')) {
+  if (dateStr.isEmpty || dateStr.startsWith('0000-00-00') || dateStr == 'null' || dateStr == 'undefined') {
     return null;
   }
-
   final DateTime? parsed = DateTime.tryParse(dateStr);
   if (parsed == null || parsed.year < 1970) {
     return null;
   }
-
   return parsed;
 }
