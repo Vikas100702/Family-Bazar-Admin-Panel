@@ -156,6 +156,24 @@ class DeliveryRuleItem {
 
   bool get isActive => status == 1;
 
+  /// Formatted calculation type for UI display
+  String get formattedRuleType {
+    switch (ruleType.toLowerCase().trim()) {
+      case 'distance':
+        return 'Distance Only';
+      case 'amount':
+        return 'Order Value Only';
+      case 'distance_amount':
+      case 'both':
+        return 'Distance + Order Value';
+      default:
+        return ruleType.isEmpty ? '—' : ruleType.toUpperCase();
+    }
+  }
+
+  /// Formatted priority badge label
+  String get priorityLabel => 'P$priority';
+
   factory DeliveryRuleItem.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       return const DeliveryRuleItem(id: 0, ruleName: '', ruleType: 'amount', description: '', priority: 1, status: 1, pincodeCount: 0);
@@ -237,6 +255,19 @@ class DeliveryRuleSlabItem {
     this.priority = 1,
     this.status = 1,
   });
+
+  /// Formatted distance range string
+  String get formattedDistanceRange => '${minDistanceKm.toStringAsFixed(0)} - ${maxDistanceKm.toStringAsFixed(0)} KM';
+
+  /// Formatted order amount threshold range
+  String get formattedOrderAmountRange {
+    final String minStr = '₹${minOrderAmount.toStringAsFixed(0)}';
+    final String maxStr = (maxOrderAmount != null && maxOrderAmount! > 0) ? '₹${maxOrderAmount!.toStringAsFixed(0)}' : 'Open';
+    return '$minStr - $maxStr';
+  }
+
+  /// Composite summary for quick overview inspection modal
+  String get slabOverviewSummary => 'Base: ₹${baseCharge.toStringAsFixed(0)} | Cart: $formattedOrderAmountRange | Dist: $formattedDistanceRange';
 
   factory DeliveryRuleSlabItem.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const DeliveryRuleSlabItem();

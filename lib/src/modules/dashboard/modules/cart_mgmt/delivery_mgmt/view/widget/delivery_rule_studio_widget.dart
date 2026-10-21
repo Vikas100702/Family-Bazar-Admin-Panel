@@ -513,12 +513,6 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                 final bool showDistance = type == 'distance' || type == 'distance_amount';
                 final bool showAmount = type == 'amount' || type == 'distance_amount';
 
-                final String distStr = '${slab.minDistanceKm.toStringAsFixed(0)} - ${slab.maxDistanceKm.toStringAsFixed(0)} KM';
-                final String maxCartStr = slab.maxOrderAmount != null && slab.maxOrderAmount! > 0
-                    ? slab.maxOrderAmount!.toCurrency(fractionDigits: 0)
-                    : "Open";
-                final String cartStr = '${slab.minOrderAmount.toCurrency(fractionDigits: 0)} - $maxCartStr';
-
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
@@ -547,9 +541,15 @@ class DeliveryRuleStudioView extends GetView<DeliveryController> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             if (showAmount)
-                              Text('Order Subtotal: $cartStr', style: context.bodyTextStyle.copyWith(fontSize: 13, fontWeight: FontWeight.bold)),
+                              Text(
+                                'Order Subtotal: ${slab.formattedOrderAmountRange}',
+                                style: context.bodyTextStyle.copyWith(fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
                             if (showDistance)
-                              Text('Distance: $distStr', style: context.captionStyle.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
+                              Text(
+                                'Distance: ${slab.formattedDistanceRange}',
+                                style: context.captionStyle.copyWith(fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
                             Text(
                               'Base Charge: ${slab.baseCharge.toCurrency(fractionDigits: 0)}',
                               style: const TextStyle(fontSize: 12, color: AppColors.primaryRed, fontWeight: FontWeight.bold),

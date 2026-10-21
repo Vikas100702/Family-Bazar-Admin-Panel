@@ -112,7 +112,7 @@ class DeliveryView extends GetView<DeliveryController> {
               border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
             ),
             child: Text(
-              _formatRuleType(rule.ruleType),
+              rule.formattedRuleType,
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: isDark ? AppColors.accentGoldAmber : AppColors.statusAmberWarning),
             ),
           ),
@@ -122,7 +122,7 @@ class DeliveryView extends GetView<DeliveryController> {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(color: AppColors.accentAzureBlue.withValues(alpha: 0.12), borderRadius: context.responsiveRadius(4, 6)),
             child: Text(
-              'P${rule.priority}',
+              rule.priorityLabel,
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.accentAzureBlue),
             ),
           ),
@@ -188,7 +188,7 @@ class DeliveryView extends GetView<DeliveryController> {
           items: [
             DetailItem(label: 'Rule ID', value: rule.id.toString(), isCopyable: true),
             DetailItem(label: 'Rule Name', value: rule.ruleName),
-            DetailItem(label: 'Calculation Basis', value: _formatRuleType(rule.ruleType)),
+            DetailItem(label: 'Calculation Basis', value: rule.formattedRuleType),
             DetailItem(label: 'Priority', value: 'Priority ${rule.priority}'),
             DetailItem(label: 'Status', value: rule.isActive ? 'Active (Live in Checkout)' : 'Inactive'),
             DetailItem(label: 'Description', value: rule.description.isNotEmpty ? rule.description : '—'),
@@ -204,17 +204,7 @@ class DeliveryView extends GetView<DeliveryController> {
           title: 'Total Charge Slabs (${slabs.length})',
           items: slabs.isEmpty
               ? [const DetailItem(label: 'Configured Slabs', value: 'No delivery fee slabs configured')]
-              : slabs
-                    .map((slab) {
-                      final String distStr = '${slab.minDistanceKm.toStringAsFixed(0)} - ${slab.maxDistanceKm.toStringAsFixed(0)} KM';
-                      final String cartStr =
-                          '₹${slab.minOrderAmount.toStringAsFixed(0)} - ${slab.maxOrderAmount != null && slab.maxOrderAmount! > 0 ? "₹${slab.maxOrderAmount!.toStringAsFixed(0)}" : "Open"}';
-                      return DetailItem(
-                        label: 'Slab P${slab.priority}',
-                        value: 'Base: ₹${slab.baseCharge.toStringAsFixed(0)} | Cart: $cartStr | Dist: $distStr',
-                      );
-                    })
-                    .toList(growable: false),
+              : slabs.map((slab) => DetailItem(label: 'Slab P${slab.priority}', value: slab.slabOverviewSummary)).toList(growable: false),
         ),
         DetailSection(
           title: 'History Details',
@@ -225,19 +215,5 @@ class DeliveryView extends GetView<DeliveryController> {
         ),
       ],
     );
-  }
-
-  String _formatRuleType(String rawType) {
-    switch (rawType.toLowerCase().trim()) {
-      case 'distance':
-        return 'Distance Only';
-      case 'amount':
-        return 'Order Value Only';
-      case 'distance_amount':
-      case 'both':
-        return 'Distance + Order Value';
-      default:
-        return rawType.toUpperCase();
-    }
   }
 }

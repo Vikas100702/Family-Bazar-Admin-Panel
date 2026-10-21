@@ -7,6 +7,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
   final DeliveryRepository _repository;
+
   DeliveryController({required this._repository});
 
   bool _isActionLocked = false;
@@ -99,6 +100,7 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
   Future<void> refreshDeliveryRules() async => refreshData();
 
   Future<DeliveryRuleDataWrapper?> loadRuleDetails(int ruleId) async {
+    if (isLoadingDetails.value) return null;
     try {
       isLoadingDetails.value = true;
       final DeliveryRulesResponseModel response = await _repository.getDeliveryRules(id: ruleId);
@@ -385,11 +387,13 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
     togglingStatusMap[rule.id] = true;
     _isActionLocked = true;
 
+    final int targetStatus = newStatus ? 1 : 0;
+
     try {
-      final int targetStatus = newStatus ? 1 : 0;
-      final DeliveryRuleDataWrapper? details = await loadRuleDetails(rule.id);
+      final DeliveryRulesResponseModel detailsRes = await _repository.getDeliveryRules(id: rule.id);
       if (isClosed) return;
 
+      final DeliveryRuleDataWrapper? details = detailsRes.data;
       final List<int> currentPinIds = details?.pincodes.map((p) => p.pincodeId).toList(growable: false) ?? <int>[];
       final List<DeliveryRuleSlabItem> currentSlabs = details?.deliveryRules ?? <DeliveryRuleSlabItem>[];
 
@@ -406,14 +410,16 @@ class DeliveryController extends BaseServerTableController<DeliveryRuleItem> {
       if (isClosed) return;
 
       if (response.status) {
-        successMessage(title: 'Status Updated', message: 'Rule status changed to ${newStatus ? 'Active' : 'Inactive'}.');
+        successMessage(title: 'Status Updated', message: 'Delivery rule #${rule.id} is now ${newStatus ? 'Active' : 'Inactive'}.');
         await fetchServerData();
       } else {
-        errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to update rule status.');
+        throw Exception(response.message.isNotEmpty ? response.message : 'Failed to update rule status.');
       }
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'toggleRuleStatus', <String, dynamic>{'rule_id': rule.id});
-      if (!isClosed) errorMessage(message: 'Error toggling rule status.');
+      _logException(e, stackTrace, 'toggleRuleStatus', <String, dynamic>{'rule_id': rule.id, 'target_status': targetStatus});
+      if (!isClosed) {
+        errorMessage(message: 'Failed to update delivery rule status.');
+      }
     } finally {
       _isActionLocked = false;
       if (!isClosed) togglingStatusMap[rule.id] = false;
