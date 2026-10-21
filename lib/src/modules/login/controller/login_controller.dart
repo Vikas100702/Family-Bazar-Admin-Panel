@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:family_bazar_admin_panel/src/core/base_controller/base_controller.dart';
+import 'package:family_bazar_admin_panel/src/core/const/app_constants.dart';
+import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/device/device_meta_service.dart';
-import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services.dart';
-import 'package:family_bazar_admin_panel/src/modules/login/model/role_type_model/role_type_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/login/repository/login_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -24,8 +24,6 @@ class LoginController extends BaseController {
   final TextEditingController passwordController = TextEditingController();
 
   // REACTIVE STATE VARIABLES
-  final RxList<RoleDatum> availableRoles = <RoleDatum>[].obs;
-  final Rx<RoleDatum?> selectedRole = Rx<RoleDatum?>(null);
   final RxBool isPasswordVisible = false.obs;
 
   @override
@@ -37,8 +35,23 @@ class LoginController extends BaseController {
     isPasswordVisible.value = !isPasswordVisible.value;
   }
 
+  String? validateUsername(String? value) {
+    if (value == null || value.isEmpty) return 'Please enter your username';
+    return null;
+  }
+
+  String? validatePassword(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter your password';
+    }
+    if (value.length < 4) {
+      return 'Password must be at least 4 characters';
+    }
+    return null;
+  }
+
   Future<void> login() async {
-    if (!loginFormKey.currentState!.validate()) return; // Form Validation
+    if (!loginFormKey.currentState!.validate() != true) return; // Form Validation
 
     Sentry.addBreadcrumb(
       Breadcrumb(
@@ -56,11 +69,9 @@ class LoginController extends BaseController {
       if (isClosed) return;
 
       if (tokenModel.token.isEmpty) {
-        DialogHelper.showError(message: 'Failed to generate security token from server.');
-        return;
-      } else {
-        await _storageService.setString('auth_token', tokenModel.token);
+        throw Exception('Failed to generate security token from server.');
       }
+      await _storageService.setString(AppConstants.authTokenKey, tokenModel.token);
 
       final metaData = await _deviceMetaService.fetchLoginMetaData();
       if (isClosed) return;
@@ -77,20 +88,26 @@ class LoginController extends BaseController {
 
       if (isClosed) return;
       if (response.token.isNotEmpty) {
-        await _storageService.setString('auth_token', response.token);
+        await _storageService.setString(AppConstants.authTokenKey, response.token);
 
         if (response.data != null) {
           final userDataJson = jsonEncode(response.data!.toJson());
           await _storageService.setString('user_data', userDataJson);
           await _storageService.setString('username', response.data!.username);
-        } else {
-          Sentry.captureMessage('Login succeeded but user data/permissions payload was null', level: SentryLevel.warning);
+
+          await Sentry.configureScope((scope) {
+            scope.setUser(SentryUser(id: response.data!.id.toString(), username: response.data!.username));
+          });
         }
-        DialogHelper.showSuccess(message: response.message.isNotEmpty ? response.message : 'Login Successful!', title: 'Welcome Back');
+        successMessage(
+          title: AppStrings.welcomeBack,
+          message: response.message.isNotEmpty ? response.message : AppStrings.loginSuccess,
+          onPressed: () => Get.offAllNamed(AppRoutes.dashboard),
+        );
         Get.offAllNamed(AppRoutes.dashboard);
       } else {
         passwordController.clear(); // Clear password on failure
-        DialogHelper.showError(message: 'Authentication failed: No access token received from server.');
+        throw Exception('Authentication failed: No access token received from server.');
       }
     }, message: 'Authenticating...');
   }

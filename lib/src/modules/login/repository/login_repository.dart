@@ -5,13 +5,11 @@ import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:family_bazar_admin_panel/src/modules/login/model/login_model/login_model.dart';
-import 'package:family_bazar_admin_panel/src/modules/login/model/role_type_model/role_type_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/login/model/token_model/token_model.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class LoginRepository {
   final ApiClient _apiClient;
-
   const LoginRepository({required this._apiClient});
 
   Future<GetTokenModel> fetchToken() async {
@@ -30,28 +28,6 @@ class LoginRepository {
       }
     } catch (e, stackTrace) {
       _logRepositoryException(exception: e, stackTrace: stackTrace, endpoint: ApiConstants.tokenApiEndpoint, action: 'fetchToken');
-      rethrow;
-    }
-  }
-
-  Future<GetRoleModel> fetchRoleTypes() async {
-    try {
-      Sentry.addBreadcrumb(Breadcrumb(message: 'Initiating fetchRoleTypes API call', category: 'auth.repository', level: SentryLevel.info));
-
-      final response = await _apiClient.dio.post(ApiConstants.roleApiEndpoint);
-      if (response.data != null) {
-        return GetRoleModel.fromJson(response.data);
-      } else {
-        throw Exception("[Role Types]: ${AppStrings.emptyData}");
-      }
-    } catch (e, stackTrace) {
-      if (e is! DioException) {
-        Sentry.captureException(
-          Exception('Failed to parse Role Types JSON: $e'),
-          stackTrace: stackTrace,
-          withScope: (scope) => scope.setTag('layer', 'login_repository'),
-        );
-      }
       rethrow;
     }
   }

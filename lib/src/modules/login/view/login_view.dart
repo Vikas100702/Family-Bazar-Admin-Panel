@@ -1,5 +1,6 @@
 import 'package:family_bazar_admin_panel/src/core/const/app_assets.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
+import 'package:family_bazar_admin_panel/src/core/const/app_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/layout/responsive_layout.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
@@ -8,9 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class LoginView extends GetView<LoginController> {
-  static const double _kCardMaxWidth = 1120.0;
-  static const double _kCardMinHeight = 560.0;
-
   const LoginView({super.key});
 
   @override
@@ -32,7 +30,7 @@ class LoginView extends GetView<LoginController> {
         padding: const .symmetric(vertical: 24),
         child: Container(
           width: context.screenWidth * 0.85,
-          constraints: const BoxConstraints(maxWidth: _kCardMaxWidth, minHeight: _kCardMinHeight),
+          constraints: const BoxConstraints(maxWidth: AppConstants.maxDesktopContainerWidth, minHeight: AppConstants.minAuthContainerHeight),
           decoration: context.defaultDecoration.copyWith(borderRadius: .circular(16)),
           clipBehavior: Clip.antiAlias,
           child: IntrinsicHeight(
@@ -173,8 +171,8 @@ class LoginView extends GetView<LoginController> {
             Text('Enter your credentials to access the panel', style: context.subTitleStyle, textAlign: TextAlign.center),
             SizedBox(height: context.responsiveHeight(24, 32)),
             Text(
-              'Username',
-              style: context.titleStyleRegular.copyWith(fontSize: context.responsiveSize(13, 13), fontWeight: .w600),
+              AppStrings.username,
+              style: context.titleStyleRegular.copyWith(fontSize: context.responsiveSize(13, 13), fontWeight: FontWeight.w600),
             ),
             SizedBox(height: context.responsiveHeight(8, 8)),
             TextFormField(
@@ -188,17 +186,12 @@ class LoginView extends GetView<LoginController> {
                 hintText: 'Enter username',
                 prefixIcon: Icon(Icons.person_outline_rounded, size: context.responsiveSize(20, 20)),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter your username';
-                }
-                return null;
-              },
+              validator: controller.validateUsername,
             ),
             SizedBox(height: context.responsiveHeight(16, 20)),
             Text(
-              'Password',
-              style: context.titleStyleRegular.copyWith(fontSize: context.responsiveSize(13, 13), fontWeight: .w600),
+              AppStrings.password,
+              style: context.titleStyleRegular.copyWith(fontSize: context.responsiveSize(13, 13), fontWeight: FontWeight.w600),
             ),
             SizedBox(height: context.responsiveHeight(8, 8)),
             Obx(
@@ -223,15 +216,7 @@ class LoginView extends GetView<LoginController> {
                     tooltip: controller.isPasswordVisible.value ? 'Hide password' : 'Show password',
                   ),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your password';
-                  }
-                  if (value.length < 4) {
-                    return 'Password must be at least 4 characters';
-                  }
-                  return null;
-                },
+                validator: controller.validatePassword,
               ),
             ),
             SizedBox(height: context.responsiveHeight(24, 32)),
@@ -240,7 +225,7 @@ class LoginView extends GetView<LoginController> {
                 onPressed: controller.isLoading.value ? null : controller.login,
                 style: ElevatedButton.styleFrom(
                   enabledMouseCursor: SystemMouseCursors.click,
-                  disabledMouseCursor: SystemMouseCursors.click,
+                  disabledMouseCursor: SystemMouseCursors.basic,
                   backgroundColor: AppColors.primaryRed,
                   foregroundColor: AppColors.onPrimaryWhite,
                   disabledBackgroundColor: AppColors.primaryRed.withValues(alpha: 0.6),
@@ -251,11 +236,11 @@ class LoginView extends GetView<LoginController> {
                     ? SizedBox(
                         height: context.responsiveSize(20, 20),
                         width: context.responsiveSize(20, 20),
-                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                        child: const CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
                       )
                     : Text(
-                        'Sign In',
-                        style: TextStyle(fontSize: context.responsiveSize(15, 15), fontWeight: .w600, letterSpacing: 0.3),
+                        AppStrings.signIn,
+                        style: TextStyle(fontSize: context.responsiveSize(15, 15), fontWeight: FontWeight.w600, letterSpacing: 0.3),
                       ),
               ),
             ),
