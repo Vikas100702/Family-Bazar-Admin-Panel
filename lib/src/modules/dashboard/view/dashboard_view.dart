@@ -2,9 +2,8 @@ import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_strings.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/layout/responsive_layout.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/coming_soon_view.dart';
-import 'package:family_bazar_admin_panel/src/core/routes/app_routes.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
-import 'package:family_bazar_admin_panel/src/core/utils/storage/storage_services.dart';
+import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/controller/dashboard_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/app_banners/view/app_banners_view.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/cart_mgmt/delivery_mgmt/view/delivery_rule_view.dart';
@@ -217,71 +216,58 @@ class DashboardView extends GetView<DashboardController> {
   }
 
   Widget _buildDynamicContent(BuildContext context, String menuKey) {
-    final String cleanKey = menuKey.toLowerCase().replaceAll(RegExp(r'[\s_\-]+'), '').trim();
-
-    switch (cleanKey) {
-      // Static Root
+    switch (controller.formatMenuKey) {
       case 'dashboard':
         return _buildDashboardOverviewPlaceholder(context);
-
-      // Firm Setup Module (Single array item)
       case 'firm':
       case 'firmsetup':
         return const FirmView();
-
-      // Pin Code Settings Module (Single array item)
       case 'pincode':
       case 'pincodesetting':
       case 'pincodesettings':
         return const PincodeSettingsView();
-
-      // Category Module (Array child name: "Category")
       case 'category':
       case 'productcategory':
       case 'mastercategory':
         return const CategoryView();
-
-      // Sub Category Module (Array child name: "Sub Category")
       case 'subcategory':
       case 'productsubcategory':
       case 'mastersubcategory':
         return const SubCategoryView();
-
-      // Brand Module (Array child name: "Brand")
       case 'brand':
       case 'productbrand':
       case 'masterbrandname':
         return const BrandView();
-
-      // Dashboard Group Module (Array child name: "Dashboard Group")
       case 'dashboardgroup':
       case 'productdashboardgroup':
         return const DashboardGroupView();
-
-      // Item Module (Array child name: "Item")
       case 'item':
       case 'productitem':
       case 'masteritem':
         return const ItemsView();
-
-      // Coupon Management Module (Single array item)
       case 'coupon':
       case 'couponmanagement':
       case 'couponmgmt':
         return const CouponView();
       case 'appbanner':
-        return AppBannersView();
+      case 'appbanners':
+        return const AppBannersView();
+      case 'delivery':
       case 'deliverymanagement':
         return const DeliveryView();
       case 'timeslot':
         return const TimeSlotView();
+      case 'misccharges':
       case 'miscellaneouscharges':
         return const MiscChargesView();
       case 'loyaltyprogram':
         return const LoyaltyProgView();
+      case 'customer':
       case 'customerdetails':
         return const CustomerDetailsView();
+      case 'order':
       case 'ordermanagement':
+      case 'orders':
         return const OrdersView();
       default:
         return ComingSoonView(title: menuKey);
@@ -319,23 +305,12 @@ class DashboardView extends GetView<DashboardController> {
 
   // SECURE SESSION TERMINATION DIALOG
   void _confirmLogout(BuildContext context) {
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Confirm Logout'),
-        content: const Text('Are you sure you want to terminate your administrative session?'),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryRed, foregroundColor: Colors.white),
-            onPressed: () {
-              Get.back();
-              Get.find<StorageService>().clearAll();
-              Get.offAllNamed(AppRoutes.login);
-            },
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
+    DialogHelper.showDeleteDialog(
+      title: 'Confirm Logout',
+      message: 'Are you sure you want to terminate your administrative session?',
+      actionNoun: 'terminate',
+      confirmLabel: 'Logout',
+      onConfirm: controller.logout,
     );
   }
 }
