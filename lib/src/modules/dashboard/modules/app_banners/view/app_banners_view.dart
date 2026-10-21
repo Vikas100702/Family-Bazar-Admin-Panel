@@ -186,15 +186,15 @@ class AppBannersView extends GetView<AppBannersController> {
         DetailSection(
           title: 'Scheduling & Display Rules',
           items: [
-            DetailItem(label: 'Start Date', value: banner.startDate!.withDashFallback),
-            DetailItem(label: 'End Date', value: banner.endDate!.withDashFallback),
+            DetailItem(label: 'Start Date', value: banner.startDate.withDashFallback),
+            DetailItem(label: 'End Date', value: banner.endDate.withDashFallback),
           ],
         ),
         DetailSection(
-          title: 'Scheduling & Display Rules',
+          title: 'Audit & System Info',
           items: [
-            DetailItem(label: 'Start Date', value: banner.startDate.withDashFallback),
-            DetailItem(label: 'End Date', value: banner.endDate.withDashFallback),
+            DetailItem(label: 'Created At', value: banner.created.withDashFallback),
+            DetailItem(label: 'Updated At', value: banner.updated.withDashFallback),
           ],
         ),
       ],
@@ -353,7 +353,7 @@ class AppBannersView extends GetView<AppBannersController> {
               TextFormField(
                 controller: controller.startDateController,
                 readOnly: true,
-                onTap: () => controller.pickDate(context: context, isStart: true),
+                onTap: () => _pickDate(context, isStart: true),
                 decoration: InputDecoration(
                   hintText: 'YYYY-MM-DD',
                   prefixIcon: const Icon(Icons.calendar_today_rounded, size: 16),
@@ -377,7 +377,7 @@ class AppBannersView extends GetView<AppBannersController> {
               TextFormField(
                 controller: controller.endDateController,
                 readOnly: true,
-                onTap: () => controller.pickDate(context: context, isStart: false),
+                onTap: () => _pickDate(context, isStart: false),
                 decoration: InputDecoration(
                   hintText: 'YYYY-MM-DD',
                   prefixIcon: const Icon(Icons.event_available_rounded, size: 16),
@@ -412,5 +412,14 @@ class AppBannersView extends GetView<AppBannersController> {
         ],
       );
     });
+  }
+
+  Future<void> _pickDate(BuildContext context, {required bool isStart}) async {
+    final DateTime initialDate = DateTime.now();
+    final DateTime? picked = await showDatePicker(context: context, initialDate: initialDate, firstDate: DateTime(2020), lastDate: DateTime(2040));
+
+    if (picked == null || !context.mounted) return;
+
+    controller.setDate(formattedDate: picked.toApiDateString(), isStart: isStart);
   }
 }

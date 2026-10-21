@@ -7,11 +7,11 @@ import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/app_banne
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class AppBannersController extends BaseServerTableController<AppBannerDatum> {
   final AppBannersRepository _bannerRepository;
+
   AppBannersController({required this._bannerRepository});
 
   bool _isActionLocked = false;
@@ -100,17 +100,6 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     filterBnrType.value = null;
     filterStatus.value = null;
     clearSearch();
-  }
-
-  // DATE PICKER ADAPTER
-  Future<void> pickDate({required BuildContext context, required bool isStart}) async {
-    final DateTime initialDate = DateTime.now();
-    final DateTime? picked = await showDatePicker(context: context, initialDate: initialDate, firstDate: DateTime(2020), lastDate: DateTime(2040));
-
-    if (picked == null || !context.mounted) return;
-
-    final String formattedDate = DateFormat('yyyy-MM-dd').format(picked);
-    setDate(formattedDate: formattedDate, isStart: isStart);
   }
 
   void setDate({required String formattedDate, required bool isStart}) {

@@ -179,3 +179,13 @@ extension NullableStringExtensions on String? {
     return this!.trim();
   }
 }
+
+extension DateTimeFormattingExtensions on DateTime {
+  /// Converts Date Time to standard API date string (YYYY-MM-DD) safely
+  String toApiDateString() {
+    final String y = year.toString();
+    final String m = month.toString().padLeft(2, '0');
+    final String d = day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+}
