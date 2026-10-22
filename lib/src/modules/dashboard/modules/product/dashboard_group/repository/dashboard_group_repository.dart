@@ -9,22 +9,20 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class DashboardGroupRepository with CommonDeleteMixin {
   final ApiClient _apiClient;
-  const DashboardGroupRepository({required this._apiClient});
+
+  const DashboardGroupRepository({required ApiClient apiClient}) : _apiClient = apiClient;
 
   @override
   ApiClient get apiClient => _apiClient;
 
   Future<ViewDashboardGroupModel> viewGroups() async {
     const String endpoint = ApiConstants.viewDashboardGroupApiEndpoint;
-
     try {
       final Response<dynamic> response = await _apiClient.dio.post(endpoint);
-
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return ViewDashboardGroupModel.fromJson(responseData);
       }
-
       throw FormatException('[DashboardGroupRepository.viewGroups]: Invalid data format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       _captureSentryError('viewGroups', endpoint, e, stackTrace);
@@ -32,24 +30,25 @@ class DashboardGroupRepository with CommonDeleteMixin {
     }
   }
 
-  Future<AddGroupModel> addGroup({required String groupName}) async {
+  Future<AddGroupModel> addGroup({required String groupName, int? sequence, int? status}) async {
     const String endpoint = ApiConstants.addDashboardGroupApiEndpoint;
     final String trimmedName = groupName.trim();
-
     if (trimmedName.isEmpty) {
       throw ArgumentError('Group name cannot be empty.');
     }
 
-    final Map<String, dynamic> payload = <String, dynamic>{'group_name': trimmedName};
+    final Map<String, dynamic> payload = <String, dynamic>{
+      'group_name': trimmedName,
+      if (sequence != null) 'DG_Sequence': sequence,
+      if (status != null) 'status': status.toString(),
+    };
 
     try {
       final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
-
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return AddGroupModel.fromJson(responseData);
       }
-
       throw FormatException('[DashboardGroupRepository.addGroup]: Invalid response format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       _captureSentryError('addGroup', endpoint, e, stackTrace, payload: payload);
@@ -57,11 +56,12 @@ class DashboardGroupRepository with CommonDeleteMixin {
     }
   }
 
-  Future<AddGroupModel> updateGroup({required int groupId, String? groupName, int? status, String? gImgM, String? gImgW}) async {
+  Future<AddGroupModel> updateGroup({required int groupId, String? groupName, int? status, int? sequence, String? gImgM, String? gImgW}) async {
     const String endpoint = ApiConstants.updateDashboardGroupApiEndpoint;
     final Map<String, dynamic> payload = <String, dynamic>{
-      'group_id': groupId.toString(),
+      'group_id': groupId,
       'status': ?status,
+      if (sequence != null) 'group_sequence': sequence.toString(),
       if (gImgM != null && gImgM.trim().isNotEmpty) 'm_img': gImgM.trim(),
       if (gImgW != null && gImgW.trim().isNotEmpty) 'w_img': gImgW.trim(),
       if (groupName != null && groupName.trim().isNotEmpty) 'group_name': groupName.trim(),
@@ -69,18 +69,16 @@ class DashboardGroupRepository with CommonDeleteMixin {
 
     if (payload.length == 1) {
       throw ArgumentError(
-        '[DashboardGroupRepository.updateGroup]: Updation rejected. At least one field (status, mobile image, web image) must be supplied.',
+        '[DashboardGroupRepository.updateGroup]: Updation rejected. At least one field (status, sequence, name, mobile image, web image) must be supplied.',
       );
     }
 
     try {
       final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
-
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return AddGroupModel.fromJson(responseData);
       }
-
       throw FormatException('[DashboardGroupRepository.updateGroup]: Invalid response format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       _captureSentryError('updateGroup', endpoint, e, stackTrace, payload: payload);
@@ -98,12 +96,10 @@ class DashboardGroupRepository with CommonDeleteMixin {
 
     try {
       final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
-
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return ViewItemByTypeModel.fromJson(responseData);
       }
-
       throw FormatException('[DashboardGroupRepository.viewGroupItems]: Invalid item data format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       _captureSentryError('viewGroupItems', endpoint, e, stackTrace, payload: payload);
@@ -122,12 +118,10 @@ class DashboardGroupRepository with CommonDeleteMixin {
 
     try {
       final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
-
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return ViewItemByTypeModel.fromJson(responseData);
       }
-
       throw FormatException('[DashboardGroupRepository.viewFirmItems]: Invalid item data format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       _captureSentryError('viewFirmItems', endpoint, e, stackTrace, payload: payload);
@@ -141,12 +135,10 @@ class DashboardGroupRepository with CommonDeleteMixin {
 
     try {
       final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
-
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return AddGroupItemsModel.fromJson(responseData);
       }
-
       throw FormatException('[DashboardGroupRepository.addGroupItems]: Invalid response format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       _captureSentryError('addGroupItems', endpoint, e, stackTrace, payload: payload);
@@ -160,12 +152,10 @@ class DashboardGroupRepository with CommonDeleteMixin {
 
     try {
       final Response<dynamic> response = await _apiClient.dio.post(endpoint, data: payload);
-
       if (response.data != null && response.data is Map<String, dynamic>) {
         final Map<String, dynamic> responseData = response.data as Map<String, dynamic>;
         return CommonDeleteModel.fromJson(responseData);
       }
-
       throw FormatException('[DashboardGroupRepository.deleteGroupItem]: Invalid response format received from endpoint: $endpoint');
     } catch (e, stackTrace) {
       _captureSentryError('deleteGroupItems', endpoint, e, stackTrace, payload: payload);
@@ -176,7 +166,7 @@ class DashboardGroupRepository with CommonDeleteMixin {
   void _captureSentryError(String action, String endpoint, Object error, StackTrace stackTrace, {Map<String, dynamic>? payload}) {
     Sentry.addBreadcrumb(
       Breadcrumb(
-        message: 'DashboardGroupRepository.$action failed on $endpoint',
+        message: 'DashboardGroupRepository.$action failed on$endpoint',
         category: 'product.dashboard_group.repository',
         level: SentryLevel.error,
         data: <String, dynamic>{
@@ -187,7 +177,6 @@ class DashboardGroupRepository with CommonDeleteMixin {
         },
       ),
     );
-
     Sentry.captureException(
       error,
       stackTrace: stackTrace,
