@@ -39,7 +39,6 @@ class AppBannersRepository with CommonDeleteMixin {
     }
   }
 
-  /// Creates or updates a banner entry using multipart upload.
   Future<SaveBannerResponseModel> saveBanner({
     int? id,
     required String bnrType,
@@ -48,6 +47,9 @@ class AppBannersRepository with CommonDeleteMixin {
     String? imageName,
     String? startDate,
     String? endDate,
+    String? redirectionType,
+    String? code,
+    String? name,
   }) async {
     final Map<String, dynamic> formMap = <String, dynamic>{
       if (id != null && id > 0) 'id': id,
@@ -55,10 +57,13 @@ class AppBannersRepository with CommonDeleteMixin {
       'status': status,
       if (startDate != null && startDate.trim().isNotEmpty) 'start_date': startDate.trim(),
       if (endDate != null && endDate.trim().isNotEmpty) 'end_date': endDate.trim(),
+      if (redirectionType != null && redirectionType.trim().isNotEmpty) 'redirection_type': redirectionType.trim(),
+      if (code != null && code.trim().isNotEmpty) 'code': code.trim(),
+      if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
     };
 
     if (imageBytes != null && imageBytes.isNotEmpty) {
-      formMap['image'] = MultipartFile.fromBytes(
+      formMap['bnr_img'] = MultipartFile.fromBytes(
         imageBytes,
         filename: imageName != null && imageName.trim().isNotEmpty ? imageName.trim() : 'banner_${DateTime.now().millisecondsSinceEpoch}.png',
       );
@@ -73,8 +78,11 @@ class AppBannersRepository with CommonDeleteMixin {
           category: 'app_banners.repository',
           level: SentryLevel.info,
           data: <String, dynamic>{
-            if (id != null) 'id': id,
+            'id': ?id,
             'bnr_type': bnrType,
+            'redirection_type': redirectionType,
+            'code': code,
+            'name': name,
             'status': status,
             'has_image': imageBytes != null && imageBytes.isNotEmpty,
           },
@@ -93,7 +101,7 @@ class AppBannersRepository with CommonDeleteMixin {
 
       throw FormatException('[AppBannersRepository.saveBanner]: Unexpected response envelope from ${ApiConstants.addBannersApiEndpoint}');
     } catch (e, stackTrace) {
-      _logException(e, stackTrace, 'saveBanner', <String, dynamic>{if (id != null) 'id': id, 'bnr_type': bnrType});
+      _logException(e, stackTrace, 'saveBanner', <String, dynamic>{'id': ?id, 'bnr_type': bnrType, 'redirection_type': redirectionType});
       rethrow;
     }
   }
