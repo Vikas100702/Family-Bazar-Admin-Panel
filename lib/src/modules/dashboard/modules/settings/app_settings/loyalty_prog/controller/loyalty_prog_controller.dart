@@ -1,4 +1,5 @@
 import 'package:family_bazar_admin_panel/src/core/base_controller/base_server_table_controller.dart';
+import 'package:family_bazar_admin_panel/src/core/models/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/app_settings/loyalty_prog/models/save_points_settings_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/app_settings/loyalty_prog/models/view_loyalty_rules_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/app_settings/loyalty_prog/repository/loyalty_prog_repository.dart';
@@ -366,6 +367,41 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
       _isActionLocked = false;
       if (!isClosed) isSubmittingPointsSettings.value = false;
     }
+  }
+
+  Future<bool> deleteRule(int ruleId) async {
+    if (ruleId <= 0) {
+      errorMessage(message: 'Invalid customer ID.');
+      return false;
+    }
+
+    if (_isActionLocked) return false;
+    _isActionLocked = true;
+
+    bool isSuccess = false;
+    await runWithLoading(() async {
+      try {
+        final CommonDeleteModel response = await _repository.deleteRule(ruleId: ruleId);
+
+        if (isClosed) return;
+
+        if (response.success) {
+          isSuccess = true;
+          successMessage(title: 'Deleted', message: response.message.isNotEmpty ? response.message : 'Customer deleted successfully.');
+          await refreshRules();
+        } else {
+          errorMessage(message: response.message.isNotEmpty ? response.message : 'Failed to delete customer.');
+        }
+      } catch (e, stackTrace) {
+        _logException(e, stackTrace, 'deleteLoyaltyRule');
+        if (!isClosed) {
+          errorMessage(message: 'An error occurred while deleting the customer.');
+        }
+      }
+    });
+
+    _isActionLocked = false;
+    return isSuccess;
   }
 
   void _logException(dynamic exception, StackTrace stackTrace, String action) {
