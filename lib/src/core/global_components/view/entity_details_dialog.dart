@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-// DATA CONTRACTS FOR ENTITY INSPECTION
 class DetailItem {
   final String label;
   final dynamic value;
@@ -32,11 +31,11 @@ class DetailSection {
   final String title;
   final List<DetailItem> items;
   final List<DetailFlag> flags;
+  final Widget? customContent;
 
-  const DetailSection({this.title = '', this.items = const [], this.flags = const []});
+  const DetailSection({this.title = '', this.items = const [], this.flags = const [], this.customContent});
 }
 
-// DIALOG HELPER & LAUNCHER
 abstract final class EntityDetailsDialogHelper {
   const EntityDetailsDialogHelper._();
 
@@ -64,7 +63,6 @@ abstract final class EntityDetailsDialogHelper {
   }
 }
 
-// RESPONSIVE ENTITY DETAILS DIALOG WIDGET
 class EntityDetailsDialog extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -177,6 +175,7 @@ class EntityDetailsDialog extends StatelessWidget {
               section.title,
               style: context.titleStyleRegular.copyWith(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primaryRed),
             ),
+          if (section.customContent != null) ...[const SizedBox(height: 10), section.customContent!],
           if (section.flags.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(spacing: 8, runSpacing: 8, children: section.flags.map((flag) => _buildFlagChip(context, flag)).toList()),
