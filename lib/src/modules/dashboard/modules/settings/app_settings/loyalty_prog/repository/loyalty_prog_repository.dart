@@ -1,13 +1,18 @@
 import 'package:dio/dio.dart';
 import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
+import 'package:family_bazar_admin_panel/src/core/mixins/common_delete_mixin.dart';
+import 'package:family_bazar_admin_panel/src/core/models/common_delete_model.dart';
 import 'package:family_bazar_admin_panel/src/core/network/api_client.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/app_settings/loyalty_prog/models/save_points_settings_model.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/app_settings/loyalty_prog/models/view_loyalty_rules_model.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-class LoyaltyRepository {
+class LoyaltyRepository with CommonDeleteMixin {
   final ApiClient _apiClient;
   const LoyaltyRepository({required this._apiClient});
+
+  @override
+  ApiClient get apiClient => _apiClient;
 
   Future<AvailableItemsModel> getAvailableItems({int? ruleId, String? search, int page = 1, int limit = 20}) async {
     const String endpoint = ApiConstants.getAvailableItemsApiEndpoint;
@@ -122,6 +127,10 @@ class LoyaltyRepository {
       _captureSentryError('savePointsSettings', endpoint, e, stackTrace, payload: payload);
       rethrow;
     }
+  }
+
+  Future<CommonDeleteModel> deleteRule({required int ruleId}) {
+    return executeDelete(tableName: 'LoyaltyRules', id: ruleId);
   }
 
   void _captureSentryError(String action, String endpoint, Object error, StackTrace stackTrace, {Map<String, dynamic>? payload}) {
