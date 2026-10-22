@@ -66,6 +66,7 @@ class ViewDashboardGroupDatum {
   final String dgName;
   final String dgCode;
   final int dgStatus;
+  final int dgSequence;
   final DateTime? dgCreatedAt;
   final DateTime? dgUpdatedAt;
   final String imItemCode;
@@ -81,6 +82,7 @@ class ViewDashboardGroupDatum {
     required this.dgName,
     required this.dgCode,
     required this.dgStatus,
+    this.dgSequence = 0,
     this.dgCreatedAt,
     this.dgUpdatedAt,
     required this.imItemCode,
@@ -99,6 +101,7 @@ class ViewDashboardGroupDatum {
     String? dgName,
     String? dgCode,
     int? dgStatus,
+    int? dgSequence,
     DateTime? dgCreatedAt,
     DateTime? dgUpdatedAt,
     String? imItemCode,
@@ -114,6 +117,7 @@ class ViewDashboardGroupDatum {
       dgName: dgName ?? this.dgName,
       dgCode: dgCode ?? this.dgCode,
       dgStatus: dgStatus ?? this.dgStatus,
+      dgSequence: dgSequence ?? this.dgSequence,
       dgCreatedAt: dgCreatedAt ?? this.dgCreatedAt,
       dgUpdatedAt: dgUpdatedAt ?? this.dgUpdatedAt,
       imItemCode: imItemCode ?? this.imItemCode,
@@ -133,6 +137,7 @@ class ViewDashboardGroupDatum {
         dgName: '',
         dgCode: '',
         dgStatus: 0,
+        dgSequence: 0,
         imItemCode: '',
         imItemType: '',
         imImageMob: '',
@@ -141,12 +146,12 @@ class ViewDashboardGroupDatum {
         imCreBy: '',
       );
     }
-
     return ViewDashboardGroupDatum(
       id: _parseInt(json['id']),
       dgName: _parseCleanString(json['DG_Name'] ?? json['dg_name']),
       dgCode: _parseCleanString(json['DG_Code'] ?? json['dg_code']),
       dgStatus: _parseInt(json['DG_Status'] ?? json['status'] ?? json['dg_status'], defaultValue: 1),
+      dgSequence: _parseInt(json['DG_Sequence'] ?? json['group_sequence'] ?? json['sequence']),
       dgCreatedAt: _parseDate(json['DG_CreatedAt'] ?? json['created_at']),
       dgUpdatedAt: _parseDate(json['DG_UpdatedAt'] ?? json['updated_at']),
       imItemCode: _parseCleanString(json['IM_ItemCode'] ?? json['item_code']),
@@ -164,6 +169,7 @@ class ViewDashboardGroupDatum {
     'DG_Name': dgName,
     'DG_Code': dgCode,
     'DG_Status': dgStatus,
+    'DG_Sequence': dgSequence.toString(),
     'DG_CreatedAt': dgCreatedAt?.toIso8601String(),
     'DG_UpdatedAt': dgUpdatedAt?.toIso8601String(),
     'IM_ItemCode': imItemCode,
@@ -178,7 +184,7 @@ class ViewDashboardGroupDatum {
   };
 
   @override
-  String toString() => 'ViewDashboardGroupDatum(id: $id, dgName: $dgName, dgCode: $dgCode, status: $dgStatus)';
+  String toString() => 'ViewDashboardGroupDatum(id: $id, dgName: $dgName, dgCode: $dgCode, status: $dgStatus, sequence: $dgSequence)';
 }
 
 @immutable
@@ -203,7 +209,6 @@ class Pagination {
     if (json == null) {
       return const Pagination(currentPage: 1, limit: 20, totalRecords: 0, totalPages: 1);
     }
-
     return Pagination(
       currentPage: _parseInt(json['current_page'] ?? json['page'], defaultValue: 1),
       limit: _parseInt(json['limit'] ?? json['per_page'], defaultValue: 20),
@@ -230,7 +235,6 @@ class AddGroupModel {
     if (json == null) {
       return const AddGroupModel(success: false, message: 'Empty response payload received.');
     }
-
     return AddGroupModel(
       success: _parseBool(json['success'] ?? json['status']),
       message: _parseCleanString(json['message']),
@@ -256,7 +260,6 @@ class AddGroupModelData {
     if (json == null) {
       return const AddGroupModelData(status: false, data: null, action: '');
     }
-
     return AddGroupModelData(
       status: _parseBool(json['status']),
       data: json['data'] is Map<String, dynamic> ? DataData.fromJson(json['data'] as Map<String, dynamic>) : null,
@@ -273,21 +276,30 @@ class DataData {
   final String dgName;
   final String dgCode;
   final int dgStatus;
+  final int dgSequence;
   final DateTime? dgCreatedAt;
   final DateTime? dgUpdatedAt;
 
-  const DataData({required this.id, required this.dgName, required this.dgCode, required this.dgStatus, this.dgCreatedAt, this.dgUpdatedAt});
+  const DataData({
+    required this.id,
+    required this.dgName,
+    required this.dgCode,
+    required this.dgStatus,
+    this.dgSequence = 0,
+    this.dgCreatedAt,
+    this.dgUpdatedAt,
+  });
 
   factory DataData.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
-      return const DataData(id: 0, dgName: '', dgCode: '', dgStatus: 0);
+      return const DataData(id: 0, dgName: '', dgCode: '', dgStatus: 0, dgSequence: 0);
     }
-
     return DataData(
       id: _parseInt(json['id']),
       dgName: _parseCleanString(json['DG_Name'] ?? json['dg_name']),
       dgCode: _parseCleanString(json['DG_Code'] ?? json['dg_code']),
       dgStatus: _parseInt(json['DG_Status'] ?? json['status'], defaultValue: 1),
+      dgSequence: _parseInt(json['DG_Sequence'] ?? json['group_sequence'] ?? json['sequence']),
       dgCreatedAt: _parseDate(json['DG_CreatedAt'] ?? json['created_at']),
       dgUpdatedAt: _parseDate(json['DG_UpdatedAt'] ?? json['updated_at']),
     );
@@ -298,6 +310,7 @@ class DataData {
     'DG_Name': dgName,
     'DG_Code': dgCode,
     'DG_Status': dgStatus,
+    'DG_Sequence': dgSequence.toString(),
     'DG_CreatedAt': dgCreatedAt?.toIso8601String(),
     'DG_UpdatedAt': dgUpdatedAt?.toIso8601String(),
   };
@@ -315,7 +328,6 @@ class AddGroupItemsModel {
     if (json == null) {
       return const AddGroupItemsModel(success: false, message: 'Empty response payload received.');
     }
-
     return AddGroupItemsModel(
       success: _parseBool(json['success'] ?? json['status']),
       message: _parseCleanString(json['message']),
@@ -339,7 +351,6 @@ class AddGroupItemsData {
     if (json == null) {
       return const AddGroupItemsData(type: '', id: 0, groupId: 0, itemIds: <int>[]);
     }
-
     final List<int> parsedItemIds = <int>[];
     if (json['item_ids'] is List) {
       for (final rawId in json['item_ids'] as List) {
@@ -347,7 +358,6 @@ class AddGroupItemsData {
         if (parsed != 0) parsedItemIds.add(parsed);
       }
     }
-
     return AddGroupItemsData(
       type: _parseCleanString(json['type']),
       id: _parseInt(json['id']),
