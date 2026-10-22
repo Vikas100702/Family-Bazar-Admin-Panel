@@ -196,10 +196,10 @@ class AppBannersView extends GetView<AppBannersController> {
                 ? CachedNetworkImage(
                     imageUrl: fullImgUrl,
                     fit: BoxFit.contain,
-                    placeholder: (_, __) => const Center(
+                    placeholder: (_, _) => const Center(
                       child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryRed)),
                     ),
-                    errorWidget: (_, __, ___) => const Center(child: Icon(Icons.broken_image_rounded, size: 36, color: Colors.grey)),
+                    errorWidget: (_, _, _) => const Center(child: Icon(Icons.broken_image_rounded, size: 36, color: Colors.grey)),
                   )
                 : const Center(
                     child: Text('No Banner Image Attached', style: TextStyle(color: Colors.grey, fontSize: 12)),
@@ -209,6 +209,12 @@ class AppBannersView extends GetView<AppBannersController> {
           items: [
             DetailItem(label: 'Banner ID', value: '#${banner.id}', isCopyable: true),
             DetailItem(label: 'Banner Type', value: banner.bnrType, isCopyable: true),
+            DetailItem(label: 'Redirection Type', value: banner.redirectionType?.toUpperCase().withDashFallback),
+            DetailItem(
+              label: 'Target Name / Code',
+              value: banner.name != null && banner.code != null ? '${banner.name} (${banner.code})' : (banner.code ?? '—'),
+              isCopyable: banner.code != null,
+            ),
           ],
         ),
         DetailSection(
@@ -272,15 +278,10 @@ class AppBannersView extends GetView<AppBannersController> {
                     ],
                   ),
                   const Divider(height: 20, thickness: 1),
-
-                  // 1. Banner Type (Existing Input Intact)
                   _buildBannerTypeInput(context),
                   const SizedBox(height: 16),
-
-                  // 2. Applicable Target (Single Row: All Button + Dropdown 1 + Searchable Dropdown 2)
                   _buildTargetRow(context, isDark),
                   const SizedBox(height: 16),
-
                   Obx(
                     () => AppSingleImagePickerField(
                       label: 'Banner Image',
@@ -376,9 +377,6 @@ class AppBannersView extends GetView<AppBannersController> {
     );
   }
 
-  // =========================================================================
-  // TARGET ROW (OPTIONAL + SINGLE SELECT + TOGGLE/CLEAR SUPPORT)
-  // =========================================================================
   Widget _buildTargetRow(BuildContext context, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +422,7 @@ class AppBannersView extends GetView<AppBannersController> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 1. ALL BUTTON (Toggleable)
+            // ALL BUTTON
             Obx(() {
               final bool isAll = controller.isAllSelected.value;
               return InkWell(
@@ -462,7 +460,7 @@ class AppBannersView extends GetView<AppBannersController> {
             }),
             const SizedBox(width: 10),
 
-            // 2. DROPDOWN TYPE (Category, Subcategory, Brands, Group)
+            // DROPDOWN TYPE (Category, Subcategory, Brands, Group)
             Expanded(
               flex: 4,
               child: SizedBox(
@@ -489,7 +487,7 @@ class AppBannersView extends GetView<AppBannersController> {
             ),
             const SizedBox(width: 10),
 
-            // 3. SEARCHABLE ITEMS DROPDOWN
+            // SEARCHABLE ITEMS DROPDOWN
             Expanded(
               flex: 5,
               child: SizedBox(
