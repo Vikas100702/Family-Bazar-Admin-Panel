@@ -127,20 +127,7 @@ class CouponView extends GetView<CouponController> {
         DataCell(
           AppTableCellText(
             text: '${EntityDetailsDialogHelper.formatDate(coupon.startAt)} - ${EntityDetailsDialogHelper.formatDate(coupon.endAt)}',
-            style: context.captionStyle,
-          ),
-        ),
-        DataCell(
-          AppTableCellText(
-            text: isPercentage ? '${coupon.discountValue}%' : coupon.discountValue.toString().toPrice(),
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? AppColors.accentAzureBlue : AppColors.statusBlueInfo),
-          ),
-        ),
-        DataCell(AppTableCellText(text: coupon.minOrderAmount.toString().toPrice(), style: const TextStyle(fontSize: 12))),
-        DataCell(AppTableCellText(text: coupon.maxDiscount.toString().toPrice(), style: const TextStyle(fontSize: 12))),
-        DataCell(
-          AppTableCellText(
-            text: '${EntityDetailsDialogHelper.formatDate(coupon.startAt)} - ${EntityDetailsDialogHelper.formatDate(coupon.endAt)}',
+            maxLines: 2,
             style: context.captionStyle,
           ),
         ),
@@ -204,8 +191,8 @@ class CouponView extends GetView<CouponController> {
             DetailItem(label: 'Coupon Code', value: coupon.code, isCopyable: true),
             DetailItem(label: 'Title', value: coupon.title),
             DetailItem(label: 'Discount Type', value: coupon.discountType.toUpperCase()),
-            DetailItem(label: 'User Eligibility', value: coupon.userType),
-            DetailItem(label: 'Payment Mode', value: coupon.paymentType),
+            DetailItem(label: 'User Eligibility', value: coupon.userType.toUpperCase()),
+            // DetailItem(label: 'Payment Mode', value: coupon.paymentType),
           ],
           flags: [DetailFlag(label: 'Active (Live)', value: coupon.status == 1)],
         ),
@@ -415,7 +402,7 @@ class CouponView extends GetView<CouponController> {
                         },
                       );
                     }),
-                    second: Obx(() {
+                    /*second: Obx(() {
                       final currentValue = controller.selectedPaymentType.value;
                       return DropdownButtonFormField<String>(
                         isExpanded: true,
@@ -435,7 +422,7 @@ class CouponView extends GetView<CouponController> {
                           if (val != null) controller.selectedPaymentType.value = val;
                         },
                       );
-                    }),
+                    }),*/
                   ),
                   const SizedBox(height: 14),
                   _buildAdaptiveFieldsRow(
@@ -846,16 +833,21 @@ class CouponView extends GetView<CouponController> {
     );
   }
 
-  Widget _buildAdaptiveFieldsRow({required bool isMobile, required Widget first, required Widget second}) {
+  Widget _buildAdaptiveFieldsRow({required bool isMobile, required Widget first, Widget? second}) {
     if (isMobile) {
-      return Column(children: [first, const SizedBox(height: 14), second]);
+      return Column(
+        children: [
+          first,
+          if (second != null) ...[const SizedBox(height: 14), second],
+        ],
+      );
     }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(child: first),
         const SizedBox(width: 14),
-        Expanded(child: second),
+        if (second != null) Expanded(child: second) else const Expanded(child: SizedBox.shrink()),
       ],
     );
   }
