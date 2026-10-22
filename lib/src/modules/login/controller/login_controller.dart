@@ -51,7 +51,7 @@ class LoginController extends BaseController {
   }
 
   Future<void> login() async {
-    if (!loginFormKey.currentState!.validate() != true) return; // Form Validation
+    if (!loginFormKey.currentState!.validate()) return; // Form Validation
 
     Sentry.addBreadcrumb(
       Breadcrumb(
