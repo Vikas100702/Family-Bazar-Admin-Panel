@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:family_bazar_admin_panel/src/core/const/api_constants.dart';
 import 'package:family_bazar_admin_panel/src/core/const/app_colors.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/app_table_cell_text.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/entity_details_dialog.dart';
@@ -86,7 +87,6 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     });
   }
 
-  // 1. TOP HEADER & PROFILE CARD
   Widget _buildHeaderSection(BuildContext context, CustomerProfile profile, VoidCallback onBack, bool isDark) {
     return Container(
       padding: EdgeInsets.all(context.responsiveSize(16, 20)),
@@ -157,7 +157,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                       children: [
                         const Icon(Icons.location_on_outlined, size: 13, color: Colors.grey),
                         const SizedBox(width: 4),
-                        Text(profile.loginLocation, style: context.captionStyle),
+                        Text(profile.loginLocation.withDashFallback, style: context.captionStyle),
                       ],
                     ),
                   ],
@@ -200,7 +200,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                 context,
                 title: 'Wallet Balance',
                 value: data.financialSummary.currentWalletBalance.toPrice(),
-                subtitle: 'Credited: ${data.financialSummary.totalCredited.toPrice()}',
+                subtitle: 'Credited: ${data.financialSummary.totalCredited.toPrice()} | Debited: ${data.financialSummary.totalDebited.toPrice()}',
                 icon: Icons.account_balance_wallet_outlined,
                 iconColor: AppColors.statusGreenSuccess,
                 isDark: isDark,
@@ -211,8 +211,8 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
               child: _buildMetricTile(
                 context,
                 title: 'Loyalty Coins',
-                value: '${data.financialSummary.loyaltyCoinsBalance} Pts',
-                subtitle: 'Worth: ${data.financialSummary.loyaltyCoinsRupeeValue.toPrice()} (${data.financialSummary.loyaltyTier})',
+                value: '${data.financialSummary.loyaltyCoinsBalance} Coins',
+                subtitle: 'Value: ${data.financialSummary.loyaltyCoinsRupeeValue.toPrice()}',
                 icon: Icons.stars_rounded,
                 iconColor: AppColors.accentGoldAmber,
                 isDark: isDark,
@@ -223,8 +223,8 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
               child: _buildMetricTile(
                 context,
                 title: 'Total Grocery Orders',
-                value: '${data.ordersMetrics.totalOrders}',
-                subtitle: 'Delivered: ${data.ordersMetrics.deliveredOrders} | Active: ${data.ordersMetrics.activeOrders}',
+                value: '${data.ordersMetrics.totalOrdersCount}',
+                subtitle: 'Active: ${data.ordersMetrics.activeInTransitOrdersCount} | Delivered: ${data.ordersMetrics.deliveredOrdersCount}',
                 icon: Icons.shopping_bag_outlined,
                 iconColor: AppColors.statusBlueInfo,
                 isDark: isDark,
@@ -236,7 +236,8 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                 context,
                 title: 'Active Live Cart',
                 value: '${data.activeCart?.itemCount ?? 0} Items',
-                subtitle: 'Value: ${(data.activeCart?.totalSalePrice ?? "0.00").toPrice()}',
+                subtitle:
+                    'Sale: ${(data.activeCart?.cartTotalSalePrice ?? "0.00").toPrice()} | MRP: ${(data.activeCart?.cartTotalMrp ?? "0.00").toPrice()}',
                 icon: Icons.shopping_cart_outlined,
                 iconColor: AppColors.primaryRed,
                 isDark: isDark,
@@ -300,11 +301,9 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     );
   }
 
-  // 3. TAB SELECTOR TOOLBAR
   Widget _buildTabSelector(BuildContext context, bool isDark) {
     final List<Map<String, dynamic>> tabs = [
-      {'label': 'Overview & Telemetry', 'icon': Icons.badge_outlined},
-      {'label': 'Preferences & Habits', 'icon': Icons.tune_rounded},
+      {'label': 'Overview & Profile', 'icon': Icons.badge_outlined},
       {'label': 'Live Cart & Orders', 'icon': Icons.receipt_long_outlined},
       {'label': 'Wallet Ledger', 'icon': Icons.account_balance_wallet_outlined},
       {'label': 'Saved Wishlist', 'icon': Icons.favorite_border_rounded},
@@ -366,17 +365,14 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     });
   }
 
-  // 4. ACTIVE TAB CONTENT
   Widget _buildActiveTabContent(BuildContext context, CustomerDashboardData data, bool isDark) {
     return Obx(() {
       switch (controller.activeTabIndex.value) {
         case 1:
-          return _buildPreferencesTab(context, data, isDark);
-        case 2:
           return _buildLiveCartAndOrdersTab(context, data, isDark);
-        case 3:
+        case 2:
           return _buildWalletLedgerTab(context, data, isDark);
-        case 4:
+        case 3:
           return _buildWishlistTab(context, data, isDark);
         case 0:
         default:
@@ -385,12 +381,11 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     });
   }
 
-  // --- TAB 0: RE-ARCHITECTED OVERVIEW (CLEAN STRUCTURED TILES) ---
   Widget _buildOverviewTab(BuildContext context, CustomerDashboardData data, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Section A: Personal & Account Identity (Structured 4-Column Grid)
+        // Personal Profile Details
         Container(
           padding: const EdgeInsets.all(18),
           decoration: context.defaultDecoration,
@@ -405,7 +400,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                     child: const Icon(Icons.person_pin_rounded, color: AppColors.primaryRed, size: 18),
                   ),
                   const SizedBox(width: 10),
-                  Text('Personal & Account Identity', style: context.titleStyleActive.copyWith(fontSize: 14)),
+                  Text('Customer Profile Information', style: context.titleStyleActive.copyWith(fontSize: 14)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -420,11 +415,46 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                     children: [
                       SizedBox(
                         width: tileWidth,
-                        child: _buildInfoCardlet(context, label: 'Gender', value: data.profile.gender, icon: Icons.wc_outlined, isDark: isDark),
+                        child: _buildInfoCardlet(
+                          context,
+                          label: 'Full Name',
+                          value: data.profile.fullName,
+                          icon: Icons.badge_outlined,
+                          isDark: isDark,
+                        ),
                       ),
                       SizedBox(
                         width: tileWidth,
-                        child: _buildInfoCardlet(context, label: 'Date of Birth', value: data.profile.dob, icon: Icons.cake_outlined, isDark: isDark),
+                        child: _buildInfoCardlet(
+                          context,
+                          label: 'Phone',
+                          value: data.profile.phone,
+                          icon: Icons.phone_outlined,
+                          isDark: isDark,
+                          isCopyable: true,
+                        ),
+                      ),
+                      SizedBox(
+                        width: tileWidth,
+                        child: _buildInfoCardlet(
+                          context,
+                          label: 'Email',
+                          value: data.profile.email,
+                          icon: Icons.email_outlined,
+                          isDark: isDark,
+                          isCopyable: true,
+                        ),
+                      ),
+                      SizedBox(
+                        width: tileWidth,
+                        child: _buildInfoCardlet(
+                          context,
+                          label: 'Email Verified',
+                          value: data.profile.isEmailVerified ? 'Verified' : 'Unverified',
+                          icon: Icons.mark_email_read_outlined,
+                          isDark: isDark,
+                          statusColor: data.profile.isEmailVerified ? AppColors.statusGreenSuccess : AppColors.statusAmberWarning,
+                        ),
                       ),
                       SizedBox(
                         width: tileWidth,
@@ -451,29 +481,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                         width: tileWidth,
                         child: _buildInfoCardlet(
                           context,
-                          label: 'KYC Status',
-                          value: data.profile.kycStatus,
-                          icon: Icons.verified_user_outlined,
-                          isDark: isDark,
-                          statusColor: AppColors.statusGreenSuccess,
-                        ),
-                      ),
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Account Status',
-                          value: data.profile.accountStatus,
-                          icon: Icons.shield_outlined,
-                          isDark: isDark,
-                          statusColor: data.profile.accountStatus == 'ACTIVE' ? AppColors.statusGreenSuccess : AppColors.statusRedError,
-                        ),
-                      ),
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Joined On',
+                          label: 'Account Created',
                           value: EntityDetailsDialogHelper.formatDate(DateTime.tryParse(data.profile.createdAt)),
                           icon: Icons.calendar_today_outlined,
                           isDark: isDark,
@@ -498,7 +506,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
         ),
         const SizedBox(height: 16),
 
-        // Section B: Device & Application Telemetry
+        // Registered Addresses
         Container(
           padding: const EdgeInsets.all(18),
           decoration: context.defaultDecoration,
@@ -509,105 +517,11 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: AppColors.statusBlueInfo.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                    child: const Icon(Icons.phone_android_rounded, color: AppColors.statusBlueInfo, size: 18),
+                    decoration: BoxDecoration(color: AppColors.accentGoldAmber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    child: const Icon(Icons.location_on_rounded, color: AppColors.accentGoldAmber, size: 18),
                   ),
                   const SizedBox(width: 10),
-                  Text('Device Hardware & App Telemetry', style: context.titleStyleActive.copyWith(fontSize: 14)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final int columns = constraints.maxWidth < 650 ? 2 : (constraints.maxWidth < 1050 ? 3 : 5);
-                  final double tileWidth = (constraints.maxWidth - ((columns - 1) * 12)) / columns;
-
-                  return Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'App Version',
-                          value: data.deviceMeta.appVersion,
-                          icon: Icons.code_rounded,
-                          isDark: isDark,
-                        ),
-                      ),
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Platform & OS',
-                          value: '${data.deviceMeta.platform} (${data.deviceMeta.osVersion})',
-                          icon: Icons.devices_outlined,
-                          isDark: isDark,
-                        ),
-                      ),
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Device Model',
-                          value: data.deviceMeta.deviceModel,
-                          icon: Icons.smartphone_rounded,
-                          isDark: isDark,
-                        ),
-                      ),
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Push Notifications',
-                          value: data.deviceMeta.pushNotificationsEnabled ? 'Enabled' : 'Disabled',
-                          icon: Icons.notifications_active_outlined,
-                          isDark: isDark,
-                          statusColor: data.deviceMeta.pushNotificationsEnabled ? AppColors.statusGreenSuccess : AppColors.statusAmberWarning,
-                        ),
-                      ),
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Location Permission',
-                          value: data.deviceMeta.locationPermissionGranted ? 'Granted' : 'Denied',
-                          icon: Icons.my_location_rounded,
-                          isDark: isDark,
-                          statusColor: data.deviceMeta.locationPermissionGranted ? AppColors.statusGreenSuccess : AppColors.statusRedError,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Section C: Registered Delivery Addresses
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: context.defaultDecoration,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(color: AppColors.accentGoldAmber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                        child: const Icon(Icons.location_on_rounded, color: AppColors.accentGoldAmber, size: 18),
-                      ),
-                      const SizedBox(width: 10),
-                      Text('Registered Delivery Addresses (${data.addresses.length})', style: context.titleStyleActive.copyWith(fontSize: 14)),
-                    ],
-                  ),
+                  Text('Registered Delivery Addresses (${data.addresses.length})', style: context.titleStyleActive.copyWith(fontSize: 14)),
                 ],
               ),
               const SizedBox(height: 14),
@@ -682,15 +596,8 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(address.completeAddress, style: const TextStyle(fontSize: 12.5, height: 1.4)),
-                                  const SizedBox(height: 8),
-                                  const Divider(height: 8),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.person_outline, size: 14, color: Colors.grey),
-                                      const SizedBox(width: 4),
-                                      Text('${address.receiverName} (${address.receiverPhone})', style: context.captionStyle),
-                                    ],
-                                  ),
+                                  const SizedBox(height: 6),
+                                  Text('Coordinates: ${address.latitude}, ${address.longitude}', style: context.captionStyle),
                                 ],
                               ),
                             );
@@ -706,408 +613,6 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     );
   }
 
-  // --- TAB 1: RE-ARCHITECTED PREFERENCES (CLEAN METRICS & INSTRUCTIONS) ---
-  Widget _buildPreferencesTab(BuildContext context, CustomerDashboardData data, bool isDark) {
-    final prefs = data.preferences;
-    final support = data.support;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Section A: Shopping Habits (Cardlet Grid)
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: context.defaultDecoration,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: AppColors.accentGoldAmber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                    child: const Icon(Icons.shopping_basket_rounded, color: AppColors.accentGoldAmber, size: 18),
-                  ),
-                  const SizedBox(width: 10),
-                  Text('Grocery Habits & Purchase Behavior', style: context.titleStyleActive.copyWith(fontSize: 14)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final int columns = constraints.maxWidth < 650 ? 2 : (constraints.maxWidth < 1050 ? 3 : 5);
-                  final double tileWidth = (constraints.maxWidth - ((columns - 1) * 12)) / columns;
-
-                  return Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Dietary Preference',
-                          value: prefs.foodPreference,
-                          icon: Icons.restaurant_menu_rounded,
-                          isDark: isDark,
-                        ),
-                      ),
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Delivery Mode',
-                          value: prefs.preferredDeliveryType,
-                          icon: Icons.local_shipping_outlined,
-                          isDark: isDark,
-                        ),
-                      ),
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Preferred Slot',
-                          value: data.ordersMetrics.favoriteDeliverySlot,
-                          icon: Icons.access_time_rounded,
-                          isDark: isDark,
-                        ),
-                      ),
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Payment Mode',
-                          value: data.ordersMetrics.favoritePaymentMode,
-                          icon: Icons.payment_rounded,
-                          isDark: isDark,
-                        ),
-                      ),
-                      SizedBox(
-                        width: tileWidth,
-                        child: _buildInfoCardlet(
-                          context,
-                          label: 'Repeat Cycle',
-                          value: 'Every ${data.ordersMetrics.repeatOrderFrequencyDays} Days',
-                          icon: Icons.repeat_rounded,
-                          isDark: isDark,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Dispatch Delivery Instructions Call out
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.info_outline_rounded, color: AppColors.statusBlueInfo, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'PERMANENT DELIVERY INSTRUCTIONS',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(prefs.deliveryInstructions.withDashFallback, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              const Text(
-                'FREQUENTLY PURCHASED CATEGORIES:',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: prefs.frequentlyBoughtCategories.map((c) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(c.categoryName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: AppColors.primaryRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                          child: Text(
-                            '${c.ordersCount}x',
-                            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Section B: Recently Viewed Products & Vouchers
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final bool isWide = constraints.maxWidth > 850;
-            final double colWidth = isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth;
-
-            return Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                SizedBox(
-                  width: colWidth,
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: context.defaultDecoration,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Recently Viewed Products', style: context.titleStyleActive.copyWith(fontSize: 14)),
-                        const SizedBox(height: 12),
-                        if (prefs.recentlyViewed.isEmpty)
-                          const Text('No recently viewed items.', style: TextStyle(fontSize: 12, color: Colors.grey))
-                        else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: prefs.recentlyViewed.length,
-                            separatorBuilder: (_, _) => const Divider(height: 12),
-                            itemBuilder: (context, idx) {
-                              final p = prefs.recentlyViewed[idx];
-                              return ListTile(
-                                dense: true,
-                                contentPadding: EdgeInsets.zero,
-                                leading: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Icon(Icons.remove_red_eye_outlined, size: 16, color: Colors.grey),
-                                ),
-                                title: Text(p.itemName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                subtitle: Text(
-                                  'SKU: ${p.itemCode} | Viewed: ${EntityDetailsDialogHelper.formatDate(DateTime.tryParse(p.viewedAt))}',
-                                  style: context.captionStyle,
-                                ),
-                                trailing: Text(
-                                  p.price.toPrice(),
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
-                                ),
-                              );
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: colWidth,
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: context.defaultDecoration,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Vouchers & Coupon Analytics', style: context.titleStyleActive.copyWith(fontSize: 14)),
-                        const SizedBox(height: 12),
-                        if (prefs.availableVouchers.isNotEmpty) ...[
-                          const Text(
-                            'AVAILABLE VOUCHERS:',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 8),
-                          Column(
-                            children: prefs.availableVouchers.map((v) {
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.statusGreenSuccess.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: AppColors.statusGreenSuccess.withValues(alpha: 0.25)),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          v.voucherCode,
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.statusGreenSuccess),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(v.title, style: context.captionStyle),
-                                      ],
-                                    ),
-                                    Text('Min Cart: ${v.minCartValue.toPrice()}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        const Text(
-                          'REDEEMED COUPON HISTORY:',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: prefs.appliedCoupons.map((c) {
-                            return Chip(
-                              label: Text(
-                                '${c.couponCode} (Saved: ${c.discountAvailed.toPrice()})',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
-                              ),
-                              backgroundColor: AppColors.primaryRed.withValues(alpha: 0.08),
-                              side: BorderSide(color: AppColors.primaryRed.withValues(alpha: 0.25)),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Section C: Customer Support & Tickets
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: context.defaultDecoration,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(color: AppColors.statusGreenSuccess.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                        child: const Icon(Icons.support_agent_rounded, color: AppColors.statusGreenSuccess, size: 18),
-                      ),
-                      const SizedBox(width: 10),
-                      Text('Customer Support Tickets (${support.totalTickets})', style: context.titleStyleActive.copyWith(fontSize: 14)),
-                    ],
-                  ),
-                  Text(
-                    'Open: ${support.openTickets} | Resolved: ${support.resolvedTickets}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.statusGreenSuccess),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              if (support.recentTickets.isEmpty)
-                const Text('No support complaints or tickets raised.', style: TextStyle(fontSize: 12, color: Colors.grey))
-              else
-                Column(
-                  children: support.recentTickets.map((t) {
-                    final bool isResolved = t.status == 'RESOLVED';
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: isDark ? AppColors.borderSubtleDark : AppColors.borderSubtleSlate),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.headset_mic_outlined, color: isResolved ? AppColors.statusGreenSuccess : AppColors.statusRedError, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text('${t.ticketId}: ${t.subject}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: (t.priority == 'HIGH' ? AppColors.statusRedError : AppColors.accentGoldAmber).withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        t.priority,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: t.priority == 'HIGH' ? AppColors.statusRedError : AppColors.accentGoldAmber,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 3),
-                                Text(t.resolutionNotes ?? 'Ticket recorded on ${t.createdAt}', style: context.captionStyle),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: (isResolved ? AppColors.statusGreenSuccess : AppColors.statusAmberWarning).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              t.status,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: isResolved ? AppColors.statusGreenSuccess : AppColors.statusAmberWarning,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // --- TAB 2: LIVE CART & DETAILED ORDERS HISTORY ---
   Widget _buildLiveCartAndOrdersTab(BuildContext context, CustomerDashboardData data, bool isDark) {
     final cart = data.activeCart;
 
@@ -1137,7 +642,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                   ),
                   if (cart != null)
                     Text(
-                      'Total: ${cart.totalSalePrice.toPrice()} | MRP: ${cart.totalMrp.toPrice()} | Saved: ${cart.savings.toPrice()}',
+                      'Total: ${cart.cartTotalSalePrice.toPrice()} | MRP: ${cart.cartTotalMrp.toPrice()} | Saved: ${cart.cartSavings.toPrice()}',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.statusGreenSuccess),
                     ),
                 ],
@@ -1153,40 +658,55 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: cart.items.length,
-                  separatorBuilder: (_, _) => const Divider(height: 8),
+                  separatorBuilder: (_, _) => const Divider(height: 12),
                   itemBuilder: (context, index) {
                     final item = cart.items[index];
+                    final String imgUrl = item.displayImage;
+
                     return ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
-                      leading: item.imageUrl != null && item.imageUrl!.isNotEmpty
+                      leading: imgUrl.isNotEmpty
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(4),
                               child: CachedNetworkImage(
-                                imageUrl: item.imageUrl!,
-                                width: 36,
-                                height: 36,
+                                imageUrl: imgUrl.startsWith('http') ? imgUrl : '${ApiConstants.baseUrl}$imgUrl',
+                                width: 42,
+                                height: 42,
                                 fit: BoxFit.cover,
                                 errorWidget: (_, _, _) => const Icon(Icons.shopping_basket_outlined, size: 24),
                               ),
                             )
                           : Container(
-                              padding: const EdgeInsets.all(6),
+                              width: 42,
+                              height: 42,
+                              alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: isDark ? AppColors.surfaceSubtleSlate : AppColors.surfaceSubtleGray,
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                '${item.quantity}x',
+                                '${item.cartQuantity}x',
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primaryRed),
                               ),
                             ),
                       title: Text(item.itemName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                       subtitle: Text(
-                        'SKU: ${item.itemCode} | Qty: ${item.quantity} | Unit: ${item.unitPrice.toPrice()}',
+                        'SKU: ${item.itemCode} | Brand: ${item.companyName.isEmpty ? "—" : item.companyName} | Qty: ${item.cartQuantity} | Stock: ${item.saleableStock}',
                         style: context.captionStyle,
                       ),
-                      trailing: Text(item.totalPrice.toPrice(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(item.saleRate.toPrice(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          if (item.mrpRate != item.saleRate)
+                            Text(
+                              item.mrpRate.toPrice(),
+                              style: const TextStyle(fontSize: 11, decoration: TextDecoration.lineThrough, color: Colors.grey),
+                            ),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -1195,7 +715,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
         ),
         const SizedBox(height: 16),
 
-        // Recent Orders with Order Item Breakdown
+        // Recent Orders List
         Container(
           padding: const EdgeInsets.all(18),
           decoration: context.defaultDecoration,
@@ -1210,7 +730,7 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                     child: const Icon(Icons.receipt_long_outlined, color: AppColors.statusBlueInfo, size: 18),
                   ),
                   const SizedBox(width: 10),
-                  Text('Grocery Orders History & Item Breakdowns', style: context.titleStyleActive.copyWith(fontSize: 14)),
+                  Text('Recent Grocery Orders (${data.recentOrders.length})', style: context.titleStyleActive.copyWith(fontSize: 14)),
                 ],
               ),
               const SizedBox(height: 14),
@@ -1300,20 +820,16 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Wrap(
-                            spacing: 12,
+                            spacing: 14,
                             runSpacing: 4,
                             children: [
-                              Text('Slot: ${order.deliverySlot}', style: context.captionStyle),
+                              Text('Subtotal: ${order.subtotal.toPrice()}', style: context.captionStyle),
+                              Text('Handling: ${order.handlingCharge.toPrice()}', style: context.captionStyle),
+                              Text('Delivery: ${order.deliveryCharges.toPrice()}', style: context.captionStyle),
                               Text('Payment: ${order.paymentMode} (${order.paymentStatus})', style: context.captionStyle),
                               if (order.couponCode != null) Text('Coupon: ${order.couponCode}', style: context.captionStyle),
-                              if (order.deliveryPersonName != null) Text('Rider: ${order.deliveryPersonName}', style: context.captionStyle),
-                              if (order.cancellationReason != null)
-                                Text(
-                                  'Cancelled Reason: ${order.cancellationReason}',
-                                  style: const TextStyle(fontSize: 11, color: AppColors.statusRedError, fontWeight: FontWeight.w600),
-                                ),
                             ],
                           ),
                           if (order.orderItems.isNotEmpty) ...[
@@ -1326,7 +842,10 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text('${oi.quantity}x ${oi.itemName}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                      Text(
+                                        '${oi.quantity}x Item (Unit: ${oi.unitPrice.toPrice()})',
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                      ),
                                       Text(oi.totalPrice.toPrice(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                                     ],
                                   ),
@@ -1346,7 +865,6 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     );
   }
 
-  // --- TAB 3: WALLET LEDGER ---
   Widget _buildWalletLedgerTab(BuildContext context, CustomerDashboardData data, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -1394,23 +912,16 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                   ),
                   title: Text(txn.description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                   subtitle: Text(
-                    '${EntityDetailsDialogHelper.formatDate(DateTime.tryParse(txn.createdAt))} | Ref: ${txn.txnId}${txn.orderId != null ? " | Order: ${txn.orderId}" : ""}',
+                    '${EntityDetailsDialogHelper.formatDate(DateTime.tryParse(txn.createdAt))} | Ref ID: #${txn.txnId}',
                     style: context.captionStyle,
                   ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${isCredit ? "+" : "-"}${txn.amount.toPrice()}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: isCredit ? AppColors.statusGreenSuccess : AppColors.statusRedError,
-                        ),
-                      ),
-                      Text('Bal: ${txn.closingBalance.toPrice()}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                    ],
+                  trailing: Text(
+                    '${isCredit ? "+" : "-"}${txn.amount.toPrice()}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: isCredit ? AppColors.statusGreenSuccess : AppColors.statusRedError,
+                    ),
                   ),
                 );
               },
@@ -1420,7 +931,6 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
     );
   }
 
-  // --- TAB 4: SAVED WISH-LIST ---
   Widget _buildWishlistTab(BuildContext context, CustomerDashboardData data, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(18),
@@ -1441,6 +951,9 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
               runSpacing: 12,
               children: data.wishlistItems
                   .map((item) {
+                    final String imgUrl = item.displayImage;
+                    final bool inStock = (double.tryParse(item.saleableStock) ?? 0) > 0;
+
                     return Container(
                       width: 260,
                       padding: const EdgeInsets.all(12),
@@ -1452,12 +965,12 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (item.imageUrl != null && item.imageUrl!.isNotEmpty) ...[
+                          if (imgUrl.isNotEmpty) ...[
                             ClipRRect(
                               borderRadius: BorderRadius.circular(6),
                               child: CachedNetworkImage(
-                                imageUrl: item.imageUrl!,
-                                height: 100,
+                                imageUrl: imgUrl.startsWith('http') ? imgUrl : '${ApiConstants.baseUrl}$imgUrl',
+                                height: 110,
                                 width: double.infinity,
                                 fit: BoxFit.contain,
                                 errorWidget: (_, _, _) => const Center(child: Icon(Icons.broken_image_rounded, size: 32, color: Colors.grey)),
@@ -1467,18 +980,20 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                           ],
                           AppTableCellText(text: item.itemName, maxWidth: 240, maxLines: 2),
                           const SizedBox(height: 4),
-                          Text('SKU: ${item.itemCode}', style: context.captionStyle),
+                          Text('SKU: ${item.itemCode} | Barcode: ${item.barCode}', style: context.captionStyle),
+                          const SizedBox(height: 2),
+                          Text('Category: ${item.itemGroupName}', style: context.captionStyle),
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
                                 children: [
-                                  Text(item.salePrice.toPrice(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                  if (item.mrp != item.salePrice) ...[
+                                  Text(item.saleRate.toPrice(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  if (item.mrpRate != item.saleRate) ...[
                                     const SizedBox(width: 4),
                                     Text(
-                                      item.mrp.toPrice(),
+                                      item.mrpRate.toPrice(),
                                       style: const TextStyle(fontSize: 11, decoration: TextDecoration.lineThrough, color: Colors.grey),
                                     ),
                                   ],
@@ -1487,15 +1002,15 @@ class CustomerDashboardView extends GetView<CustomerDashboardController> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: (item.inStock ? AppColors.statusGreenSuccess : AppColors.statusRedError).withValues(alpha: 0.1),
+                                  color: (inStock ? AppColors.statusGreenSuccess : AppColors.statusRedError).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  item.inStock ? 'IN STOCK (${item.availableStock})' : 'OUT OF STOCK',
+                                  inStock ? 'STOCK (${item.saleableStock})' : 'OUT OF STOCK',
                                   style: TextStyle(
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.bold,
-                                    color: item.inStock ? AppColors.statusGreenSuccess : AppColors.statusRedError,
+                                    color: inStock ? AppColors.statusGreenSuccess : AppColors.statusRedError,
                                   ),
                                 ),
                               ),
