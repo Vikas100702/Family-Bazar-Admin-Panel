@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 abstract final class ApiConstants {
   const ApiConstants._();
 
-  // static const String baseUrl = "https://abctest.animationmedia.org";
-  static const String baseUrl = "https://ftest.animationmedia.org";
+  static const String baseUrl = "https://abctest.animationmedia.org";
+  // static const String baseUrl = "https://ftest.animationmedia.org";
   // static const String baseUrl = "http://192.168.1.10:8087";
   // static const String baseUrl = "http://172.20.10.10:8087";
   // static const String baseUrl = "http://10.57.50.67:8087";
@@ -94,8 +94,9 @@ abstract final class ApiConstants {
   static const String viewBannersApiEndpoint = "$baseUrl/api/banner/getBanner";
   static const String addBannersApiEndpoint = "$baseUrl/api/banner/saveBanner";
 
-  /// Customer Details and Wallet History APIs
+  /// Customer Details, Dashboard, and Wallet History APIs
   static const String viewCustomerDetailsApiEndpoint = "$baseUrl/api/customermanagement/customerDetails";
+  static const String viewCustomerDashboardApiEndpoint = "$baseUrl/api/customermanagement/customerDetailsForAdmin";
 
   /// Loyalty Program
   static const String getAvailableItemsApiEndpoint = '$baseUrl/api/loyalty/getAvailableItems';

@@ -47,9 +47,7 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
 
   final List<String> bannerTypeSuggestions = const <String>['home_slider', 'category_banner', 'deal_of_the_day', 'bottom_promo'];
 
-  // =========================================================================
-  // TARGET SELECTION STATE (OPTIONAL + MUTUAL EXCLUSIVE + CLEARABLE)
-  // =========================================================================
+  // TARGET SELECTION STATE
   final RxBool isAllSelected = false.obs;
   final RxnString selectedTargetType = RxnString();
   final RxnString selectedTargetItemCode = RxnString();
@@ -60,7 +58,7 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
   final RxBool isLoadingItems = false.obs;
   final TextEditingController searchItemTextCtrl = TextEditingController();
 
-  // 1. Toggle All Button (Tap karega toh All hoga, dubara tap karega toh unselect/empty ho jayega)
+  // Toggle All Button
   void toggleAllTarget() {
     if (isAllSelected.value) {
       clearAllTargetSelections();
@@ -74,7 +72,7 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     }
   }
 
-  // Pure target selection ko clear/empty karne ke liye
+  // Clear / Empty all target selections
   void clearAllTargetSelections() {
     isAllSelected.value = false;
     selectedTargetType.value = null;
@@ -84,7 +82,7 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     searchItemTextCtrl.clear();
   }
 
-  // 2. Dropdown 1 Selection Handler (All clear ho jayega)
+  // Dropdown 1 Selection Handler
   Future<void> onTargetTypeChanged(String? type) async {
     if (type == null) {
       clearAllTargetSelections();
@@ -99,14 +97,14 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     await loadItemsFromRepository(type);
   }
 
-  // 3. Dropdown 2 Selection Handler
+  // Dropdown 2 Item Selection Handler
   void onTargetItemSelected(String code, String name) {
     selectedTargetItemCode.value = code;
     selectedTargetItemName.value = name;
     searchItemTextCtrl.text = '$name ($code)';
   }
 
-  // API Call to fetch Items from injected repositories
+  // Load items from respective product repositories
   Future<void> loadItemsFromRepository(String type) async {
     isLoadingItems.value = true;
     currentTargetItems.clear();
@@ -233,24 +231,33 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     selectedImageName.value = null;
     isDetailsEditing.value = false;
 
-    // Check if banner target is specific prefix
-    final cleanType = banner.bnrType.trim().toLowerCase();
-    bool matched = false;
-    for (final type in targetTypeOptions) {
-      final prefix = '${type.toLowerCase()}_';
-      if (cleanType.startsWith(prefix)) {
-        final code = cleanType.replaceFirst(prefix, '').trim();
-        isAllSelected.value = false;
-        selectedTargetType.value = type;
-        selectedTargetItemCode.value = code;
-        selectedTargetItemName.value = code;
-        searchItemTextCtrl.text = code;
-        loadItemsFromRepository(type);
-        matched = true;
-        break;
+    // Check backend redirection_type
+    final redirType = banner.redirectionType?.trim().toLowerCase();
+    if (redirType == 'all') {
+      isAllSelected.value = true;
+      selectedTargetType.value = null;
+      selectedTargetItemCode.value = null;
+      selectedTargetItemName.value = null;
+      searchItemTextCtrl.clear();
+    } else if (redirType != null && redirType.isNotEmpty) {
+      isAllSelected.value = false;
+      // Match case-insensitively with Category, Subcategory, Brands, Group
+      final matchedType = targetTypeOptions.firstWhereOrNull((t) => t.toLowerCase() == redirType);
+
+      if (matchedType != null) {
+        selectedTargetType.value = matchedType;
+        selectedTargetItemCode.value = banner.code;
+        selectedTargetItemName.value = banner.name;
+        if (banner.name != null && banner.code != null) {
+          searchItemTextCtrl.text = '${banner.name} (${banner.code})';
+        } else if (banner.code != null) {
+          searchItemTextCtrl.text = banner.code!;
+        }
+        loadItemsFromRepository(matchedType);
+      } else {
+        clearAllTargetSelections();
       }
-    }
-    if (!matched) {
+    } else {
       clearAllTargetSelections();
     }
   }
@@ -265,8 +272,6 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
     selectedImageBytes.value = null;
     selectedImageName.value = null;
     isDetailsEditing.value = false;
-
-    // Default completely empty & unselected
     clearAllTargetSelections();
   }
 
@@ -281,6 +286,9 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
         status: targetStatus,
         startDate: banner.startDate,
         endDate: banner.endDate,
+        redirectionType: banner.redirectionType,
+        code: banner.code,
+        name: banner.name,
       );
       if (isClosed) return false;
       if (response.success) {
@@ -318,6 +326,9 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
           imageName: file.name,
           startDate: banner.startDate,
           endDate: banner.endDate,
+          redirectionType: banner.redirectionType,
+          code: banner.code,
+          name: banner.name,
         );
         if (isClosed) return;
         if (response.success) {
@@ -342,10 +353,24 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
       return false;
     }
 
-    // Optional Check: Only validate if user selected a target type but skipped selecting an item
     if (selectedTargetType.value != null && (selectedTargetItemCode.value == null || selectedTargetItemCode.value!.isEmpty)) {
       errorMessage(message: 'Please select an item for ${selectedTargetType.value} or clear the selection.');
       return false;
+    }
+
+    // Determine redirection payload fields
+    String? apiRedirectionType;
+    String? apiCode;
+    String? apiName;
+
+    if (isAllSelected.value) {
+      apiRedirectionType = 'all';
+      apiCode = null;
+      apiName = null;
+    } else if (selectedTargetType.value != null) {
+      apiRedirectionType = selectedTargetType.value!.toLowerCase();
+      apiCode = selectedTargetItemCode.value;
+      apiName = selectedTargetItemName.value;
     }
 
     _isActionLocked = true;
@@ -359,6 +384,9 @@ class AppBannersController extends BaseServerTableController<AppBannerDatum> {
         imageName: selectedImageName.value,
         startDate: startDateController.text.trim().isNotEmpty ? startDateController.text.trim() : null,
         endDate: endDateController.text.trim().isNotEmpty ? endDateController.text.trim() : null,
+        redirectionType: apiRedirectionType,
+        code: apiCode,
+        name: apiName,
       );
       if (isClosed) return false;
       if (response.success) {
