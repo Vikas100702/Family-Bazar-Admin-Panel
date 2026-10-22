@@ -5,6 +5,7 @@ import 'package:family_bazar_admin_panel/src/core/global_components/view/paginat
 import 'package:family_bazar_admin_panel/src/core/global_components/view/status_badge.dart';
 import 'package:family_bazar_admin_panel/src/core/global_components/view/table_header_widget.dart';
 import 'package:family_bazar_admin_panel/src/core/utils/extensions/style_extensions.dart';
+import 'package:family_bazar_admin_panel/src/core/utils/helpers/dialog_helper.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/app_settings/loyalty_prog/controller/loyalty_prog_controller.dart';
 import 'package:family_bazar_admin_panel/src/modules/dashboard/modules/settings/app_settings/loyalty_prog/models/view_loyalty_rules_model.dart';
 import 'package:flutter/material.dart';
@@ -161,14 +162,14 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
           AppTableCellText(
             text: rule.ruleName.withDashFallback,
             maxWidth: 180,
-            maxLines: 1,
+            maxLines: 3,
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
         DataCell(AppTableCellText(text: rangeStr, style: const TextStyle(fontSize: 12))),
         DataCell(
           AppTableCellText(
-            text: rule.pointsValue.toCurrency(),
+            text: rule.pointsValue.toString(),
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryRed),
           ),
         ),
@@ -184,13 +185,31 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
           }),
         ),
         DataCell(
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            mouseCursor: SystemMouseCursors.click,
-            color: AppColors.statusBlueInfo,
-            tooltip: 'Edit Rule',
-            splashRadius: 18,
-            onPressed: () => controller.openEditForm(rule),
+          Row(
+            mainAxisSize: .min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                mouseCursor: SystemMouseCursors.click,
+                color: AppColors.statusBlueInfo,
+                tooltip: 'Edit Rule',
+                splashRadius: 18,
+                onPressed: () => controller.openEditForm(rule),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                mouseCursor: SystemMouseCursors.click,
+                color: context.isDark ? AppColors.primaryRedLight : AppColors.primaryRedDark,
+                tooltip: 'Delete Rule',
+                splashRadius: 18,
+                onPressed: () => DialogHelper.showDeleteDialog(
+                  title: 'Delete Loyalty Rule',
+                  itemName: 'Rule #${rule.id})',
+                  message: 'Are you sure you want to delete this banner permanently?',
+                  onConfirm: () => controller.deleteRule(rule.id),
+                ),
+              ),
+            ],
           ),
         ),
       ],
