@@ -78,6 +78,9 @@ class AppBannerDatum {
   final int status;
   final String? startDate;
   final String? endDate;
+  final String? redirectionType; // 🌟 Added
+  final String? code; // 🌟 Added
+  final String? name; // 🌟 Added
   final String created;
   final String updated;
 
@@ -88,11 +91,25 @@ class AppBannerDatum {
     this.status = 1,
     this.startDate,
     this.endDate,
+    this.redirectionType,
+    this.code,
+    this.name,
     this.created = '',
     this.updated = '',
   });
 
-  const AppBannerDatum.empty() : id = 0, bnrType = '', bnrImg = '', status = 1, startDate = null, endDate = null, created = '', updated = '';
+  const AppBannerDatum.empty()
+    : id = 0,
+      bnrType = '',
+      bnrImg = '',
+      status = 1,
+      startDate = null,
+      endDate = null,
+      redirectionType = null,
+      code = null,
+      name = null,
+      created = '',
+      updated = '';
 
   factory AppBannerDatum.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const AppBannerDatum.empty();
@@ -104,6 +121,9 @@ class AppBannerDatum {
       status: _parseStatus(json['status']),
       startDate: _parseNullableDate(json['start_date']),
       endDate: _parseNullableDate(json['end_date']),
+      redirectionType: _parseNullableString(json['redirection_type']),
+      code: _parseNullableString(json['code']),
+      name: _parseNullableString(json['name']),
       created: _parseCleanString(json['created'] ?? json['created_at']),
       updated: _parseCleanString(json['updated'] ?? json['updated_at']),
     );
@@ -116,11 +136,26 @@ class AppBannerDatum {
     'status': status,
     'start_date': startDate,
     'end_date': endDate,
+    'redirection_type': redirectionType,
+    'code': code,
+    'name': name,
     'created': created,
     'updated': updated,
   };
 
-  AppBannerDatum copyWith({int? id, String? bnrType, String? bnrImg, int? status, String? startAt, String? endAt, String? created, String? updated}) {
+  AppBannerDatum copyWith({
+    int? id,
+    String? bnrType,
+    String? bnrImg,
+    int? status,
+    String? startAt,
+    String? endAt,
+    String? redirectionType,
+    String? code,
+    String? name,
+    String? created,
+    String? updated,
+  }) {
     return AppBannerDatum(
       id: id ?? this.id,
       bnrType: bnrType ?? this.bnrType,
@@ -128,6 +163,9 @@ class AppBannerDatum {
       status: status ?? this.status,
       startDate: startAt ?? startDate,
       endDate: endAt ?? endDate,
+      redirectionType: redirectionType ?? this.redirectionType,
+      code: code ?? this.code,
+      name: name ?? this.name,
       created: created ?? this.created,
       updated: updated ?? this.updated,
     );
@@ -155,6 +193,13 @@ class AppBannerDatum {
     if (val == null) return '';
     final String str = val.toString().trim();
     if (str == 'null' || str == 'undefined') return '';
+    return str;
+  }
+
+  static String? _parseNullableString(dynamic val) {
+    if (val == null) return null;
+    final String str = val.toString().trim();
+    if (str.isEmpty || str == 'null' || str == 'undefined') return null;
     return str;
   }
 
