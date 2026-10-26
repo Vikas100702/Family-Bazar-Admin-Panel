@@ -111,4 +111,5 @@ abstract final class ApiConstants {
 
   /// Delete API
   static const String deleteApiEndpoint = "$baseUrl/api/common/delete";
+  static const String deletePermanentApiEndpoint = "$baseUrl/api/common/delete-permanently";
 }

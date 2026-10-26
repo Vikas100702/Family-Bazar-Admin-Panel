@@ -100,7 +100,7 @@ class LoyaltyRepository with CommonDeleteMixin {
   Future<SavePointsSettingsModel> savePointsSettings({
     int? id,
     required double rupeesPerPoint,
-    required double pointsPerRupee,
+    required int pointsPerRupee,
     required String loyaltyConflictPriority,
     required num newCustReward,
     required num custReffReward,
@@ -108,7 +108,7 @@ class LoyaltyRepository with CommonDeleteMixin {
     const String endpoint = ApiConstants.savePointsSettingsApiEndpoint;
     final Map<String, dynamic> payload = <String, dynamic>{
       if (id != null && id > 0) 'id': id,
-      'rupees_per_point': rupeesPerPoint,
+      'rupees_per_point': 0.00,
       'points_per_rupee': pointsPerRupee,
       'loyalty_conflict_priority': loyaltyConflictPriority.trim(),
       'new_cust_reward': newCustReward,

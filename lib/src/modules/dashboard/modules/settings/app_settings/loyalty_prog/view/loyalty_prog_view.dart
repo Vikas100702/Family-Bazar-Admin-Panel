@@ -272,14 +272,14 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildTextField(
-                          label: 'Rupees Per Point (₹) *',
-                          hint: '0.50',
-                          controller: controller.rupeesPerPointCtrl,
-                          isDark: isDark,
-                          isDecimal: true,
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                        ),
+                        // _buildTextField(
+                        //   label: 'Rupees Per Point (₹) *',
+                        //   hint: '0.50',
+                        //   controller: controller.rupeesPerPointCtrl,
+                        //   isDark: isDark,
+                        //   isDecimal: true,
+                        //   validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                        // ),
                         const SizedBox(height: 16),
                         _buildTextField(
                           label: 'Points Per Rupee *',
@@ -318,16 +318,16 @@ class LoyaltyProgView extends GetView<LoyaltyProgController> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: _buildTextField(
-                                label: 'Rupees Per Point (₹) *',
-                                hint: '0.50',
-                                controller: controller.rupeesPerPointCtrl,
-                                isDark: isDark,
-                                isDecimal: true,
-                                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                              ),
-                            ),
+                            // Expanded(
+                            //   child: _buildTextField(
+                            //     label: 'Rupees Per Point (₹) *',
+                            //     hint: '0.50',
+                            //     controller: controller.rupeesPerPointCtrl,
+                            //     isDark: isDark,
+                            //     isDecimal: true,
+                            //     validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                            //   ),
+                            // ),
                             const SizedBox(width: 18),
                             Expanded(
                               child: _buildTextField(

@@ -325,7 +325,7 @@ class LoyaltyProgController extends BaseServerTableController<LoyaltyRuleDatum> 
     if (!pointsSettingsFormKey.currentState!.validate()) return false;
 
     final double? rupeesPerPt = double.tryParse(rupeesPerPointCtrl.text.trim());
-    final double? ptsPerRupee = double.tryParse(pointsPerRupeeCtrl.text.trim());
+    final int? ptsPerRupee = int.tryParse(pointsPerRupeeCtrl.text.trim());
     final num? newReward = num.tryParse(newCustRewardCtrl.text.trim());
     final num? reffReward = num.tryParse(custReffRewardCtrl.text.trim());
 

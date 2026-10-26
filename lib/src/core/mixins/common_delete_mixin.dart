@@ -7,12 +7,13 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 mixin CommonDeleteMixin {
   ApiClient get apiClient;
 
-  Future<CommonDeleteModel> executeDelete({required String tableName, required int id}) async {
+  Future<CommonDeleteModel> executeDelete({required String tableName, required int id, bool isPermanent = false}) async {
     const String endpoint = ApiConstants.deleteApiEndpoint;
+    const String permanentEndpoint = ApiConstants.deletePermanentApiEndpoint;
     final Map<String, dynamic> payload = <String, dynamic>{'tablename': tableName.trim(), 'id': id.toString().trim()};
 
     try {
-      final Response<dynamic> response = await apiClient.dio.post(endpoint, data: payload);
+      final Response<dynamic> response = await apiClient.dio.post(isPermanent ? permanentEndpoint : endpoint, data: payload);
 
       if (response.data != null && response.data is Map<String, dynamic>) {
         return CommonDeleteModel.fromJson(response.data as Map<String, dynamic>);

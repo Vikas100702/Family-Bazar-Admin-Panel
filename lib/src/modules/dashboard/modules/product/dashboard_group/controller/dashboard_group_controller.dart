@@ -467,10 +467,33 @@ class DashboardGroupController extends BaseTableController<ViewItemByTypeDatum> 
     return isSuccess;
   }
 
+  Future<bool> hasItems(int groupId) async {
+    // If the same group is open, we can directly check the length of the active list
+    if (selectedGroupId.value == groupId && allGroupItems.isNotEmpty) {
+      return true;
+    }
+    // If deleting another group tab, check via the API
+    try {
+      final res = await _groupRepository.viewGroupItems(groupId: groupId);
+      return res.success && res.data.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> deleteGroup(ViewDashboardGroupDatum group) async {
     if (_isActionLocked) return false;
     if (group.id == 0) {
       errorMessage(message: 'Invalid group selected.');
+      return false;
+    }
+
+    final bool groupHasItems = await hasItems(group.id);
+    if (groupHasItems) {
+      errorMessage(
+        title: 'Cannot Delete Group',
+        message: 'This group contains items. Please remove or delete all items from "${group.dgName}" first.',
+      );
       return false;
     }
 

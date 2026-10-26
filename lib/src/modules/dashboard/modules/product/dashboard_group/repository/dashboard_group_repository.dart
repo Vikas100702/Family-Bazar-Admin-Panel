@@ -9,8 +9,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 class DashboardGroupRepository with CommonDeleteMixin {
   final ApiClient _apiClient;
-
-  const DashboardGroupRepository({required ApiClient apiClient}) : _apiClient = apiClient;
+  const DashboardGroupRepository({required this._apiClient});
 
   @override
   ApiClient get apiClient => _apiClient;
@@ -87,7 +86,7 @@ class DashboardGroupRepository with CommonDeleteMixin {
   }
 
   Future<CommonDeleteModel> deleteGroup({required int groupId}) {
-    return executeDelete(tableName: 'DashboardGroup', id: groupId);
+    return executeDelete(tableName: 'DashboardGroup', id: groupId, isPermanent: true);
   }
 
   Future<ViewItemByTypeModel> viewGroupItems({required int groupId}) async {

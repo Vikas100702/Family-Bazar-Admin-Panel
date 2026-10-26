@@ -267,13 +267,33 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
                         splashRadius: 12,
                         tooltip: 'Delete Group',
                         color: isSelected ? Colors.white : (isDark ? AppColors.primaryRedLight : AppColors.primaryRedDark),
-                        onPressed: () => DialogHelper.showDeleteDialog(
-                          title: 'Delete Dashboard Group',
-                          itemName: group.dgName,
-                          message:
-                              'Are you sure you want to delete group "${group.dgName.trim()}"? Items associated with this group will be unlinked.',
-                          onConfirm: () => controller.deleteGroup(group),
-                        ),
+                        onPressed: () async {
+                          // 1. If the current group is active and has items in the table
+                          final bool isCurrentGroupWithItems = controller.selectedGroupId.value == group.id && controller.allGroupItems.isNotEmpty;
+
+                          // 2. If it is another tab, check via the controller
+                          final bool hasItems = isCurrentGroupWithItems || await controller.hasItems(group.id);
+
+                          if (!context.mounted) return;
+
+                          if (hasItems) {
+                            // If items exist, show an error popup and stop the process
+                            controller.errorMessage(
+                              title: 'Action Denied',
+                              message:
+                                  'The group "${group.dgName.trim()}" contains items. Please delete or remove all items before attempting to delete this group.',
+                            );
+                            return;
+                          }
+
+                          // Only show confirmation dialog if the group is empty
+                          DialogHelper.showDeleteDialog(
+                            title: 'Delete Dashboard Group',
+                            itemName: group.dgName,
+                            message: 'Are you sure you want to delete empty group "${group.dgName.trim()}"?',
+                            onConfirm: () => controller.deleteGroup(group),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -305,14 +325,14 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
         onItemsPerPageChanged: controller.changePageSize,
         columns: const [
           DataColumn(label: Text('ITEM CODE')),
-          DataColumn(label: Text('FIRM CODE')),
           DataColumn(label: Text('IMAGES')),
           DataColumn(label: Text('ITEM NAME')),
-          DataColumn(label: Text('CATEGORY')),
-          DataColumn(label: Text('SUB-CATEGORY')),
           DataColumn(label: Text('ITEM MRP')),
           DataColumn(label: Text('SALES PRICE')),
           DataColumn(label: Text('STOCK')),
+          DataColumn(label: Text('FIRM CODE')),
+          DataColumn(label: Text('CATEGORY')),
+          DataColumn(label: Text('SUB-CATEGORY')),
           DataColumn(label: Text('STATUS')),
           DataColumn(label: Text('ACTIONS')),
         ],
@@ -333,7 +353,6 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
         ),
-        DataCell(AppTableCellText(text: item.iFirmCode.withDashFallback, maxWidth: 100)),
         DataCell(
           TableImageCellWidget(
             webImageUrl: item.imImageWeb.trim(),
@@ -359,8 +378,6 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
             style: const TextStyle(fontWeight: FontWeight.w500),
           ),
         ),
-        DataCell(AppTableCellText(text: item.iItemGroup.withDashFallback, maxWidth: 130)),
-        DataCell(AppTableCellText(text: item.iOtherGroup.withDashFallback, maxWidth: 130)),
         DataCell(
           AppTableCellText(
             text: item.sbMRate.toString().toPrice(),
@@ -387,6 +404,9 @@ class DashboardGroupView extends GetView<DashboardGroupController> {
             },
           ),
         ),
+        DataCell(AppTableCellText(text: item.iFirmCode.withDashFallback, maxWidth: 100)),
+        DataCell(AppTableCellText(text: item.itemGroupName.withDashFallback, maxWidth: 130)),
+        DataCell(AppTableCellText(text: item.otherGroupName.withDashFallback, maxWidth: 130)),
         DataCell(StatusBadge(statusValue: item.iStatus, activeLabel: 'Active', inactiveLabel: 'Inactive')),
         DataCell(
           Row(
